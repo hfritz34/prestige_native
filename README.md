@@ -1,2 +1,2 @@
-# native_prestige
+# prestige_native
 Prestige Native for IOS

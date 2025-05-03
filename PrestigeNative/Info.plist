@@ -1,0 +1,33 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+	<key>Auth0ClientId</key>
+	<string>NZ5N1xnHOdgdVuXNPoBuNydMhg83Oe0p</string>
+	<key>Auth0Domain</key>
+	<string>dev-tfgyd3i2jqk0igxv.us.auth0.com</string>
+	<key>CFBundleURLTypes</key>
+	<array>
+		<dict>
+			<key>CFBundleTypeRole</key>
+			<string>Editor</string>
+			<key>CFBundleURLName</key>
+			<string>com.prestige.PrestigeNative</string>
+			<key>CFBundleURLSchemes</key>
+			<array>
+				<string>com.prestige.PrestigeNative</string>
+			</array>
+		</dict>
+		<dict>
+			<key>CFBundleTypeRole</key>
+			<string>Editor</string>
+			<key>CFBundleURLName</key>
+			<string>b</string>
+			<key>CFBundleURLSchemes</key>
+			<array>
+				<string>b</string>
+			</array>
+		</dict>
+	</array>
+</dict>
+</plist>

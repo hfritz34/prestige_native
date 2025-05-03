@@ -1,8 +1,9 @@
 # prestige_native
 Prestige Native for IOS
+
 Prestige - A Music Social Media Revolution 🎵✨
 
-Prestige is a PWA that redefines how we experience, share, and connect over music. At its core, Prestige assigns a level of prestige based on the time you spend with your favorite albums, songs, and artists. Compete with friends, share your unique music journey, and use your listening habits as a conversation starter.
+Prestige is an app that redefines how we experience, share, and connect over music. At its core, Prestige assigns a level of prestige based on the time you spend with your favorite albums, songs, and artists. Compete with friends, share your unique music journey, and use your listening habits as a conversation starter.
 
 🌟 Key Features:
 

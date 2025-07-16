@@ -103,10 +103,16 @@ class APIClient: ObservableObject {
         return request
     }
     
-    /// Get authentication token (placeholder for AuthManager integration)
+    /// Get authentication token from AuthManager
     private func getAuthToken() async -> String? {
-        // TODO: Integrate with AuthManager once implemented
-        return nil
+        do {
+            // This will be injected properly when we set up dependency injection
+            let authManager = AuthManager()
+            return try await authManager.getAccessToken()
+        } catch {
+            await MainActor.run { lastError = .authenticationError }
+            return nil
+        }
     }
     
     // MARK: - Public API Methods

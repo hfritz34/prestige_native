@@ -109,7 +109,7 @@ struct APIErrorResponse: Codable {
 }
 
 /// Custom API errors
-enum APIError: Error, LocalizedError {
+enum APIError: Error, LocalizedError, Equatable {
     case invalidResponse
     case decodingError(Error)
     case httpError(statusCode: Int, message: String?)
@@ -134,6 +134,25 @@ enum APIError: Error, LocalizedError {
             return "No data received"
         case .invalidURL:
             return "Invalid URL"
+        }
+    }
+    
+    // MARK: - Equatable Implementation
+    
+    static func == (lhs: APIError, rhs: APIError) -> Bool {
+        switch (lhs, rhs) {
+        case (.invalidResponse, .invalidResponse),
+             (.authenticationError, .authenticationError),
+             (.noData, .noData),
+             (.invalidURL, .invalidURL):
+            return true
+        case let (.httpError(lhsCode, lhsMessage), .httpError(rhsCode, rhsMessage)):
+            return lhsCode == rhsCode && lhsMessage == rhsMessage
+        case let (.decodingError(lhsError), .decodingError(rhsError)),
+             let (.networkError(lhsError), .networkError(rhsError)):
+            return lhsError.localizedDescription == rhsError.localizedDescription
+        default:
+            return false
         }
     }
 }

@@ -85,7 +85,7 @@ struct LoginView: View {
         }
         .background(
             LinearGradient(
-                colors: [Color(.systemBackground), Color(.systemGray6)],
+                colors: [Color.primary.opacity(0.05), Color.gray.opacity(0.1)],
                 startPoint: .top,
                 endPoint: .bottom
             )
@@ -97,7 +97,7 @@ struct LoginView: View {
         } message: {
             Text(viewModel.error?.localizedDescription ?? "An error occurred")
         }
-        .onChange(of: viewModel.error) { error in
+        .onChange(of: viewModel.error) { _, error in
             showingError = error != nil
         }
     }

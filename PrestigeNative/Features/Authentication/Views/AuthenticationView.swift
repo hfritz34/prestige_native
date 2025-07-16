@@ -28,9 +28,11 @@ struct AuthenticationView: View {
 
 // Placeholder for main app content
 struct MainTabView: View {
+    @EnvironmentObject var authManager: AuthManager
+    
     var body: some View {
         TabView {
-            Text("Home")
+            HomeView()
                 .tabItem {
                     Image(systemName: "house")
                     Text("Home")
@@ -48,11 +50,21 @@ struct MainTabView: View {
                     Text("Friends")
                 }
             
-            Text("Settings")
-                .tabItem {
-                    Image(systemName: "gear")
-                    Text("Settings")
+            VStack {
+                Text("Settings")
+                
+                Button("Logout") {
+                    authManager.logout()
                 }
+                .padding()
+                .background(Color.red)
+                .foregroundColor(.white)
+                .cornerRadius(8)
+            }
+            .tabItem {
+                Image(systemName: "gear")
+                Text("Settings")
+            }
         }
     }
 }

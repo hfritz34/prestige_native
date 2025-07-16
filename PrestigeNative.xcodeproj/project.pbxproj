@@ -10,8 +10,6 @@
 		84E834952E275BF100F81402 /* PRESTIGE_APPLICATION_OVERVIEW.txt in Resources */ = {isa = PBXBuildFile; fileRef = 84E834912E275BF100F81402 /* PRESTIGE_APPLICATION_OVERVIEW.txt */; };
 		84E834962E275BF100F81402 /* PRESTIGE_FILE_STRUCTURE_GUIDE.md in Resources */ = {isa = PBXBuildFile; fileRef = 84E834922E275BF100F81402 /* PRESTIGE_FILE_STRUCTURE_GUIDE.md */; };
 		84E834972E275BF100F81402 /* PRESTIGE_IOS_MIGRATION_GUIDE.md in Resources */ = {isa = PBXBuildFile; fileRef = 84E834932E275BF100F81402 /* PRESTIGE_IOS_MIGRATION_GUIDE.md */; };
-		84E834982E275BF100F81402 /* PRESTIGE_SWIFTUI_COMPONENTS.swift in Sources */ = {isa = PBXBuildFile; fileRef = 84E834942E275BF100F81402 /* PRESTIGE_SWIFTUI_COMPONENTS.swift */; };
-		84E834992E275BF100F81402 /* PRESTIGE_API_MODELS_REFERENCE.swift in Sources */ = {isa = PBXBuildFile; fileRef = 84E834902E275BF100F81402 /* PRESTIGE_API_MODELS_REFERENCE.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -35,16 +33,27 @@
 		84AAB8BA2DA4067A007ADD39 /* PrestigeNative.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = PrestigeNative.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		84AAB8C82DA4067B007ADD39 /* PrestigeNativeTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = PrestigeNativeTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 		84AAB8D22DA4067B007ADD39 /* PrestigeNativeUITests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = PrestigeNativeUITests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
-		84E834902E275BF100F81402 /* PRESTIGE_API_MODELS_REFERENCE.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PRESTIGE_API_MODELS_REFERENCE.swift; sourceTree = "<group>"; };
 		84E834912E275BF100F81402 /* PRESTIGE_APPLICATION_OVERVIEW.txt */ = {isa = PBXFileReference; lastKnownFileType = text; path = PRESTIGE_APPLICATION_OVERVIEW.txt; sourceTree = "<group>"; };
 		84E834922E275BF100F81402 /* PRESTIGE_FILE_STRUCTURE_GUIDE.md */ = {isa = PBXFileReference; lastKnownFileType = net.daringfireball.markdown; path = PRESTIGE_FILE_STRUCTURE_GUIDE.md; sourceTree = "<group>"; };
 		84E834932E275BF100F81402 /* PRESTIGE_IOS_MIGRATION_GUIDE.md */ = {isa = PBXFileReference; lastKnownFileType = net.daringfireball.markdown; path = PRESTIGE_IOS_MIGRATION_GUIDE.md; sourceTree = "<group>"; };
-		84E834942E275BF100F81402 /* PRESTIGE_SWIFTUI_COMPONENTS.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PRESTIGE_SWIFTUI_COMPONENTS.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
+
+/* Begin PBXFileSystemSynchronizedBuildFileExceptionSet section */
+		84E834DF2E276D6A00F81402 /* Exceptions for "PrestigeNative" folder in "PrestigeNative" target */ = {
+			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
+			membershipExceptions = (
+				Info.plist,
+			);
+			target = 84AAB8B92DA4067A007ADD39 /* PrestigeNative */;
+		};
+/* End PBXFileSystemSynchronizedBuildFileExceptionSet section */
 
 /* Begin PBXFileSystemSynchronizedRootGroup section */
 		84AAB8BC2DA4067A007ADD39 /* PrestigeNative */ = {
 			isa = PBXFileSystemSynchronizedRootGroup;
+			exceptions = (
+				84E834DF2E276D6A00F81402 /* Exceptions for "PrestigeNative" folder in "PrestigeNative" target */,
+			);
 			path = PrestigeNative;
 			sourceTree = "<group>";
 		};
@@ -92,11 +101,9 @@
 				84AAB8CB2DA4067B007ADD39 /* PrestigeNativeTests */,
 				84AAB8D52DA4067B007ADD39 /* PrestigeNativeUITests */,
 				84AAB8BB2DA4067A007ADD39 /* Products */,
-				84E834902E275BF100F81402 /* PRESTIGE_API_MODELS_REFERENCE.swift */,
 				84E834912E275BF100F81402 /* PRESTIGE_APPLICATION_OVERVIEW.txt */,
 				84E834922E275BF100F81402 /* PRESTIGE_FILE_STRUCTURE_GUIDE.md */,
 				84E834932E275BF100F81402 /* PRESTIGE_IOS_MIGRATION_GUIDE.md */,
-				84E834942E275BF100F81402 /* PRESTIGE_SWIFTUI_COMPONENTS.swift */,
 			);
 			sourceTree = "<group>";
 		};
@@ -257,8 +264,6 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				84E834982E275BF100F81402 /* PRESTIGE_SWIFTUI_COMPONENTS.swift in Sources */,
-				84E834992E275BF100F81402 /* PRESTIGE_API_MODELS_REFERENCE.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -415,7 +420,8 @@
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
 				ENABLE_PREVIEWS = YES;
-				GENERATE_INFOPLIST_FILE = YES;
+				GENERATE_INFOPLIST_FILE = NO;
+				"INFOPLIST_FILE[sdk=*]" = PrestigeNative/Info.plist;
 				"INFOPLIST_KEY_UIApplicationSceneManifest_Generation[sdk=iphoneos*]" = YES;
 				"INFOPLIST_KEY_UIApplicationSceneManifest_Generation[sdk=iphonesimulator*]" = YES;
 				"INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents[sdk=iphoneos*]" = YES;
@@ -452,7 +458,8 @@
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
 				ENABLE_PREVIEWS = YES;
-				GENERATE_INFOPLIST_FILE = YES;
+				GENERATE_INFOPLIST_FILE = NO;
+				"INFOPLIST_FILE[sdk=*]" = PrestigeNative/Info.plist;
 				"INFOPLIST_KEY_UIApplicationSceneManifest_Generation[sdk=iphoneos*]" = YES;
 				"INFOPLIST_KEY_UIApplicationSceneManifest_Generation[sdk=iphonesimulator*]" = YES;
 				"INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents[sdk=iphoneos*]" = YES;

@@ -167,7 +167,7 @@ struct AuthUser: Codable {
     let profilePictureUrl: String?
 }
 
-enum AuthError: Error, LocalizedError {
+enum AuthError: Error, LocalizedError, Equatable {
     case notAuthenticated
     case loginFailed(String)
     case logoutFailed(String)

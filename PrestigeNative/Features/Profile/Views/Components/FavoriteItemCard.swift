@@ -13,7 +13,7 @@ struct FavoriteItemCard: View {
     var body: some View {
         VStack(alignment: .leading, spacing: 8) {
             // Track image
-            AsyncImage(url: URL(string: track.imageUrl)) { image in
+            AsyncImage(url: URL(string: track.album.images.first?.url ?? "")) { image in
                 image
                     .resizable()
                     .aspectRatio(contentMode: .fill)
@@ -31,7 +31,7 @@ struct FavoriteItemCard: View {
                     .fontWeight(.medium)
                     .lineLimit(2)
                 
-                Text(track.artistName)
+                Text(track.artists.first?.name ?? "Unknown Artist")
                     .font(.caption)
                     .foregroundColor(.secondary)
                     .lineLimit(1)
@@ -54,11 +54,9 @@ struct FavoriteItemCard: View {
         track: TrackResponse(
             id: "1",
             name: "Favorite Song",
-            imageUrl: "https://via.placeholder.com/300",
-            spotifyUrl: "",
-            albumName: "Favorite Album",
-            artistName: "Favorite Artist",
-            durationMs: 180000
+            duration_ms: 180000,
+            album: .init(id: "album_id", name: "Favorite Album", images: []),
+            artists: [.init(id: "artist_id", name: "Favorite Artist")]
         )
     )
     .padding()

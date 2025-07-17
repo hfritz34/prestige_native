@@ -21,7 +21,7 @@ struct PrestigeArtistRow: View {
                 .frame(width: 30)
             
             // Artist image
-            AsyncImage(url: URL(string: artist.artist.artistImageUrl)) { image in
+            AsyncImage(url: URL(string: artist.artist.images.first?.url ?? "")) { image in
                 image
                     .resizable()
                     .aspectRatio(contentMode: .fill)
@@ -96,8 +96,7 @@ struct PrestigeArtistRow: View {
             artist: ArtistResponse(
                 id: "1",
                 name: "Sample Artist",
-                images: [ImageResponse(url: "https://via.placeholder.com/300", height: 300, width: 300)],
-                spotifyUrl: ""
+                images: [ImageResponse(url: "https://via.placeholder.com/300", height: 300, width: 300)]
             ),
             userId: "user1"
         ),

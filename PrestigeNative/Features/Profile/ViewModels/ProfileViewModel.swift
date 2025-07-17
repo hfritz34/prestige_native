@@ -32,7 +32,7 @@ class ProfileViewModel: ObservableObject {
     }
     
     var totalUniqueArtists: Int {
-        Set(topTracks.map { $0.track.artistName }).count
+        Set(topTracks.flatMap { $0.track.artists.map { $0.name } }).count
     }
     
     var topPrestigeLevel: PrestigeLevel {

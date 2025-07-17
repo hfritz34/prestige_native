@@ -21,7 +21,7 @@ struct PrestigeTrackRow: View {
                 .frame(width: 30)
             
             // Track image
-            AsyncImage(url: URL(string: track.track.imageUrl)) { image in
+            AsyncImage(url: URL(string: track.track.album.images.first?.url ?? "")) { image in
                 image
                     .resizable()
                     .aspectRatio(contentMode: .fill)
@@ -38,7 +38,7 @@ struct PrestigeTrackRow: View {
                     .font(.headline)
                     .lineLimit(1)
                 
-                Text(track.track.artistName)
+                Text(track.track.artists.first?.name ?? "Unknown Artist")
                     .font(.subheadline)
                     .foregroundColor(.secondary)
                     .lineLimit(1)
@@ -97,11 +97,9 @@ struct PrestigeTrackRow: View {
             track: TrackResponse(
                 id: "1",
                 name: "Sample Track",
-                imageUrl: "https://via.placeholder.com/300",
-                spotifyUrl: "",
-                albumName: "Sample Album",
-                artistName: "Sample Artist",
-                durationMs: 180000
+                duration_ms: 180000,
+                album: .init(id: "album_id", name: "Sample Album", images: []),
+                artists: [.init(id: "artist_id", name: "Sample Artist")]
             ),
             userId: "user1"
         ),

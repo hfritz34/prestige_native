@@ -20,7 +20,8 @@ class HomeViewModel: ObservableObject {
     
     private let profileService: ProfileService
     private var cancellables = Set<AnyCancellable>()
-    
+    private var currentUserId: String?
+
     init(profileService: ProfileService = ProfileService()) {
         self.profileService = profileService
         setupBindings()
@@ -50,47 +51,41 @@ class HomeViewModel: ObservableObject {
         
         // Listen for content type changes and load appropriate data
         $selectedContentType
+            .dropFirst() // Ignore initial value
             .sink { [weak self] type in
+                guard let self = self, let userId = self.currentUserId else { return }
                 Task {
-                    await self?.loadDataForType(type, userId: nil)
+                    await self.loadDataForType(type, userId: userId)
                 }
             }
             .store(in: &cancellables)
     }
     
-    func loadHomeData() {
-        Task {
-            await loadDataForType(selectedContentType)
-        }
-    }
-    
-    private func loadDataForType(_ type: ContentType, userId: String? = nil) async {
-        // Require a valid user ID - no fallback
-        guard let actualUserId = userId, !actualUserId.isEmpty else {
-            print("❌ HomeViewModel: No valid user ID provided, cannot load data")
-            return
-        }
-        
-        print("🔵 HomeViewModel: Loading \(type.displayName) for user: \(actualUserId)")
-        
-        switch type {
-        case .tracks:
-            await profileService.fetchTopTracks(userId: actualUserId, limit: 25)
-        case .albums:
-            await profileService.fetchTopAlbums(userId: actualUserId, limit: 25)
-        case .artists:
-            await profileService.fetchTopArtists(userId: actualUserId, limit: 25)
-        }
-    }
-    
-    func loadDataForUser(_ userId: String) {
+    func loadHomeData(for userId: String) {
+        self.currentUserId = userId
         Task {
             await loadDataForType(selectedContentType, userId: userId)
         }
     }
     
+    private func loadDataForType(_ type: ContentType, userId: String) async {
+        print("🔵 HomeViewModel: Loading \(type.displayName) for user: \(userId)")
+        
+        switch type {
+        case .tracks:
+            await profileService.fetchTopTracks(userId: userId, limit: 25)
+        case .albums:
+            await profileService.fetchTopAlbums(userId: userId, limit: 25)
+        case .artists:
+            await profileService.fetchTopArtists(userId: userId, limit: 25)
+        }
+    }
+
     func refreshData() {
-        loadHomeData()
+        guard let userId = currentUserId else { return }
+        Task {
+            await loadDataForType(selectedContentType, userId: userId)
+        }
     }
 }
 

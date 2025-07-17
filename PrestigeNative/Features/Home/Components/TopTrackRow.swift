@@ -21,7 +21,7 @@ struct TopTrackRow: View {
                 .frame(width: 30, alignment: .leading)
             
             // Track Image
-            AsyncImage(url: URL(string: track.track.imageUrl)) { image in
+            AsyncImage(url: URL(string: track.track.album.images.first?.url ?? "")) { image in
                 image
                     .resizable()
                     .aspectRatio(contentMode: .fill)
@@ -44,7 +44,7 @@ struct TopTrackRow: View {
                     .fontWeight(.medium)
                     .lineLimit(1)
                 
-                Text(track.track.artistName)
+                Text(track.track.artists.first?.name ?? "Unknown Artist")
                     .font(.caption)
                     .foregroundColor(.secondary)
                     .lineLimit(1)
@@ -94,11 +94,9 @@ struct TopTrackRow: View {
             track: TrackResponse(
                 id: "preview_id",
                 name: "Bohemian Rhapsody",
-                imageUrl: "",
-                spotifyUrl: "",
-                albumName: "A Night at the Opera",
-                artistName: "Queen",
-                durationMs: 355000
+                duration_ms: 355000,
+                album: .init(id: "album_id", name: "A Night at the Opera", images: []),
+                artists: [.init(id: "artist_id", name: "Queen")]
             ),
             userId: "preview_user"
         ),

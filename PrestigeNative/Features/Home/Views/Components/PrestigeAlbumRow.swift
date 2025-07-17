@@ -21,7 +21,7 @@ struct PrestigeAlbumRow: View {
                 .frame(width: 30)
             
             // Album image
-            AsyncImage(url: URL(string: album.album.imageUrl)) { image in
+            AsyncImage(url: URL(string: album.album.images.first?.url ?? "")) { image in
                 image
                     .resizable()
                     .aspectRatio(contentMode: .fill)
@@ -38,7 +38,7 @@ struct PrestigeAlbumRow: View {
                     .font(.headline)
                     .lineLimit(1)
                 
-                Text(album.album.artistName)
+                Text(album.album.artists.first?.name ?? "Unknown Artist")
                     .font(.subheadline)
                     .foregroundColor(.secondary)
                     .lineLimit(1)
@@ -97,10 +97,8 @@ struct PrestigeAlbumRow: View {
             album: AlbumResponse(
                 id: "1",
                 name: "Sample Album",
-                imageUrl: "https://via.placeholder.com/300",
-                spotifyUrl: "",
-                releaseDate: "2023-01-01",
-                artistName: "Sample Artist"
+                images: [],
+                artists: [.init(id: "artist_id", name: "Sample Artist")]
             ),
             userId: "user1"
         ),

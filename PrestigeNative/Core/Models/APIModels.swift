@@ -26,14 +26,19 @@ struct ExternalUrls: Codable {
 struct TrackResponse: Codable {
     let id: String
     let name: String
-    let imageUrl: String
-    let spotifyUrl: String
-    let albumName: String
-    let artistName: String
-    let durationMs: Int
-    
-    enum CodingKeys: String, CodingKey {
-        case id, name, imageUrl, spotifyUrl, albumName, artistName, durationMs
+    let duration_ms: Int
+    let album: AlbumInfo
+    let artists: [ArtistInfo]
+
+    struct AlbumInfo: Codable {
+        let id: String
+        let name: String
+        let images: [ImageResponse]
+    }
+
+    struct ArtistInfo: Codable {
+        let id: String
+        let name: String
     }
 }
 
@@ -41,13 +46,11 @@ struct TrackResponse: Codable {
 struct AlbumResponse: Codable {
     let id: String
     let name: String
-    let imageUrl: String
-    let spotifyUrl: String
-    let releaseDate: String
-    let artistName: String
-    
+    let images: [ImageResponse]
+    let artists: [TrackResponse.ArtistInfo]
+
     enum CodingKeys: String, CodingKey {
-        case id, name, imageUrl, spotifyUrl, releaseDate, artistName
+        case id, name, images, artists
     }
 }
 
@@ -56,15 +59,14 @@ struct ArtistResponse: Codable {
     let id: String
     let name: String
     let images: [ImageResponse]
-    let spotifyUrl: String
-    
+
     /// Computed property to get artist image URL
     var artistImageUrl: String {
         return images.first?.url ?? ""
     }
-    
+
     enum CodingKeys: String, CodingKey {
-        case id, name, images, spotifyUrl
+        case id, name, images
     }
 }
 

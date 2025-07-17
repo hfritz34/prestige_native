@@ -13,7 +13,7 @@ struct RecentTrackRow: View {
     var body: some View {
         HStack(spacing: 12) {
             // Track image
-            AsyncImage(url: URL(string: track.imageUrl)) { image in
+            AsyncImage(url: URL(string: track.album.images.first?.url ?? "")) { image in
                 image
                     .resizable()
                     .aspectRatio(contentMode: .fill)
@@ -31,7 +31,7 @@ struct RecentTrackRow: View {
                     .fontWeight(.medium)
                     .lineLimit(1)
                 
-                Text(track.artistName)
+                Text(track.artists.first?.name ?? "Unknown Artist")
                     .font(.caption)
                     .foregroundColor(.secondary)
                     .lineLimit(1)
@@ -53,11 +53,9 @@ struct RecentTrackRow: View {
         track: TrackResponse(
             id: "1",
             name: "Recent Song",
-            imageUrl: "https://via.placeholder.com/300",
-            spotifyUrl: "",
-            albumName: "Recent Album",
-            artistName: "Recent Artist",
-            durationMs: 180000
+            duration_ms: 180000,
+            album: .init(id: "album_id", name: "Recent Album", images: []),
+            artists: [.init(id: "artist_id", name: "Recent Artist")]
         )
     )
     .padding()

@@ -13,7 +13,7 @@ struct AlbumCard: View {
     var body: some View {
         VStack(alignment: .leading, spacing: 8) {
             // Album Artwork
-            AsyncImage(url: URL(string: albumData.album.imageUrl)) { image in
+            AsyncImage(url: URL(string: albumData.album.images.first?.url ?? "")) { image in
                 image
                     .resizable()
                     .aspectRatio(contentMode: .fill)
@@ -35,7 +35,7 @@ struct AlbumCard: View {
                     .fontWeight(.medium)
                     .lineLimit(2)
                 
-                Text(albumData.album.artistName)
+                Text(albumData.album.artists.first?.name ?? "Unknown Artist")
                     .font(.caption2)
                     .foregroundColor(.secondary)
                     .lineLimit(1)
@@ -68,10 +68,8 @@ struct AlbumCard: View {
             album: AlbumResponse(
                 id: "preview_id",
                 name: "The Dark Side of the Moon",
-                imageUrl: "",
-                spotifyUrl: "",
-                releaseDate: "1973-03-01",
-                artistName: "Pink Floyd"
+                images: [],
+                artists: [.init(id: "artist_id", name: "Pink Floyd")]
             ),
             userId: "preview_user"
         )

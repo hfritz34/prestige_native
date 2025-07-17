@@ -49,6 +49,7 @@ class AuthManager: ObservableObject {
             let credentials = try await Auth0
                 .webAuth(clientId: auth0ClientId, domain: auth0Domain)
                 .scope("openid profile email")
+                .audience(auth0Audience)
                 .start()
             
             print("✅ Auth: Login successful")

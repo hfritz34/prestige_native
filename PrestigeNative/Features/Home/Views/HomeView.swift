@@ -47,10 +47,8 @@ struct HomeView: View {
             .navigationBarHidden(true)
         }
         .onAppear {
-            if let userId = authManager.user?.id {
-                viewModel.loadDataForUser(userId)
-            } else {
-                viewModel.loadHomeData() // Fallback
+            if let userId = authManager.user?.id, !userId.isEmpty {
+                viewModel.loadHomeData(for: userId)
             }
         }
         .alert("Error", isPresented: $showingError) {

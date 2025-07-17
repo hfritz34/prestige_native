@@ -2,8 +2,8 @@
 //  ProfileView.swift
 //  User Profile Screen
 //
-//  Displays user stats, prestige badges, and top music content.
-//  Equivalent to Profile.tsx from the web application.
+//  Shows Top section (carousel), Favorites section, and Recently Played.
+//  Matches ProfilePage.tsx from the web application.
 //
 
 import SwiftUI
@@ -11,7 +11,7 @@ import SwiftUI
 struct ProfileView: View {
     @StateObject private var viewModel = ProfileViewModel()
     @State private var showingError = false
-    @State private var selectedTab = 0
+    @State private var selectedTopType: ContentType = .tracks
     
     var body: some View {
         NavigationView {
@@ -20,17 +20,14 @@ struct ProfileView: View {
                     // Profile Header
                     profileHeaderSection
                     
-                    // Stats Overview
-                    statsSection
+                    // Top Section
+                    topSection
                     
-                    // Time Range Selector
-                    timeRangeSelector
+                    // Favorites Section
+                    favoritesSection
                     
-                    // Content Tabs
-                    contentTabs
-                    
-                    // Tab Content
-                    tabContent
+                    // Recently Played Section
+                    recentlyPlayedSection
                 }
                 .padding(.vertical)
             }
@@ -88,144 +85,141 @@ struct ProfileView: View {
         .padding(.horizontal)
     }
     
-    private var statsSection: some View {
-        HStack(spacing: 20) {
-            StatCard(
-                title: "Listening Time",
-                value: viewModel.totalListeningTime.listeningTimeString,
-                icon: "clock.fill",
-                color: .blue
-            )
-            
-            StatCard(
-                title: "Top Prestige",
-                value: viewModel.topPrestigeLevel.displayName,
-                icon: "star.fill",
-                color: .purple
-            )
-            
-            StatCard(
-                title: "Artists",
-                value: "\(viewModel.totalUniqueArtists)",
-                icon: "music.mic",
-                color: .orange
-            )
-        }
-        .padding(.horizontal)
-    }
-    
-    private var timeRangeSelector: some View {
-        ScrollView(.horizontal, showsIndicators: false) {
-            HStack(spacing: 12) {
-                ForEach(TimeRange.allCases, id: \.self) { range in
-                    Button(action: {
-                        viewModel.changeTimeRange(range)
-                    }) {
-                        Text(range.rawValue)
-                            .font(.subheadline)
-                            .fontWeight(viewModel.selectedTimeRange == range ? .semibold : .regular)
-                            .padding(.horizontal, 16)
-                            .padding(.vertical, 8)
-                            .background(
-                                Capsule()
-                                    .fill(viewModel.selectedTimeRange == range ? Color.purple : Color.gray.opacity(0.2))
-                            )
-                            .foregroundColor(viewModel.selectedTimeRange == range ? .white : .primary)
+    private var topSection: some View {
+        VStack(alignment: .leading, spacing: 16) {
+            HStack {
+                Text("Top")
+                    .font(.title2)
+                    .fontWeight(.bold)
+                
+                Spacer()
+                
+                // Type selector for Top section
+                Menu {
+                    Button("Tracks") {
+                        selectedTopType = .tracks
                     }
+                    Button("Albums") {
+                        selectedTopType = .albums
+                    }
+                    Button("Artists") {
+                        selectedTopType = .artists
+                    }
+                } label: {
+                    HStack {
+                        Text(selectedTopType.displayName)
+                            .foregroundColor(.white)
+                        Image(systemName: "chevron.down")
+                            .foregroundColor(.white)
+                            .font(.caption)
+                    }
+                    .padding(.horizontal, 12)
+                    .padding(.vertical, 6)
+                    .background(Color.gray.opacity(0.8))
+                    .cornerRadius(6)
                 }
             }
             .padding(.horizontal)
+            
+            // Top items carousel
+            ScrollView(.horizontal, showsIndicators: false) {
+                HStack(spacing: 12) {
+                    topCarouselContent
+                }
+                .padding(.horizontal)
+            }
         }
     }
     
-    private var contentTabs: some View {
-        HStack(spacing: 0) {
-            TabButton(title: "Tracks", icon: "music.note", isSelected: selectedTab == 0) {
-                selectedTab = 0
-            }
+    private var favoritesSection: some View {
+        VStack(alignment: .leading, spacing: 16) {
+            Text("Favorites")
+                .font(.title2)
+                .fontWeight(.bold)
+                .padding(.horizontal)
             
-            TabButton(title: "Albums", icon: "square.stack", isSelected: selectedTab == 1) {
-                selectedTab = 1
-            }
-            
-            TabButton(title: "Artists", icon: "music.mic", isSelected: selectedTab == 2) {
-                selectedTab = 2
+            ScrollView(.horizontal, showsIndicators: false) {
+                HStack(spacing: 12) {
+                    favoritesCarouselContent
+                }
+                .padding(.horizontal)
             }
         }
-        .padding(.horizontal)
+    }
+    
+    private var recentlyPlayedSection: some View {
+        VStack(alignment: .leading, spacing: 16) {
+            Text("Recently Played")
+                .font(.title2)
+                .fontWeight(.bold)
+                .padding(.horizontal)
+            
+            recentlyPlayedContent
+        }
     }
     
     @ViewBuilder
-    private var tabContent: some View {
+    private var topCarouselContent: some View {
         if viewModel.isLoading {
             ProgressView()
                 .padding(.vertical, 50)
         } else {
-            switch selectedTab {
-            case 0:
-                topTracksContent
-            case 1:
-                topAlbumsContent
-            case 2:
-                topArtistsContent
-            default:
-                EmptyView()
+            switch selectedTopType {
+            case .tracks:
+                ForEach(viewModel.topTracks.prefix(5), id: \.totalTime) { track in
+                    TopItemCard(track: track)
+                }
+            case .albums:
+                ForEach(viewModel.topAlbums.prefix(5), id: \.album.id) { album in
+                    TopItemCard(album: album)
+                }
+            case .artists:
+                ForEach(viewModel.topArtists.prefix(5), id: \.artist.id) { artist in
+                    TopItemCard(artist: artist)
+                }
             }
         }
     }
     
-    private var topTracksContent: some View {
+    @ViewBuilder
+    private var favoritesCarouselContent: some View {
+        if viewModel.favoriteTracks.isEmpty {
+            VStack {
+                Image(systemName: "heart")
+                    .font(.largeTitle)
+                    .foregroundColor(.gray)
+                Text("No favorites yet")
+                    .font(.subheadline)
+                    .foregroundColor(.secondary)
+            }
+            .frame(width: 120, height: 120)
+            .background(Color.gray.opacity(0.1))
+            .cornerRadius(12)
+        } else {
+            ForEach(viewModel.favoriteTracks.prefix(5), id: \.id) { track in
+                FavoriteItemCard(track: track)
+            }
+        }
+    }
+    
+    private var recentlyPlayedContent: some View {
         VStack(spacing: 8) {
-            if viewModel.topTracks.isEmpty {
+            if viewModel.recentlyPlayed.isEmpty {
                 EmptyStateView(
-                    icon: "music.note",
-                    title: "No Top Tracks",
-                    subtitle: "Start listening to build your top tracks"
+                    icon: "clock",
+                    title: "No Recent Activity",
+                    subtitle: "Your recently played tracks will appear here"
                 )
+                .padding(.horizontal)
             } else {
-                ForEach(Array(viewModel.topTracks.prefix(10).enumerated()), id: \.element.totalTime) { index, track in
-                    TopTrackRow(track: track, rank: index + 1)
+                ForEach(Array(viewModel.recentlyPlayed.prefix(10).enumerated()), id: \.element.id) { index, track in
+                    RecentTrackRow(track: track)
+                        .padding(.horizontal)
                 }
             }
         }
-        .padding(.horizontal)
     }
     
-    private var topAlbumsContent: some View {
-        VStack(spacing: 16) {
-            if viewModel.topAlbums.isEmpty {
-                EmptyStateView(
-                    icon: "square.stack",
-                    title: "No Top Albums",
-                    subtitle: "Listen to complete albums to see them here"
-                )
-            } else {
-                LazyVGrid(columns: [GridItem(.flexible()), GridItem(.flexible())], spacing: 16) {
-                    ForEach(viewModel.topAlbums.prefix(10), id: \.album.id) { albumData in
-                        AlbumCard(albumData: albumData)
-                    }
-                }
-            }
-        }
-        .padding(.horizontal)
-    }
-    
-    private var topArtistsContent: some View {
-        VStack(spacing: 8) {
-            if viewModel.topArtists.isEmpty {
-                EmptyStateView(
-                    icon: "music.mic",
-                    title: "No Top Artists",
-                    subtitle: "Explore more artists to see them here"
-                )
-            } else {
-                ForEach(Array(viewModel.topArtists.prefix(10).enumerated()), id: \.element.artist.id) { index, artistData in
-                    ArtistRow(artistData: artistData, rank: index + 1)
-                }
-            }
-        }
-        .padding(.horizontal)
-    }
 }
 
 #Preview {

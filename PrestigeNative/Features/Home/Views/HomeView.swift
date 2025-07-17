@@ -1,9 +1,9 @@
 //
 //  HomeView.swift
-//  Home Screen - Main landing page after authentication
+//  Home Screen - Prestige Display
 //
-//  Shows recently played tracks and top tracks with prestige badges.
-//  Equivalent to Dashboard.tsx from the web application.
+//  Shows user's top prestiges with type switching (tracks/albums/artists).
+//  Matches HomePage.tsx from the web application.
 //
 
 import SwiftUI
@@ -14,19 +14,36 @@ struct HomeView: View {
     
     var body: some View {
         NavigationView {
-            ScrollView {
-                LazyVStack(spacing: 20) {
-                    headerSection
-                    recentlyPlayedSection
-                    topTracksSection
+            VStack(spacing: 0) {
+                // App Title
+                Text("Prestige")
+                    .font(.largeTitle)
+                    .fontWeight(.bold)
+                    .foregroundColor(.primary)
+                    .padding(.top, 20)
+                    .padding(.bottom, 16)
+                
+                // Type Selector
+                typeSelector
+                
+                // Content List
+                ScrollView {
+                    LazyVStack(spacing: 12) {
+                        if viewModel.isLoading {
+                            ProgressView()
+                                .padding(.vertical, 50)
+                        } else {
+                            contentList
+                        }
+                    }
+                    .padding(.horizontal)
+                    .padding(.vertical, 20)
                 }
-                .padding(.vertical)
+                .refreshable {
+                    viewModel.refreshData()
+                }
             }
-            .navigationTitle("Home")
-            .navigationBarTitleDisplayMode(.large)
-            .refreshable {
-                viewModel.refreshData()
-            }
+            .navigationBarHidden(true)
         }
         .onAppear {
             viewModel.loadHomeData()
@@ -45,95 +62,75 @@ struct HomeView: View {
     
     // MARK: - View Components
     
-    private var headerSection: some View {
-        VStack(alignment: .leading, spacing: 8) {
-            HStack {
-                Text("Welcome back!")
-                    .font(.title2)
-                    .fontWeight(.semibold)
-                
-                Spacer()
-                
-                if viewModel.isLoading {
-                    ProgressView()
-                        .scaleEffect(0.8)
-                }
+    private var typeSelector: some View {
+        Menu {
+            Button("Tracks") {
+                viewModel.selectedContentType = .tracks
             }
-            
-            Text("Track your musical journey")
-                .font(.subheadline)
-                .foregroundColor(.secondary)
+            Button("Albums") {
+                viewModel.selectedContentType = .albums
+            }
+            Button("Artists") {
+                viewModel.selectedContentType = .artists
+            }
+        } label: {
+            HStack {
+                Text(viewModel.selectedContentType.displayName)
+                    .foregroundColor(.white)
+                Image(systemName: "chevron.down")
+                    .foregroundColor(.white)
+                    .font(.caption)
+            }
+            .padding(.horizontal, 16)
+            .padding(.vertical, 8)
+            .background(Color.gray.opacity(0.8))
+            .cornerRadius(8)
         }
-        .padding(.horizontal)
+        .padding(.bottom, 10)
     }
     
-    private var recentlyPlayedSection: some View {
-        VStack(alignment: .leading, spacing: 12) {
-            sectionHeader(title: "Recently Played")
-            
-            if viewModel.recentlyPlayed.isEmpty && !viewModel.isLoading {
+    @ViewBuilder
+    private var contentList: some View {
+        switch viewModel.selectedContentType {
+        case .tracks:
+            if viewModel.topTracks.isEmpty {
                 EmptyStateView(
                     icon: "music.note",
-                    title: "No Recent Tracks",
-                    subtitle: "Start listening to see your recently played tracks"
+                    title: "No Top Tracks",
+                    subtitle: "Start listening to build your prestige"
                 )
             } else {
-                recentTracksScrollView
-            }
-        }
-    }
-    
-    private var topTracksSection: some View {
-        VStack(alignment: .leading, spacing: 12) {
-            sectionHeader(title: "Your Top Tracks")
-            
-            if viewModel.topTracks.isEmpty && !viewModel.isLoading {
-                EmptyStateView(
-                    icon: "star",
-                    title: "No Top Tracks Yet",
-                    subtitle: "Keep listening to build your top tracks list"
-                )
-            } else {
-                topTracksList
-            }
-        }
-    }
-    
-    private func sectionHeader(title: String) -> some View {
-        HStack {
-            Text(title)
-                .font(.headline)
-                .fontWeight(.semibold)
-            
-            Spacer()
-            
-            Button("See All") {
-                // TODO: Navigate to full view
-            }
-            .font(.caption)
-            .foregroundColor(.purple)
-        }
-        .padding(.horizontal)
-    }
-    
-    private var recentTracksScrollView: some View {
-        ScrollView(.horizontal, showsIndicators: false) {
-            LazyHStack(spacing: 12) {
-                ForEach(viewModel.recentlyPlayed, id: \.id) { track in
-                    RecentTrackCard(track: track)
+                ForEach(Array(viewModel.topTracks.prefix(25).enumerated()), id: \.element.totalTime) { index, track in
+                    PrestigeTrackRow(track: track, rank: index + 1)
                 }
             }
-            .padding(.horizontal)
-        }
-    }
-    
-    private var topTracksList: some View {
-        LazyVStack(spacing: 8) {
-            ForEach(Array(viewModel.topTracks.prefix(5).enumerated()), id: \.element.totalTime) { index, track in
-                TopTrackRow(track: track, rank: index + 1)
+            
+        case .albums:
+            if viewModel.topAlbums.isEmpty {
+                EmptyStateView(
+                    icon: "square.stack",
+                    title: "No Top Albums",
+                    subtitle: "Listen to complete albums to build prestige"
+                )
+            } else {
+                ForEach(Array(viewModel.topAlbums.prefix(25).enumerated()), id: \.element.album.id) { index, album in
+                    PrestigeAlbumRow(album: album, rank: index + 1)
+                }
+            }
+            
+        case .artists:
+            if viewModel.topArtists.isEmpty {
+                EmptyStateView(
+                    icon: "music.mic",
+                    title: "No Top Artists",
+                    subtitle: "Explore artists to build prestige"
+                )
+            } else {
+                ForEach(Array(viewModel.topArtists.prefix(25).enumerated()), id: \.element.artist.id) { index, artist in
+                    PrestigeArtistRow(artist: artist, rank: index + 1)
+                }
             }
         }
-        .padding(.horizontal)
     }
 }
 

@@ -2,7 +2,7 @@
 //  HomeViewModel.swift
 //  Home Screen ViewModel
 //
-//  Manages home screen data including recently played tracks and top tracks.
+//  Manages prestige data for home screen with type switching.
 //  Integrates with ProfileService for data fetching.
 //
 
@@ -11,8 +11,10 @@ import Combine
 
 @MainActor
 class HomeViewModel: ObservableObject {
-    @Published var recentlyPlayed: [RecentlyPlayedResponse] = []
     @Published var topTracks: [UserTrackResponse] = []
+    @Published var topAlbums: [UserAlbumResponse] = []
+    @Published var topArtists: [UserArtistResponse] = []
+    @Published var selectedContentType: ContentType = .tracks
     @Published var isLoading = false
     @Published var error: APIError?
     
@@ -26,12 +28,16 @@ class HomeViewModel: ObservableObject {
     
     private func setupBindings() {
         // Bind to ProfileService published properties
-        profileService.$recentlyPlayed
-            .assign(to: \.recentlyPlayed, on: self)
-            .store(in: &cancellables)
-        
         profileService.$topTracks
             .assign(to: \.topTracks, on: self)
+            .store(in: &cancellables)
+        
+        profileService.$topAlbums
+            .assign(to: \.topAlbums, on: self)
+            .store(in: &cancellables)
+        
+        profileService.$topArtists
+            .assign(to: \.topArtists, on: self)
             .store(in: &cancellables)
         
         profileService.$isLoading
@@ -41,19 +47,54 @@ class HomeViewModel: ObservableObject {
         profileService.$error
             .assign(to: \.error, on: self)
             .store(in: &cancellables)
+        
+        // Listen for content type changes and load appropriate data
+        $selectedContentType
+            .sink { [weak self] type in
+                Task {
+                    await self?.loadDataForType(type)
+                }
+            }
+            .store(in: &cancellables)
     }
     
     func loadHomeData() {
+        Task {
+            await loadDataForType(selectedContentType)
+        }
+    }
+    
+    private func loadDataForType(_ type: ContentType) async {
         // Using mock user ID for now - will be replaced with actual user ID from AuthManager
         let userId = "current_user_id"
         
-        Task {
-            await profileService.fetchRecentlyPlayed(userId: userId, limit: 10)
+        switch type {
+        case .tracks:
             await profileService.fetchTopTracks(userId: userId, limit: 25)
+        case .albums:
+            await profileService.fetchTopAlbums(userId: userId, limit: 25)
+        case .artists:
+            await profileService.fetchTopArtists(userId: userId, limit: 25)
         }
     }
     
     func refreshData() {
         loadHomeData()
+    }
+}
+
+// MARK: - Supporting Types
+
+enum ContentType: CaseIterable {
+    case tracks
+    case albums
+    case artists
+    
+    var displayName: String {
+        switch self {
+        case .tracks: return "Tracks"
+        case .albums: return "Albums"
+        case .artists: return "Artists"
+        }
     }
 }

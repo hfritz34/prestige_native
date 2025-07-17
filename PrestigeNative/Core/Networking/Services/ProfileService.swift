@@ -15,7 +15,8 @@ class ProfileService: ObservableObject {
     @Published var topTracks: [UserTrackResponse] = []
     @Published var topAlbums: [UserAlbumResponse] = []
     @Published var topArtists: [UserArtistResponse] = []
-    @Published var recentlyPlayed: [RecentlyPlayedResponse] = []
+    @Published var recentlyPlayed: [TrackResponse] = []
+    @Published var favoriteTracks: [TrackResponse] = []
     @Published var userProfile: UserResponse?
     
     @Published var isLoading = false
@@ -100,12 +101,39 @@ class ProfileService: ObservableObject {
         await MainActor.run { isLoading = true }
         
         do {
-            let recent: [RecentlyPlayedResponse] = try await apiClient.get(
+            let recent: [TrackResponse] = try await apiClient.get(
                 APIEndpoints.recentlyPlayed(userId: userId),
-                responseType: [RecentlyPlayedResponse].self
+                responseType: [TrackResponse].self
             )
             await MainActor.run {
                 self.recentlyPlayed = Array(recent.prefix(limit))
+                self.isLoading = false
+                self.error = nil
+            }
+        } catch let apiError as APIError {
+            await MainActor.run {
+                self.error = apiError
+                self.isLoading = false
+            }
+        } catch {
+            await MainActor.run {
+                self.error = .networkError(error)
+                self.isLoading = false
+            }
+        }
+    }
+    
+    /// Fetch user's favorite tracks
+    func fetchFavoriteTracks(userId: String, limit: Int = 10) async {
+        await MainActor.run { isLoading = true }
+        
+        do {
+            let favorites: [TrackResponse] = try await apiClient.get(
+                APIEndpoints.favoriteTracks(userId: userId),
+                responseType: [TrackResponse].self
+            )
+            await MainActor.run {
+                self.favoriteTracks = Array(favorites.prefix(limit))
                 self.isLoading = false
                 self.error = nil
             }
@@ -180,6 +208,7 @@ class ProfileService: ObservableObject {
             group.addTask { await self.fetchTopAlbums(userId: userId) }
             group.addTask { await self.fetchTopArtists(userId: userId) }
             group.addTask { await self.fetchRecentlyPlayed(userId: userId) }
+            group.addTask { await self.fetchFavoriteTracks(userId: userId) }
             group.addTask { await self.fetchUserProfile(userId: userId) }
         }
     }

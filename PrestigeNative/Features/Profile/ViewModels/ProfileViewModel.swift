@@ -15,6 +15,8 @@ class ProfileViewModel: ObservableObject {
     @Published var topTracks: [UserTrackResponse] = []
     @Published var topAlbums: [UserAlbumResponse] = []
     @Published var topArtists: [UserArtistResponse] = []
+    @Published var favoriteTracks: [TrackResponse] = []
+    @Published var recentlyPlayed: [TrackResponse] = []
     @Published var isLoading = false
     @Published var error: APIError?
     @Published var selectedTimeRange: TimeRange = .allTime
@@ -60,6 +62,14 @@ class ProfileViewModel: ObservableObject {
         
         profileService.$topArtists
             .assign(to: \.topArtists, on: self)
+            .store(in: &cancellables)
+        
+        profileService.$favoriteTracks
+            .assign(to: \.favoriteTracks, on: self)
+            .store(in: &cancellables)
+        
+        profileService.$recentlyPlayed
+            .assign(to: \.recentlyPlayed, on: self)
             .store(in: &cancellables)
         
         profileService.$isLoading

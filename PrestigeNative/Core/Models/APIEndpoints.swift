@@ -30,7 +30,9 @@ enum APIEndpoints {
     static func recentlyPlayed(userId: String) -> String { "profiles/\(userId)/recently-played" }
     
     // MARK: - Favorites
-    static func favorites(userId: String, type: String) -> String { "profiles/\(userId)/favorites/\(type)" }
+    static func favoriteTracks(userId: String) -> String { "profiles/\(userId)/favorites/tracks" }
+    static func favoriteAlbums(userId: String) -> String { "profiles/\(userId)/favorites/albums" }
+    static func favoriteArtists(userId: String) -> String { "profiles/\(userId)/favorites/artists" }
     static func addFavorite(userId: String, type: String, itemId: String) -> String { "profiles/\(userId)/favorites/\(type)/\(itemId)" }
     
     // MARK: - Friends

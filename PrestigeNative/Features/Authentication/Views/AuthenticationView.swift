@@ -54,7 +54,9 @@ struct MainTabView: View {
                 Text("Settings")
                 
                 Button("Logout") {
-                    authManager.logout()
+                    Task {
+                        await authManager.logout()
+                    }
                 }
                 .padding()
                 .background(Color.red)

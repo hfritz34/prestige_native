@@ -9,7 +9,7 @@
 import SwiftUI
 
 struct LoginView: View {
-    @StateObject private var viewModel = LoginViewModel()
+    @EnvironmentObject var authManager: AuthManager
     @State private var showingError = false
     
     var body: some View {
@@ -43,10 +43,12 @@ struct LoginView: View {
                 VStack(spacing: 20) {
                     // Login Button
                     Button(action: {
-                        viewModel.login()
+                        Task {
+                            await authManager.login()
+                        }
                     }) {
                         HStack {
-                            if viewModel.isLoading {
+                            if authManager.isLoading {
                                 ProgressView()
                                     .progressViewStyle(CircularProgressViewStyle(tint: .white))
                                     .scaleEffect(0.8)
@@ -55,7 +57,7 @@ struct LoginView: View {
                                     .font(.title3)
                             }
                             
-                            Text(viewModel.isLoading ? "Signing In..." : "Sign In with Auth0")
+                            Text(authManager.isLoading ? "Signing In..." : "Sign In with Auth0")
                                 .font(.headline)
                                 .fontWeight(.semibold)
                         }
@@ -71,7 +73,7 @@ struct LoginView: View {
                         .foregroundColor(.white)
                         .cornerRadius(16)
                     }
-                    .disabled(viewModel.isLoading)
+                    .disabled(authManager.isLoading)
                     
                     // Privacy Text
                     Text("By signing in, you agree to connect your Spotify account")
@@ -92,12 +94,12 @@ struct LoginView: View {
         )
         .alert("Authentication Error", isPresented: $showingError) {
             Button("OK") {
-                viewModel.clearError()
+                authManager.error = nil
             }
         } message: {
-            Text(viewModel.error?.localizedDescription ?? "An error occurred")
+            Text(authManager.error?.localizedDescription ?? "An error occurred")
         }
-        .onChange(of: viewModel.error) { _, error in
+        .onChange(of: authManager.error) { _, error in
             showingError = error != nil
         }
     }
@@ -105,4 +107,5 @@ struct LoginView: View {
 
 #Preview {
     LoginView()
+        .environmentObject(AuthManager())
 }

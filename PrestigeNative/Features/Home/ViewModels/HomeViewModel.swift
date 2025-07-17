@@ -52,7 +52,7 @@ class HomeViewModel: ObservableObject {
         $selectedContentType
             .sink { [weak self] type in
                 Task {
-                    await self?.loadDataForType(type)
+                    await self?.loadDataForType(type, userId: nil)
                 }
             }
             .store(in: &cancellables)
@@ -64,17 +64,28 @@ class HomeViewModel: ObservableObject {
         }
     }
     
-    private func loadDataForType(_ type: ContentType) async {
-        // Using mock user ID for now - will be replaced with actual user ID from AuthManager
-        let userId = "current_user_id"
+    private func loadDataForType(_ type: ContentType, userId: String? = nil) async {
+        // Require a valid user ID - no fallback
+        guard let actualUserId = userId, !actualUserId.isEmpty else {
+            print("❌ HomeViewModel: No valid user ID provided, cannot load data")
+            return
+        }
+        
+        print("🔵 HomeViewModel: Loading \(type.displayName) for user: \(actualUserId)")
         
         switch type {
         case .tracks:
-            await profileService.fetchTopTracks(userId: userId, limit: 25)
+            await profileService.fetchTopTracks(userId: actualUserId, limit: 25)
         case .albums:
-            await profileService.fetchTopAlbums(userId: userId, limit: 25)
+            await profileService.fetchTopAlbums(userId: actualUserId, limit: 25)
         case .artists:
-            await profileService.fetchTopArtists(userId: userId, limit: 25)
+            await profileService.fetchTopArtists(userId: actualUserId, limit: 25)
+        }
+    }
+    
+    func loadDataForUser(_ userId: String) {
+        Task {
+            await loadDataForType(selectedContentType, userId: userId)
         }
     }
     

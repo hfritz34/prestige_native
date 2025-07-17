@@ -45,6 +45,12 @@ class APIClient: ObservableObject {
                 throw APIError.invalidResponse
             }
             
+            // Log response for debugging
+            print("🔵 APIClient: Response status: \(httpResponse.statusCode)")
+            if let responseString = String(data: data, encoding: .utf8) {
+                print("🔵 APIClient: Response body: \(responseString)")
+            }
+            
             // Handle successful responses
             if 200...299 ~= httpResponse.statusCode {
                 let decoder = JSONDecoder()
@@ -91,9 +97,12 @@ class APIClient: ObservableObject {
         request.httpMethod = method.rawValue
         request.setValue("application/json", forHTTPHeaderField: "Content-Type")
         
-        // Get authentication token (will be implemented with AuthManager)
+        // Get authentication token from AuthManager
         if let token = await getAuthToken() {
             request.setValue("Bearer \(token)", forHTTPHeaderField: "Authorization")
+            print("🔵 APIClient: Added Auth0 Bearer token to request")
+        } else {
+            print("⚠️ APIClient: No authentication token available")
         }
         
         if let body = body {
@@ -123,9 +132,11 @@ class APIClient: ObservableObject {
         responseType: T.Type
     ) async throws -> T {
         guard let url = APIEndpoints.fullURL(for: endpoint) else {
+            print("❌ APIClient: Invalid URL for endpoint: \(endpoint)")
             throw APIError.invalidURL
         }
         
+        print("🔵 APIClient: Making GET request to: \(url.absoluteString)")
         await MainActor.run { isLoading = true }
         defer { Task { await MainActor.run { isLoading = false } } }
         

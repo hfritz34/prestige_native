@@ -10,6 +10,7 @@ import SwiftUI
 
 struct ProfileView: View {
     @StateObject private var viewModel = ProfileViewModel()
+    @EnvironmentObject var authManager: AuthManager
     @State private var showingError = false
     @State private var selectedTopType: ContentType = .tracks
     
@@ -38,7 +39,11 @@ struct ProfileView: View {
             }
         }
         .onAppear {
-            viewModel.loadProfileData()
+            if let userId = authManager.user?.id {
+                viewModel.loadProfileData(userId: userId)
+            } else {
+                viewModel.loadProfileData() // Fallback
+            }
         }
         .alert("Error", isPresented: $showingError) {
             Button("OK") {

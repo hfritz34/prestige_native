@@ -10,6 +10,7 @@ import SwiftUI
 
 struct HomeView: View {
     @StateObject private var viewModel = HomeViewModel()
+    @EnvironmentObject var authManager: AuthManager
     @State private var showingError = false
     
     var body: some View {
@@ -46,7 +47,11 @@ struct HomeView: View {
             .navigationBarHidden(true)
         }
         .onAppear {
-            viewModel.loadHomeData()
+            if let userId = authManager.user?.id {
+                viewModel.loadDataForUser(userId)
+            } else {
+                viewModel.loadHomeData() // Fallback
+            }
         }
         .alert("Error", isPresented: $showingError) {
             Button("OK") {

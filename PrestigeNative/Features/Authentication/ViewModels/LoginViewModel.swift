@@ -38,11 +38,15 @@ class LoginViewModel: ObservableObject {
     }
     
     func login() {
-        authManager.login()
+        Task {
+            await authManager.login()
+        }
     }
     
     func logout() {
-        authManager.logout()
+        Task {
+            await authManager.logout()
+        }
     }
     
     func clearError() {

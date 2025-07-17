@@ -81,12 +81,17 @@ class ProfileViewModel: ObservableObject {
             .store(in: &cancellables)
     }
     
-    func loadProfileData() {
-        // Using mock user ID for now - will be replaced with actual user ID from AuthManager
-        let userId = authManager.user?.id ?? "current_user_id"
+    func loadProfileData(userId: String? = nil) {
+        // Require a valid user ID - no fallback
+        guard let actualUserId = userId, !actualUserId.isEmpty else {
+            print("❌ ProfileViewModel: No valid user ID provided, cannot load data")
+            return
+        }
+        
+        print("🔵 ProfileViewModel: Loading data for user: \(actualUserId)")
         
         Task {
-            await profileService.loadAllProfileData(userId: userId)
+            await profileService.loadAllProfileData(userId: actualUserId)
         }
     }
     
@@ -94,10 +99,10 @@ class ProfileViewModel: ObservableObject {
         loadProfileData()
     }
     
-    func changeTimeRange(_ range: TimeRange) {
+    func changeTimeRange(_ range: TimeRange, userId: String? = nil) {
         selectedTimeRange = range
         // TODO: Implement time range filtering when API supports it
-        loadProfileData()
+        loadProfileData(userId: userId)
     }
 }
 

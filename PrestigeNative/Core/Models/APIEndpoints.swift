@@ -10,7 +10,7 @@ import Foundation
 
 /// API endpoint paths for reference
 enum APIEndpoints {
-    static let baseURL = ProcessInfo.processInfo.environment["API_ADDRESS"] ?? ""
+    static let baseURL = ProcessInfo.processInfo.environment["API_ADDRESS"] ?? "https://prestigeapi-gbdzagg5e4a3aahc.eastus-01.azurewebsites.net"
     
     // MARK: - Authentication
     static let login = "auth/login"
@@ -18,10 +18,10 @@ enum APIEndpoints {
     static let refreshToken = "auth/token"
     
     // MARK: - User Profile
-    static func userProfile(userId: String) -> String { "user/\(userId)" }
-    static func updateProfile(userId: String) -> String { "user/\(userId)" }
-    static let updateNickname = "user/nickname"
-    static let setFavorites = "user/favorites"
+    static func userProfile(userId: String) -> String { "users/\(userId)" }
+    static func updateProfile(userId: String) -> String { "users/\(userId)" }
+    static let updateNickname = "users/nickname"
+    static let setFavorites = "users/favorites"
     
     // MARK: - Prestige Data
     static func userTracks(userId: String) -> String { "profiles/\(userId)/top/tracks" }

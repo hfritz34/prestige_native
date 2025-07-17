@@ -9,9 +9,8 @@
 
 import Foundation
 import Combine
-
-// Note: Auth0 SDK will be added later - this is the structure
-// import Auth0
+import Auth0
+import JWTDecode
 
 class AuthManager: ObservableObject {
     @Published var isAuthenticated = false
@@ -19,13 +18,18 @@ class AuthManager: ObservableObject {
     @Published var user: AuthUser?
     @Published var error: AuthError?
     
-    private var accessToken: String?
-    private var refreshToken: String?
+    private var credentials: Credentials?
+    private let credentialsManager: CredentialsManager
     
-    // TODO: Add Auth0 CredentialsManager when Auth0 SDK is integrated
-    // private let credentialsManager: CredentialsManager
+    // Auth0 Configuration
+    private let auth0Domain = "dev-tfgyd3i2jqk0igxv.us.auth0.com"
+    private let auth0ClientId = "NZ5N1xnHOdgdVuXNPoBuNydMhg83Oe0p"
+    private let auth0Audience = "https://prestige-auth0-resource"
     
     init() {
+        // Initialize Auth0 CredentialsManager
+        self.credentialsManager = CredentialsManager(authentication: Auth0.authentication(clientId: auth0ClientId, domain: auth0Domain))
+        
         // Check for existing credentials on app launch
         checkExistingSession()
     }
@@ -33,128 +37,207 @@ class AuthManager: ObservableObject {
     // MARK: - Authentication Methods
     
     /// Initiate login flow with Auth0
-    func login() {
-        isLoading = true
-        error = nil
+    func login() async {
+        await MainActor.run { 
+            isLoading = true
+            error = nil
+        }
         
-        // TODO: Implement Auth0 WebAuth flow
-        /*
-        Auth0
-            .webAuth()
-            .scope("openid profile email offline_access")
-            .audience("https://prestige-auth0-resource")
-            .start { [weak self] result in
-                DispatchQueue.main.async {
-                    self?.isLoading = false
-                    switch result {
-                    case .success(let credentials):
-                        self?.handleSuccessfulLogin(credentials: credentials)
-                    case .failure(let error):
-                        self?.handleLoginError(error)
-                    }
-                }
+        do {
+            print("🔵 Auth: Starting Auth0 login flow")
+            
+            let credentials = try await Auth0
+                .webAuth(clientId: auth0ClientId, domain: auth0Domain)
+                .scope("openid profile email")
+                .start()
+            
+            print("✅ Auth: Login successful")
+            await handleSuccessfulAuth(credentials: credentials)
+            
+        } catch {
+            print("❌ Auth: Login failed - \(error)")
+            await MainActor.run {
+                self.isLoading = false
+                self.error = .loginFailed(error.localizedDescription)
             }
-        */
-        
-        // Placeholder implementation for now
-        DispatchQueue.main.asyncAfter(deadline: .now() + 1) {
-            self.isLoading = false
-            self.simulateLogin()
         }
     }
     
     /// Logout user and clear session
-    func logout() {
-        isLoading = true
-        error = nil
+    func logout() async {
+        await MainActor.run { isLoading = true }
         
-        // TODO: Implement Auth0 logout
-        /*
-        Auth0
-            .webAuth()
-            .clearSession { [weak self] result in
-                DispatchQueue.main.async {
-                    self?.clearSession()
-                    self?.isLoading = false
-                }
+        do {
+            print("🔵 Auth: Starting logout")
+            
+            // Clear local credentials first
+            _ = credentialsManager.clear()
+            
+            // Logout from Auth0
+            try await Auth0
+                .webAuth(clientId: auth0ClientId, domain: auth0Domain)
+                .clearSession()
+            
+            print("✅ Auth: Logout successful")
+            await MainActor.run {
+                user = nil
+                credentials = nil
+                isAuthenticated = false
+                isLoading = false
+                error = nil
             }
-        */
-        
-        // Placeholder implementation
-        DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
-            self.clearSession()
-            self.isLoading = false
+            
+        } catch {
+            print("❌ Auth: Logout failed - \(error)")
+            // Even if logout fails, clear local state
+            await MainActor.run {
+                user = nil
+                credentials = nil
+                isAuthenticated = false
+                isLoading = false
+                self.error = .logoutFailed(error.localizedDescription)
+            }
         }
     }
     
     /// Get current access token, refreshing if necessary
     func getAccessToken() async throws -> String {
-        guard isAuthenticated else {
-            throw AuthError.notAuthenticated
+        // If we have current credentials, return them
+        if let credentials = credentials, !credentials.accessToken.isEmpty {
+            return credentials.accessToken
         }
         
-        // TODO: Implement token refresh logic with Auth0
-        /*
+        // Try to get fresh credentials
         do {
-            let credentials = try await credentialsManager.credentials()
-            self.accessToken = credentials.accessToken
-            return credentials.accessToken
+            let freshCredentials = try await credentialsManager.credentials()
+            self.credentials = freshCredentials
+            return freshCredentials.accessToken
         } catch {
-            await MainActor.run {
-                self.handleAuthenticationError()
-            }
+            print("❌ Auth: Failed to get access token - \(error)")
             throw AuthError.tokenRefreshFailed
         }
-        */
-        
-        // Placeholder - return mock token
-        return accessToken ?? "mock_access_token"
+    }
+    
+    /// Refresh the access token
+    func refreshToken() async -> Bool {
+        do {
+            let freshCredentials = try await credentialsManager.credentials()
+            await MainActor.run {
+                self.credentials = freshCredentials
+            }
+            return true
+        } catch {
+            print("❌ Auth: Token refresh failed - \(error)")
+            return false
+        }
     }
     
     // MARK: - Private Methods
     
     private func checkExistingSession() {
-        // TODO: Check keychain for existing credentials
-        /*
-        credentialsManager.hasValid { [weak self] hasValid in
-            DispatchQueue.main.async {
-                if hasValid {
-                    self?.loadExistingUser()
+        Task {
+            await MainActor.run { isLoading = true }
+            
+            // Check if we have valid stored credentials
+            guard credentialsManager.canRenew() else {
+                await MainActor.run {
+                    isAuthenticated = false
+                    isLoading = false
+                }
+                return
+            }
+            
+            do {
+                // Try to get fresh credentials
+                let credentials = try await credentialsManager.credentials()
+                await handleSuccessfulAuth(credentials: credentials)
+            } catch {
+                print("❌ Auth: Failed to restore session - \(error)")
+                await MainActor.run {
+                    isAuthenticated = false
+                    isLoading = false
+                    self.error = .sessionExpired
                 }
             }
         }
-        */
-        
-        // Placeholder - check UserDefaults for development
-        if UserDefaults.standard.bool(forKey: "isLoggedIn") {
-            simulateLogin()
-        }
     }
     
-    private func simulateLogin() {
-        // Development placeholder
-        self.user = AuthUser(
-            id: "dev_user_123",
-            email: "dev@prestige.app",
-            nickname: "DevUser",
+    private func handleSuccessfulAuth(credentials: Credentials) async {
+        print("🔵 Auth: Processing successful authentication")
+        
+        // Store credentials securely
+        let stored = credentialsManager.store(credentials: credentials)
+        if !stored {
+            print("⚠️ Auth: Failed to store credentials securely")
+        }
+        
+        // Extract user ID from the ID token (which contains user info)
+        print("🔵 Auth: Attempting to extract user ID from ID token...")
+        let extractedUserId = extractUserIdFromIdToken(credentials.idToken)
+        print("🔵 Auth: Final extracted user ID: \(extractedUserId ?? "nil")")
+        
+        // Only proceed if we have a valid user ID
+        guard let validUserId = extractedUserId, !validUserId.isEmpty else {
+            print("❌ Auth: Failed to extract valid user ID, cannot proceed")
+            await MainActor.run {
+                self.isLoading = false
+                self.error = .sessionRestoreFailed
+            }
+            return
+        }
+        
+        let authUser = AuthUser(
+            id: validUserId,
+            email: "",
+            nickname: "User", 
             profilePictureUrl: nil
         )
-        self.accessToken = "mock_access_token_\(UUID().uuidString)"
-        self.isAuthenticated = true
         
-        // Persist login state for development
-        UserDefaults.standard.set(true, forKey: "isLoggedIn")
+        await MainActor.run {
+            self.credentials = credentials
+            self.user = authUser
+            self.isAuthenticated = true
+            self.isLoading = false
+            self.error = nil
+        }
+        
+        print("✅ Auth: User authenticated successfully - \(authUser.nickname)")
     }
     
-    private func clearSession() {
-        self.isAuthenticated = false
-        self.user = nil
-        self.accessToken = nil
-        self.refreshToken = nil
-        self.error = nil
+    // MARK: - Helper Methods
+    
+    /// Extract user ID from Auth0 ID token using JWTDecode library
+    private func extractUserIdFromIdToken(_ idToken: String?) -> String? {
+        guard let idToken = idToken else {
+            print("❌ Auth: No ID token available")
+            return nil
+        }
         
-        // Clear persisted state
-        UserDefaults.standard.removeObject(forKey: "isLoggedIn")
+        print("🔵 Auth: ID token available, length: \(idToken.count)")
+        
+        do {
+            let jwt = try decode(jwt: idToken)
+            print("🔵 Auth: JWT decoded successfully")
+            print("🔵 Auth: JWT claims: \(jwt.body.keys.sorted())")
+            
+            // The 'sub' claim contains the user ID
+            if let sub = jwt.subject {
+                print("✅ Auth: Successfully extracted full sub: \(sub)")
+                
+                // Process like web app: user.sub.split("|").pop()
+                let userIdComponents = sub.split(separator: "|")
+                let processedUserId = String(userIdComponents.last ?? "")
+                
+                print("✅ Auth: Processed user ID (like web app): \(processedUserId)")
+                return processedUserId.isEmpty ? nil : processedUserId
+            } else {
+                print("❌ Auth: No 'sub' claim found in ID token")
+                return nil
+            }
+        } catch {
+            print("❌ Auth: Failed to decode ID token: \(error)")
+            return nil
+        }
     }
 }
 
@@ -173,6 +256,7 @@ enum AuthError: Error, LocalizedError, Equatable {
     case logoutFailed(String)
     case tokenRefreshFailed
     case sessionExpired
+    case sessionRestoreFailed
     case networkError
     
     var errorDescription: String? {
@@ -187,8 +271,27 @@ enum AuthError: Error, LocalizedError, Equatable {
             return "Failed to refresh access token"
         case .sessionExpired:
             return "Session has expired. Please log in again."
+        case .sessionRestoreFailed:
+            return "Failed to restore previous session"
         case .networkError:
             return "Network error occurred during authentication"
+        }
+    }
+    
+    static func == (lhs: AuthError, rhs: AuthError) -> Bool {
+        switch (lhs, rhs) {
+        case (.notAuthenticated, .notAuthenticated),
+             (.tokenRefreshFailed, .tokenRefreshFailed),
+             (.sessionExpired, .sessionExpired),
+             (.sessionRestoreFailed, .sessionRestoreFailed),
+             (.networkError, .networkError):
+            return true
+        case let (.loginFailed(lhsMessage), .loginFailed(rhsMessage)):
+            return lhsMessage == rhsMessage
+        case let (.logoutFailed(lhsMessage), .logoutFailed(rhsMessage)):
+            return lhsMessage == rhsMessage
+        default:
+            return false
         }
     }
 }

@@ -51,7 +51,7 @@ struct PrestigeAlbumRow: View {
             Spacer()
             
             // Prestige badge
-            PrestigeBadge(tier: getPrestigeTier(for: album.totalTime))
+            PrestigeBadge(tier: album.prestigeLevel)
         }
         .padding(.horizontal, 16)
         .padding(.vertical, 8)
@@ -69,23 +69,6 @@ struct PrestigeAlbumRow: View {
             return "\(hours)h \(minutes)m"
         } else {
             return "\(minutes)m"
-        }
-    }
-    
-    private func getPrestigeTier(for totalTime: Int) -> PrestigeLevel {
-        let minutes = totalTime / (1000 * 60)
-        
-        switch minutes {
-        case 0..<60:
-            return .bronze
-        case 60..<180:
-            return .silver
-        case 180..<360:
-            return .gold
-        case 360..<720:
-            return .diamond
-        default:
-            return .darkMatter
         }
     }
 }

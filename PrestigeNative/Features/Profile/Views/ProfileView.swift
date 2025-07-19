@@ -91,7 +91,11 @@ struct ProfileView: View {
             
             // User Info
             VStack(spacing: 4) {
-                if let nickname = viewModel.userProfile?.nickname {
+                if let name = viewModel.userProfile?.name {
+                    Text(name)
+                        .font(.title2)
+                        .fontWeight(.bold)
+                } else if let nickname = viewModel.userProfile?.nickname {
                     Text(nickname)
                         .font(.title2)
                         .fontWeight(.bold)

@@ -36,12 +36,13 @@ struct TopItemCard: View {
             AsyncImage(url: URL(string: imageUrl)) { image in
                 image
                     .resizable()
-                    .aspectRatio(contentMode: .fit)
+                    .aspectRatio(contentMode: .fill)
             } placeholder: {
                 Rectangle()
                     .fill(Color.gray.opacity(0.3))
             }
             .frame(width: 120, height: 120)
+            .clipped()
             .clipShape(RoundedRectangle(cornerRadius: 8))
             
             // Title and subtitle

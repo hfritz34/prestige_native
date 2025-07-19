@@ -13,15 +13,18 @@ import Foundation
 /// User profile information
 struct UserResponse: Codable {
     let id: String
+    let name: String
     let nickname: String
     let email: String
     let profilePictureUrl: String?
     let isSetup: Bool
-    let createdAt: Date
-    let spotifyConnected: Bool
+    let createdAt: Date?
+    let spotifyConnected: Bool?
     
     enum CodingKeys: String, CodingKey {
-        case id, nickname, email, profilePictureUrl, isSetup, createdAt, spotifyConnected
+        case id, name, email, isSetup, createdAt, spotifyConnected
+        case nickname = "nickName"
+        case profilePictureUrl = "profilePicURL"
     }
 }
 

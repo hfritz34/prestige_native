@@ -27,17 +27,29 @@ struct HomeView: View {
                 // Type Selector
                 typeSelector
                 
-                // Content List
+                // Content
                 ScrollView {
-                    LazyVStack(spacing: 12) {
+                    VStack(spacing: 24) {
                         if viewModel.isLoading {
                             ProgressView()
                                 .padding(.vertical, 50)
                         } else {
-                            contentList
+                            // Top 3 Prestiges Section
+                            if hasContent {
+                                topThreeSection
+                            }
+                            
+                            // More Top Prestiges Section
+                            if hasMoreThanThree {
+                                moreTopSection
+                            }
+                            
+                            // Empty state if no content
+                            if !hasContent {
+                                emptyStateView
+                            }
                         }
                     }
-                    .padding(.horizontal)
                     .padding(.vertical, 20)
                 }
                 .refreshable {
@@ -60,6 +72,24 @@ struct HomeView: View {
         }
         .onChange(of: viewModel.error) { _, error in
             showingError = error != nil
+        }
+    }
+    
+    // MARK: - Computed Properties
+    
+    private var hasContent: Bool {
+        switch viewModel.selectedContentType {
+        case .tracks: return !viewModel.topTracks.isEmpty
+        case .albums: return !viewModel.topAlbums.isEmpty
+        case .artists: return !viewModel.topArtists.isEmpty
+        }
+    }
+    
+    private var hasMoreThanThree: Bool {
+        switch viewModel.selectedContentType {
+        case .tracks: return viewModel.topTracks.count > 3
+        case .albums: return viewModel.topAlbums.count > 3
+        case .artists: return viewModel.topArtists.count > 3
         }
     }
     
@@ -133,6 +163,105 @@ struct HomeView: View {
                     PrestigeArtistRow(artist: artist, rank: index + 1)
                 }
             }
+        }
+    }
+    
+    private var topThreeSection: some View {
+        VStack(alignment: .leading, spacing: 16) {
+            Text("Top 3 Prestiges")
+                .font(.title2)
+                .fontWeight(.bold)
+                .padding(.horizontal)
+            
+            ScrollView(.horizontal, showsIndicators: false) {
+                HStack(spacing: 16) {
+                    topThreeContent
+                }
+                .padding(.horizontal)
+            }
+        }
+    }
+    
+    private var moreTopSection: some View {
+        VStack(alignment: .leading, spacing: 16) {
+            Text("More Top Prestiges")
+                .font(.title2)
+                .fontWeight(.bold)
+                .padding(.horizontal)
+            
+            LazyVStack(spacing: 12) {
+                moreTopContent
+            }
+            .padding(.horizontal)
+        }
+    }
+    
+    @ViewBuilder
+    private var topThreeContent: some View {
+        switch viewModel.selectedContentType {
+        case .tracks:
+            ForEach(Array(viewModel.topTracks.prefix(3).enumerated()), id: \.element.totalTime) { index, track in
+                PrestigeTopCard(
+                    item: PrestigeDisplayItem.fromTrack(track),
+                    rank: index + 1
+                )
+            }
+        case .albums:
+            ForEach(Array(viewModel.topAlbums.prefix(3).enumerated()), id: \.element.album.id) { index, album in
+                PrestigeTopCard(
+                    item: PrestigeDisplayItem.fromAlbum(album),
+                    rank: index + 1
+                )
+            }
+        case .artists:
+            ForEach(Array(viewModel.topArtists.prefix(3).enumerated()), id: \.element.artist.id) { index, artist in
+                PrestigeTopCard(
+                    item: PrestigeDisplayItem.fromArtist(artist),
+                    rank: index + 1
+                )
+            }
+        }
+    }
+    
+    @ViewBuilder
+    private var moreTopContent: some View {
+        switch viewModel.selectedContentType {
+        case .tracks:
+            ForEach(Array(viewModel.topTracks.dropFirst(3).prefix(22).enumerated()), id: \.element.totalTime) { index, track in
+                PrestigeTrackRow(track: track, rank: index + 4)
+            }
+        case .albums:
+            ForEach(Array(viewModel.topAlbums.dropFirst(3).prefix(22).enumerated()), id: \.element.album.id) { index, album in
+                PrestigeAlbumRow(album: album, rank: index + 4)
+            }
+        case .artists:
+            ForEach(Array(viewModel.topArtists.dropFirst(3).prefix(22).enumerated()), id: \.element.artist.id) { index, artist in
+                PrestigeArtistRow(artist: artist, rank: index + 4)
+            }
+        }
+    }
+    
+    @ViewBuilder
+    private var emptyStateView: some View {
+        switch viewModel.selectedContentType {
+        case .tracks:
+            EmptyStateView(
+                icon: "music.note",
+                title: "No Top Tracks",
+                subtitle: "Start listening to build your prestige"
+            )
+        case .albums:
+            EmptyStateView(
+                icon: "square.stack",
+                title: "No Top Albums",
+                subtitle: "Listen to complete albums to build prestige"
+            )
+        case .artists:
+            EmptyStateView(
+                icon: "music.mic",
+                title: "No Top Artists",
+                subtitle: "Explore artists to build prestige"
+            )
         }
     }
 }

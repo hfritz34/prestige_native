@@ -15,7 +15,7 @@ class ProfileService: ObservableObject {
     @Published var topTracks: [UserTrackResponse] = []
     @Published var topAlbums: [UserAlbumResponse] = []
     @Published var topArtists: [UserArtistResponse] = []
-    @Published var recentlyPlayed: [TrackResponse] = []
+    @Published var recentlyPlayed: [RecentlyPlayedResponse] = []
     @Published var favoriteTracks: [TrackResponse] = []
     @Published var userProfile: UserResponse?
     
@@ -101,9 +101,9 @@ class ProfileService: ObservableObject {
         await MainActor.run { isLoading = true }
         
         do {
-            let recent: [TrackResponse] = try await apiClient.get(
+            let recent: [RecentlyPlayedResponse] = try await apiClient.get(
                 APIEndpoints.recentlyPlayed(userId: userId),
-                responseType: [TrackResponse].self
+                responseType: [RecentlyPlayedResponse].self
             )
             await MainActor.run {
                 self.recentlyPlayed = Array(recent.prefix(limit))

@@ -36,7 +36,7 @@ struct TopItemCard: View {
             AsyncImage(url: URL(string: imageUrl)) { image in
                 image
                     .resizable()
-                    .aspectRatio(contentMode: .fill)
+                    .aspectRatio(contentMode: .fit)
             } placeholder: {
                 Rectangle()
                     .fill(Color.gray.opacity(0.3))
@@ -109,15 +109,8 @@ struct TopItemCard: View {
             totalTime = 0
         }
         
-        let seconds = totalTime / 1000
-        let hours = seconds / 3600
-        let minutes = (seconds % 3600) / 60
-        
-        if hours > 0 {
-            return "\(hours)h \(minutes)m"
-        } else {
-            return "\(minutes)m"
-        }
+        // Convert seconds to milliseconds for TimeFormatter (API sends seconds)
+        return TimeFormatter.formatListeningTime(totalTime * 1000)
     }
 }
 

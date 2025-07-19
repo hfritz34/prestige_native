@@ -19,10 +19,11 @@ struct LoginView: View {
                 VStack(spacing: 24) {
                     Spacer()
                     
-                    // Logo placeholder
-                    Image(systemName: "music.note")
-                        .font(.system(size: 80))
-                        .foregroundColor(.purple)
+                    // App Logo
+                    Image("purple_crown")
+                        .resizable()
+                        .aspectRatio(contentMode: .fit)
+                        .frame(width: 80, height: 80)
                     
                     // App Title
                     Text("Prestige")

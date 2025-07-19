@@ -43,7 +43,7 @@ struct PrestigeTrackRow: View {
                     .foregroundColor(.secondary)
                     .lineLimit(1)
                 
-                Text("\(formatListeningTime(track.totalTime))")
+                Text(TimeFormatter.formatListeningTime(track.totalTime))
                     .font(.caption)
                     .foregroundColor(.secondary)
             }
@@ -55,22 +55,11 @@ struct PrestigeTrackRow: View {
         }
         .padding(.horizontal, 16)
         .padding(.vertical, 8)
-        .background(Color.white)
+        .background(Color(.systemGray6))
         .clipShape(RoundedRectangle(cornerRadius: 12))
         .shadow(color: .black.opacity(0.1), radius: 2, x: 0, y: 1)
     }
     
-    private func formatListeningTime(_ milliseconds: Int) -> String {
-        let seconds = milliseconds / 1000
-        let hours = seconds / 3600
-        let minutes = (seconds % 3600) / 60
-        
-        if hours > 0 {
-            return "\(hours)h \(minutes)m"
-        } else {
-            return "\(minutes)m"
-        }
-    }
 }
 
 #Preview {

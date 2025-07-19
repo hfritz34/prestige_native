@@ -62,7 +62,7 @@ struct PrestigeTopCard: View {
                         .foregroundColor(.white.opacity(0.8))
                         .lineLimit(1)
                     
-                    Text(formatListeningTime(item.totalTimeSeconds))
+                    Text(TimeFormatter.formatListeningTime(item.totalTimeSeconds * 1000))
                         .font(.caption)
                         .fontWeight(.semibold)
                         .foregroundColor(.white)
@@ -88,17 +88,6 @@ struct PrestigeTopCard: View {
         .shadow(color: .black.opacity(0.2), radius: 8, x: 0, y: 4)
     }
     
-    private func formatListeningTime(_ seconds: Int) -> String {
-        let minutes = seconds / 60
-        let hours = minutes / 60
-        let remainingMinutes = minutes % 60
-        
-        if hours > 0 {
-            return "\(hours)h \(remainingMinutes)m"
-        } else {
-            return "\(minutes)m"
-        }
-    }
 }
 
 // MARK: - Supporting Types

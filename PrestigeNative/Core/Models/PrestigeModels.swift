@@ -199,11 +199,12 @@ struct PrestigeCalculator {
 
 /// User's track data with listening statistics
 struct UserTrackResponse: Codable {
-    let totalTime: Int          // Total listening time in seconds
+    let totalTime: Int          // Total listening time in seconds (from API)
     let track: TrackResponse    // Track information
     let userId: String          // User ID
     
     // Computed property for prestige level (calculated on frontend)
+    // Note: API sends totalTime in seconds, so convert directly to minutes
     var prestigeLevel: PrestigeLevel {
         PrestigeCalculator.getTrackPrestigeTier(totalTimeMinutes: totalTime / 60)
     }
@@ -219,11 +220,12 @@ struct UserTrackResponse: Codable {
 
 /// User's album data with listening statistics
 struct UserAlbumResponse: Codable {
-    let totalTime: Int          // Total listening time in seconds
+    let totalTime: Int          // Total listening time in seconds (from API)
     let album: AlbumResponse    // Album information
     let userId: String          // User ID
     
     // Computed property for prestige level (calculated on frontend)
+    // Note: API sends totalTime in seconds, so convert directly to minutes
     var prestigeLevel: PrestigeLevel {
         PrestigeCalculator.getAlbumPrestigeTier(totalTimeMinutes: totalTime / 60)
     }
@@ -239,11 +241,12 @@ struct UserAlbumResponse: Codable {
 
 /// User's artist data with listening statistics
 struct UserArtistResponse: Codable {
-    let totalTime: Int          // Total listening time in seconds
+    let totalTime: Int          // Total listening time in seconds (from API)
     let artist: ArtistResponse  // Artist information
     let userId: String          // User ID
     
     // Computed property for prestige level (calculated on frontend)
+    // Note: API sends totalTime in seconds, so convert directly to minutes
     var prestigeLevel: PrestigeLevel {
         PrestigeCalculator.getArtistPrestigeTier(totalTimeMinutes: totalTime / 60)
     }

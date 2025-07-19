@@ -12,50 +12,69 @@ struct PrestigeTrackRow: View {
     let rank: Int
     
     var body: some View {
-        HStack(spacing: 12) {
-            // Rank number
-            Text("\(rank)")
-                .font(.headline)
-                .fontWeight(.bold)
-                .foregroundColor(.secondary)
-                .frame(width: 30)
-            
-            // Track image
-            AsyncImage(url: URL(string: track.track.album.images.first?.url ?? "")) { image in
-                image
+        ZStack {
+            // Background prestige tier image
+            if track.prestigeLevel != .none && !track.prestigeLevel.imageName.isEmpty {
+                Image(track.prestigeLevel.imageName)
                     .resizable()
                     .aspectRatio(contentMode: .fill)
-            } placeholder: {
-                Rectangle()
-                    .fill(Color.gray.opacity(0.3))
+                    .opacity(0.15)
+                    .clipped()
             }
-            .frame(width: 60, height: 60)
-            .clipShape(RoundedRectangle(cornerRadius: 8))
             
-            // Track info
-            VStack(alignment: .leading, spacing: 4) {
-                Text(track.track.name)
+            // Content overlay
+            HStack(spacing: 12) {
+                // Rank number
+                Text("\(rank)")
                     .font(.headline)
-                    .lineLimit(1)
+                    .fontWeight(.bold)
+                    .foregroundColor(.primary)
+                    .frame(width: 30)
                 
-                Text(track.track.artists.first?.name ?? "Unknown Artist")
-                    .font(.subheadline)
-                    .foregroundColor(.secondary)
-                    .lineLimit(1)
+                // Track image
+                AsyncImage(url: URL(string: track.track.album.images.first?.url ?? "")) { image in
+                    image
+                        .resizable()
+                        .aspectRatio(contentMode: .fill)
+                } placeholder: {
+                    Rectangle()
+                        .fill(Color.gray.opacity(0.3))
+                }
+                .frame(width: 60, height: 60)
+                .clipShape(RoundedRectangle(cornerRadius: 8))
+                .shadow(color: .black.opacity(0.2), radius: 2, x: 0, y: 1)
                 
-                Text(TimeFormatter.formatListeningTime(track.totalTime))
-                    .font(.caption)
-                    .foregroundColor(.secondary)
+                // Track info
+                VStack(alignment: .leading, spacing: 4) {
+                    Text(track.track.name)
+                        .font(.headline)
+                        .fontWeight(.semibold)
+                        .foregroundColor(.primary)
+                        .lineLimit(1)
+                    
+                    Text(track.track.artists.first?.name ?? "Unknown Artist")
+                        .font(.subheadline)
+                        .foregroundColor(.secondary)
+                        .lineLimit(1)
+                    
+                    Text(TimeFormatter.formatListeningTime(track.totalTime * 1000)) // Convert seconds to milliseconds
+                        .font(.caption)
+                        .fontWeight(.medium)
+                        .foregroundColor(.secondary)
+                }
+                
+                Spacer()
+                
+                // Prestige badge
+                PrestigeBadge(tier: track.prestigeLevel)
             }
-            
-            Spacer()
-            
-            // Prestige badge
-            PrestigeBadge(tier: track.prestigeLevel)
+            .padding(.horizontal, 16)
+            .padding(.vertical, 8)
         }
-        .padding(.horizontal, 16)
-        .padding(.vertical, 8)
-        .background(Color(.systemGray6))
+        .background(
+            RoundedRectangle(cornerRadius: 12)
+                .fill(track.prestigeLevel != .none && !track.prestigeLevel.imageName.isEmpty ? Color.black.opacity(0.6) : Color(.systemGray6))
+        )
         .clipShape(RoundedRectangle(cornerRadius: 12))
         .shadow(color: .black.opacity(0.1), radius: 2, x: 0, y: 1)
     }

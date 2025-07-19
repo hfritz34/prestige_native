@@ -12,49 +12,68 @@ struct PrestigeArtistRow: View {
     let rank: Int
     
     var body: some View {
-        HStack(spacing: 12) {
-            // Rank number
-            Text("\(rank)")
-                .font(.headline)
-                .fontWeight(.bold)
-                .foregroundColor(.secondary)
-                .frame(width: 30)
-            
-            // Artist image
-            AsyncImage(url: URL(string: artist.artist.images.first?.url ?? "")) { image in
-                image
+        ZStack {
+            // Background prestige tier image
+            if artist.prestigeLevel != .none && !artist.prestigeLevel.imageName.isEmpty {
+                Image(artist.prestigeLevel.imageName)
                     .resizable()
                     .aspectRatio(contentMode: .fill)
-            } placeholder: {
-                Circle()
-                    .fill(Color.gray.opacity(0.3))
+                    .opacity(0.15)
+                    .clipped()
             }
-            .frame(width: 60, height: 60)
-            .clipShape(Circle())
             
-            // Artist info
-            VStack(alignment: .leading, spacing: 4) {
-                Text(artist.artist.name)
+            // Content overlay
+            HStack(spacing: 12) {
+                // Rank number
+                Text("\(rank)")
                     .font(.headline)
-                    .lineLimit(1)
+                    .fontWeight(.bold)
+                    .foregroundColor(.primary)
+                    .frame(width: 30)
                 
-                Text("Artist")
-                    .font(.subheadline)
-                    .foregroundColor(.secondary)
+                // Artist image
+                AsyncImage(url: URL(string: artist.artist.images.first?.url ?? "")) { image in
+                    image
+                        .resizable()
+                        .aspectRatio(contentMode: .fill)
+                } placeholder: {
+                    Circle()
+                        .fill(Color.gray.opacity(0.3))
+                }
+                .frame(width: 60, height: 60)
+                .clipShape(Circle())
+                .shadow(color: .black.opacity(0.2), radius: 2, x: 0, y: 1)
                 
-                Text(TimeFormatter.formatListeningTime(artist.totalTime))
-                    .font(.caption)
-                    .foregroundColor(.secondary)
+                // Artist info
+                VStack(alignment: .leading, spacing: 4) {
+                    Text(artist.artist.name)
+                        .font(.headline)
+                        .fontWeight(.semibold)
+                        .foregroundColor(.primary)
+                        .lineLimit(1)
+                    
+                    Text("Artist")
+                        .font(.subheadline)
+                        .foregroundColor(.secondary)
+                    
+                    Text(TimeFormatter.formatListeningTime(artist.totalTime * 1000)) // Convert seconds to milliseconds
+                        .font(.caption)
+                        .fontWeight(.medium)
+                        .foregroundColor(.secondary)
+                }
+                
+                Spacer()
+                
+                // Prestige badge
+                PrestigeBadge(tier: artist.prestigeLevel)
             }
-            
-            Spacer()
-            
-            // Prestige badge
-            PrestigeBadge(tier: artist.prestigeLevel)
+            .padding(.horizontal, 16)
+            .padding(.vertical, 8)
         }
-        .padding(.horizontal, 16)
-        .padding(.vertical, 8)
-        .background(Color(.systemGray6))
+        .background(
+            RoundedRectangle(cornerRadius: 12)
+                .fill(artist.prestigeLevel != .none && !artist.prestigeLevel.imageName.isEmpty ? Color.black.opacity(0.6) : Color(.systemGray6))
+        )
         .clipShape(RoundedRectangle(cornerRadius: 12))
         .shadow(color: .black.opacity(0.1), radius: 2, x: 0, y: 1)
     }

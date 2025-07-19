@@ -14,12 +14,17 @@ struct PrestigeTopCard: View {
     var body: some View {
         ZStack {
             // Background prestige tier image
-            Image(item.prestigeLevel.imageName)
-                .resizable()
-                .aspectRatio(contentMode: .fill)
-                .frame(width: 200, height: 280)
-                .clipped()
-                .opacity(0.3)
+            if item.prestigeLevel != .none && !item.prestigeLevel.imageName.isEmpty {
+                Image(item.prestigeLevel.imageName)
+                    .resizable()
+                    .aspectRatio(contentMode: .fill)
+                    .frame(width: 200, height: 280)
+                    .clipped()
+                    .opacity(0.3)
+            } else {
+                // No background for items without prestige
+                EmptyView()
+            }
             
             // Content overlay
             VStack(spacing: 12) {
@@ -62,7 +67,7 @@ struct PrestigeTopCard: View {
                         .foregroundColor(.white.opacity(0.8))
                         .lineLimit(1)
                     
-                    Text(TimeFormatter.formatListeningTime(item.totalTimeSeconds * 1000))
+                    Text(TimeFormatter.formatListeningTime(item.totalTimeMilliseconds))
                         .font(.caption)
                         .fontWeight(.semibold)
                         .foregroundColor(.white)
@@ -96,7 +101,7 @@ struct PrestigeDisplayItem {
     let name: String
     let subtitle: String
     let imageUrl: String
-    let totalTimeSeconds: Int
+    let totalTimeMilliseconds: Int
     let prestigeLevel: PrestigeLevel
     
     // Convenience initializers for different item types
@@ -105,7 +110,7 @@ struct PrestigeDisplayItem {
             name: track.track.name,
             subtitle: track.track.artists.first?.name ?? "Unknown Artist",
             imageUrl: track.track.album.images.first?.url ?? "",
-            totalTimeSeconds: track.totalTime,
+            totalTimeMilliseconds: track.totalTime * 1000, // Convert seconds to milliseconds
             prestigeLevel: track.prestigeLevel
         )
     }
@@ -115,7 +120,7 @@ struct PrestigeDisplayItem {
             name: album.album.name,
             subtitle: album.album.artists.first?.name ?? "Unknown Artist",
             imageUrl: album.album.images.first?.url ?? "",
-            totalTimeSeconds: album.totalTime,
+            totalTimeMilliseconds: album.totalTime * 1000, // Convert seconds to milliseconds
             prestigeLevel: album.prestigeLevel
         )
     }
@@ -125,7 +130,7 @@ struct PrestigeDisplayItem {
             name: artist.artist.name,
             subtitle: "Artist",
             imageUrl: artist.artist.images.first?.url ?? "",
-            totalTimeSeconds: artist.totalTime,
+            totalTimeMilliseconds: artist.totalTime * 1000, // Convert seconds to milliseconds
             prestigeLevel: artist.prestigeLevel
         )
     }
@@ -138,7 +143,7 @@ struct PrestigeDisplayItem {
                 name: "Sample Track",
                 subtitle: "Sample Artist",
                 imageUrl: "",
-                totalTimeSeconds: 7200, // 2 hours
+                totalTimeMilliseconds: 7200000, // 2 hours in milliseconds
                 prestigeLevel: .gold
             ),
             rank: 1
@@ -149,7 +154,7 @@ struct PrestigeDisplayItem {
                 name: "Another Track",
                 subtitle: "Another Artist",
                 imageUrl: "",
-                totalTimeSeconds: 3600, // 1 hour
+                totalTimeMilliseconds: 3600000, // 1 hour in milliseconds
                 prestigeLevel: .silver
             ),
             rank: 2

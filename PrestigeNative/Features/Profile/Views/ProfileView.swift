@@ -13,6 +13,7 @@ struct ProfileView: View {
     @EnvironmentObject var authManager: AuthManager
     @State private var showingError = false
     @State private var selectedTopType: ContentType = .tracks
+    @State private var showingSettings = false
     
     var body: some View {
         NavigationView {
@@ -34,8 +35,22 @@ struct ProfileView: View {
             }
             .navigationTitle("Profile")
             .navigationBarTitleDisplayMode(.large)
+            .toolbar {
+                ToolbarItem(placement: .navigationBarTrailing) {
+                    Button {
+                        showingSettings = true
+                    } label: {
+                        Image(systemName: "gearshape.fill")
+                            .foregroundColor(.primary)
+                    }
+                }
+            }
             .refreshable {
                 viewModel.refreshData()
+            }
+            .sheet(isPresented: $showingSettings) {
+                SettingsView()
+                    .environmentObject(authManager)
             }
         }
         .onAppear {

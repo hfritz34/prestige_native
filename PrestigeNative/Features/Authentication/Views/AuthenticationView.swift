@@ -34,39 +34,21 @@ struct MainTabView: View {
         TabView {
             HomeView()
                 .tabItem {
-                    Image(systemName: "house")
+                    Image(systemName: "house.fill")
                     Text("Home")
-                }
-            
-            ProfileView()
-                .tabItem {
-                    Image(systemName: "person")
-                    Text("Profile")
                 }
             
             Text("Friends")
                 .tabItem {
-                    Image(systemName: "person.2")
+                    Image(systemName: "person.2.fill")
                     Text("Friends")
                 }
             
-            VStack {
-                Text("Settings")
-                
-                Button("Logout") {
-                    Task {
-                        await authManager.logout()
-                    }
+            ProfileView()
+                .tabItem {
+                    Image(systemName: "person.fill")
+                    Text("Profile")
                 }
-                .padding()
-                .background(Color.red)
-                .foregroundColor(.white)
-                .cornerRadius(8)
-            }
-            .tabItem {
-                Image(systemName: "gear")
-                Text("Settings")
-            }
         }
     }
 }

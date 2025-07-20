@@ -68,7 +68,17 @@ struct ProfileView: View {
             Text(viewModel.error?.localizedDescription ?? "An error occurred")
         }
         .onChange(of: viewModel.error) { _, error in
-            showingError = error != nil
+            if let error = error {
+                // Add a small delay to avoid showing flash errors during loading
+                DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
+                    // Only show error if it's still present after delay
+                    if viewModel.error != nil {
+                        showingError = true
+                    }
+                }
+            } else {
+                showingError = false
+            }
         }
     }
     
@@ -110,11 +120,6 @@ struct ProfileView: View {
                         .fontWeight(.bold)
                 }
                 
-                if let email = viewModel.userProfile?.email {
-                    Text(email)
-                        .font(.subheadline)
-                        .foregroundColor(.secondary)
-                }
             }
         }
         .padding(.horizontal)
@@ -158,7 +163,7 @@ struct ProfileView: View {
             
             // Top items carousel
             ScrollView(.horizontal, showsIndicators: false) {
-                HStack(spacing: 12) {
+                HStack(alignment: .top, spacing: 12) {
                     topCarouselContent
                 }
                 .padding(.horizontal)
@@ -174,7 +179,7 @@ struct ProfileView: View {
                 .padding(.horizontal)
             
             ScrollView(.horizontal, showsIndicators: false) {
-                HStack(spacing: 12) {
+                HStack(alignment: .top, spacing: 12) {
                     favoritesCarouselContent
                 }
                 .padding(.horizontal)
@@ -247,7 +252,7 @@ struct ProfileView: View {
                 )
                 .padding(.horizontal)
             } else {
-                ForEach(Array(viewModel.recentlyPlayed.prefix(10).enumerated()), id: \.element.id) { index, track in
+                ForEach(Array(viewModel.recentlyPlayed.prefix(30).enumerated()), id: \.offset) { index, track in
                     RecentTrackRow(track: track)
                         .padding(.horizontal)
                 }

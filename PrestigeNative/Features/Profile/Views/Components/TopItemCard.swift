@@ -51,6 +51,7 @@ struct TopItemCard: View {
                     .font(.subheadline)
                     .fontWeight(.medium)
                     .lineLimit(2)
+                    .fixedSize(horizontal: false, vertical: true)
                 
                 Text(subtitle)
                     .font(.caption)
@@ -61,8 +62,11 @@ struct TopItemCard: View {
                     .font(.caption2)
                     .foregroundColor(.secondary)
             }
+            .frame(height: 60)
+            
+            Spacer(minLength: 0)
         }
-        .frame(width: 120)
+        .frame(width: 120, height: 188)
     }
     
     private var imageUrl: String {

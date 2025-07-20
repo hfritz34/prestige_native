@@ -8,6 +8,7 @@
 //
 
 import SwiftUI
+import UniformTypeIdentifiers
 
 struct SettingsView: View {
     @EnvironmentObject var authManager: AuthManager
@@ -97,9 +98,265 @@ struct AccountSettingsView: View {
 }
 
 struct ImportDataView: View {
+    @EnvironmentObject var authManager: AuthManager
+    @State private var selectedFiles: [URL] = []
+    @State private var isImporting = false
+    @State private var message = ""
+    @State private var showingDocumentPicker = false
+    
     var body: some View {
-        Text("Import Data")
-            .navigationTitle("Import Data")
+        ScrollView {
+            VStack(alignment: .leading, spacing: 20) {
+                Text("Import Spotify Data")
+                    .font(.largeTitle)
+                    .fontWeight(.bold)
+                
+                VStack(alignment: .leading, spacing: 12) {
+                    Text("To import your Spotify data, follow these steps:")
+                        .font(.body)
+                    
+                    VStack(alignment: .leading, spacing: 8) {
+                        HStack(alignment: .top) {
+                            Text("1.")
+                                .fontWeight(.semibold)
+                            VStack(alignment: .leading) {
+                                Text("Visit the ")
+                                + Text("Spotify Privacy Page")
+                                    .foregroundColor(.blue)
+                                    .underline()
+                                + Text(".")
+                            }
+                        }
+                        
+                        HStack(alignment: .top) {
+                            Text("2.")
+                                .fontWeight(.semibold)
+                            Text("Scroll down to the \"Download your data\" section.")
+                        }
+                        
+                        HStack(alignment: .top) {
+                            Text("3.")
+                                .fontWeight(.semibold)
+                            Text("Follow the instructions to request and download your data.")
+                        }
+                        
+                        HStack(alignment: .top) {
+                            Text("4.")
+                                .fontWeight(.semibold)
+                            Text("After receiving your data from Spotify, you will have a folder named \"Spotify Extended Data History\". This folder contains JSON files.")
+                        }
+                    }
+                    
+                    Text("Upload all the JSON files from the folder below to import them.")
+                        .font(.body)
+                        .padding(.top, 8)
+                }
+                .padding()
+                .background(Color.gray.opacity(0.1))
+                .cornerRadius(12)
+                
+                VStack(spacing: 16) {
+                    if selectedFiles.isEmpty {
+                        Button("Select JSON Files") {
+                            showingDocumentPicker = true
+                        }
+                        .foregroundColor(.white)
+                        .frame(maxWidth: .infinity)
+                        .padding()
+                        .background(Color.blue)
+                        .cornerRadius(12)
+                    } else {
+                        VStack(alignment: .leading, spacing: 8) {
+                            Text("Selected Files (\(selectedFiles.count)):")
+                                .font(.headline)
+                            
+                            ForEach(selectedFiles, id: \.self) { file in
+                                Text("• \(file.lastPathComponent)")
+                                    .font(.caption)
+                                    .foregroundColor(.secondary)
+                            }
+                            
+                            HStack {
+                                Button("Change Files") {
+                                    selectedFiles = []
+                                    showingDocumentPicker = true
+                                }
+                                .foregroundColor(.blue)
+                                
+                                Spacer()
+                                
+                                Button(isImporting ? "Importing..." : "Import Data") {
+                                    Task {
+                                        await importSpotifyData()
+                                    }
+                                }
+                                .foregroundColor(.white)
+                                .padding(.horizontal, 20)
+                                .padding(.vertical, 8)
+                                .background(isImporting ? Color.gray : Color.green)
+                                .cornerRadius(8)
+                                .disabled(isImporting)
+                            }
+                        }
+                        .padding()
+                        .background(Color.gray.opacity(0.1))
+                        .cornerRadius(12)
+                    }
+                }
+                
+                if !message.isEmpty {
+                    Text(message)
+                        .padding()
+                        .background(Color.gray.opacity(0.1))
+                        .cornerRadius(8)
+                        .foregroundColor(message.contains("success") || message.contains("completed") ? .green : .red)
+                }
+                
+                Spacer()
+            }
+            .padding()
+        }
+        .navigationTitle("Import Data")
+        .navigationBarTitleDisplayMode(.inline)
+        .sheet(isPresented: $showingDocumentPicker) {
+            DocumentPicker(selectedFiles: $selectedFiles)
+        }
+    }
+    
+    private func importSpotifyData() async {
+        guard !selectedFiles.isEmpty else {
+            message = "Please select files to upload."
+            return
+        }
+        
+        guard let userId = authManager.user?.id else {
+            message = "User not authenticated. Please log in again."
+            return
+        }
+        
+        await MainActor.run {
+            isImporting = true
+            message = ""
+        }
+        
+        do {
+            let result = await SpotifyImportService.shared.uploadFiles(selectedFiles, userId: userId)
+            await MainActor.run {
+                message = result
+                isImporting = false
+            }
+        } catch {
+            await MainActor.run {
+                message = "Failed to import: \(error.localizedDescription)"
+                isImporting = false
+            }
+        }
+    }
+}
+
+// MARK: - Document Picker
+
+struct DocumentPicker: UIViewControllerRepresentable {
+    @Binding var selectedFiles: [URL]
+    @Environment(\.presentationMode) var presentationMode
+    
+    func makeUIViewController(context: Context) -> UIDocumentPickerViewController {
+        let picker = UIDocumentPickerViewController(forOpeningContentTypes: [.json], asCopy: true)
+        picker.allowsMultipleSelection = true
+        picker.delegate = context.coordinator
+        return picker
+    }
+    
+    func updateUIViewController(_ uiViewController: UIDocumentPickerViewController, context: Context) {}
+    
+    func makeCoordinator() -> Coordinator {
+        Coordinator(self)
+    }
+    
+    class Coordinator: NSObject, UIDocumentPickerDelegate {
+        let parent: DocumentPicker
+        
+        init(_ parent: DocumentPicker) {
+            self.parent = parent
+        }
+        
+        func documentPicker(_ controller: UIDocumentPickerViewController, didPickDocumentsAt urls: [URL]) {
+            parent.selectedFiles = urls
+            parent.presentationMode.wrappedValue.dismiss()
+        }
+        
+        func documentPickerWasCancelled(_ controller: UIDocumentPickerViewController) {
+            parent.presentationMode.wrappedValue.dismiss()
+        }
+    }
+}
+
+// MARK: - Spotify Import Service
+
+class SpotifyImportService {
+    static let shared = SpotifyImportService()
+    private init() {}
+    
+    func uploadFiles(_ files: [URL], userId: String) async -> String {
+        let functionUrl = "https://prestigefunctions.azurewebsites.net/api/spotifydataimportfunction"
+        
+        guard let url = URL(string: "\(functionUrl)?userId=\(userId.addingPercentEncoding(withAllowedCharacters: .urlQueryAllowed) ?? "")") else {
+            return "Invalid URL"
+        }
+        
+        let boundary = UUID().uuidString
+        var request = URLRequest(url: url)
+        request.httpMethod = "POST"
+        request.setValue("multipart/form-data; boundary=\(boundary)", forHTTPHeaderField: "Content-Type")
+        // Add function key for Azure Functions authorization
+        if let functionKey = Bundle.main.object(forInfoDictionaryKey: "AZURE_FUNCTION_KEY") as? String, !functionKey.isEmpty {
+            request.setValue(functionKey, forHTTPHeaderField: "x-functions-key")
+        }
+        
+        var body = Data()
+        
+        for file in files {
+            guard file.startAccessingSecurityScopedResource() else {
+                file.stopAccessingSecurityScopedResource()
+                continue
+            }
+            
+            defer { file.stopAccessingSecurityScopedResource() }
+            
+            do {
+                let fileData = try Data(contentsOf: file)
+                
+                body.append("--\(boundary)\r\n".data(using: .utf8)!)
+                body.append("Content-Disposition: form-data; name=\"file\"; filename=\"\(file.lastPathComponent)\"\r\n".data(using: .utf8)!)
+                body.append("Content-Type: application/json\r\n\r\n".data(using: .utf8)!)
+                body.append(fileData)
+                body.append("\r\n".data(using: .utf8)!)
+            } catch {
+                print("Failed to read file \(file.lastPathComponent): \(error)")
+            }
+        }
+        
+        body.append("--\(boundary)--\r\n".data(using: .utf8)!)
+        request.httpBody = body
+        
+        do {
+            let (data, response) = try await URLSession.shared.data(for: request)
+            
+            if let httpResponse = response as? HTTPURLResponse {
+                let responseString = String(data: data, encoding: .utf8) ?? "No response data"
+                print("📤 Upload Response: Status \(httpResponse.statusCode), Body: \(responseString)")
+                
+                if httpResponse.statusCode == 200 {
+                    return "Import completed! \(responseString)"
+                } else {
+                    return "Failed to import: HTTP \(httpResponse.statusCode) - \(responseString)"
+                }
+            } else {
+                return "Failed to import: Invalid response"
+            }
+        } catch {
+            return "Failed to import: \(error.localizedDescription)"
+        }
     }
 }
 

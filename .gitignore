@@ -100,3 +100,4 @@ PRESTIGE_SWIFTUI_COMPONENTS.swift
 
 # Sensitive configuration files
 PrestigeNative/Core/Configuration/
+PrestigeNative/Info.plist

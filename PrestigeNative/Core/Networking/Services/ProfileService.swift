@@ -101,23 +101,33 @@ class ProfileService: ObservableObject {
         await MainActor.run { isLoading = true }
         
         do {
+            print("🔵 Fetching recently played for user: \(userId) with limit: \(limit)")
             let recent: [RecentlyPlayedResponse] = try await apiClient.get(
-                APIEndpoints.recentlyPlayed(userId: userId),
+                "\(APIEndpoints.recentlyPlayed(userId: userId))?limit=\(limit)",
                 responseType: [RecentlyPlayedResponse].self
             )
+            print("✅ Successfully fetched \(recent.count) recently played tracks")
             await MainActor.run {
                 self.recentlyPlayed = Array(recent.prefix(limit))
                 self.isLoading = false
                 self.error = nil
             }
         } catch let apiError as APIError {
+            print("❌ Recently played API error: \(apiError)")
             await MainActor.run {
-                self.error = apiError
+                // Only set error if we're not in a concurrent loading context
+                if !self.isLoading {
+                    self.error = apiError
+                }
                 self.isLoading = false
             }
         } catch {
+            print("❌ Recently played network error: \(error)")
             await MainActor.run {
-                self.error = .networkError(error)
+                // Only set error if we're not in a concurrent loading context
+                if !self.isLoading {
+                    self.error = .networkError(error)
+                }
                 self.isLoading = false
             }
         }
@@ -203,13 +213,24 @@ class ProfileService: ObservableObject {
     
     /// Load all profile data at once
     func loadAllProfileData(userId: String) async {
+        // Clear any previous errors at start
+        await MainActor.run {
+            self.error = nil
+            self.isLoading = true
+        }
+        
         await withTaskGroup(of: Void.self) { group in
             group.addTask { await self.fetchTopTracks(userId: userId) }
             group.addTask { await self.fetchTopAlbums(userId: userId) }
             group.addTask { await self.fetchTopArtists(userId: userId) }
-            group.addTask { await self.fetchRecentlyPlayed(userId: userId) }
+            group.addTask { await self.fetchRecentlyPlayed(userId: userId, limit: 30) }
             group.addTask { await self.fetchFavoriteTracks(userId: userId) }
             group.addTask { await self.fetchUserProfile(userId: userId) }
+        }
+        
+        // Mark loading as complete
+        await MainActor.run {
+            self.isLoading = false
         }
     }
 }

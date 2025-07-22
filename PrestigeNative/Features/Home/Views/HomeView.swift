@@ -8,24 +8,35 @@
 
 import SwiftUI
 
+struct PrestigeSelection: Identifiable {
+    let id = UUID()
+    let item: PrestigeDisplayItem
+    let rank: Int
+}
+
 struct HomeView: View {
     @StateObject private var viewModel = HomeViewModel()
     @EnvironmentObject var authManager: AuthManager
     @State private var showingError = false
+    @State private var selectedPrestige: PrestigeSelection?
     
     var body: some View {
         NavigationView {
             VStack(spacing: 0) {
-                // App Title
-                Text("Prestige")
-                    .font(.largeTitle)
-                    .fontWeight(.bold)
-                    .foregroundColor(.primary)
+                // App Logo
+                Image("prestige_white")
+                    .resizable()
+                    .scaledToFit()
+                    .frame(height: 40)
                     .padding(.top, 20)
                     .padding(.bottom, 16)
                 
-                // Type Selector
-                typeSelector
+                // Selectors
+                HStack(spacing: 12) {
+                    timeRangeSelector
+                    typeSelector
+                }
+                .padding(.horizontal)
                 
                 // Content
                 ScrollView {
@@ -73,6 +84,12 @@ struct HomeView: View {
         .onChange(of: viewModel.error) { _, error in
             showingError = error != nil
         }
+        .sheet(item: $selectedPrestige) { selection in
+            PrestigeDetailView(
+                item: selection.item,
+                rank: selection.rank
+            )
+        }
     }
     
     // MARK: - Computed Properties
@@ -94,6 +111,28 @@ struct HomeView: View {
     }
     
     // MARK: - View Components
+    
+    private var timeRangeSelector: some View {
+        Menu {
+            ForEach(PrestigeTimeRange.allCases, id: \.self) { range in
+                Button(range.displayName) {
+                    viewModel.selectedTimeRange = range
+                }
+            }
+        } label: {
+            HStack {
+                Text(viewModel.selectedTimeRange.displayName)
+                    .foregroundColor(.white)
+                Image(systemName: "chevron.down")
+                    .foregroundColor(.white)
+                    .font(.caption)
+            }
+            .padding(.horizontal, 16)
+            .padding(.vertical, 8)
+            .background(Color.blue.opacity(0.8))
+            .cornerRadius(8)
+        }
+    }
     
     private var typeSelector: some View {
         Menu {
@@ -119,7 +158,6 @@ struct HomeView: View {
             .background(Color.gray.opacity(0.8))
             .cornerRadius(8)
         }
-        .padding(.bottom, 10)
     }
     
     @ViewBuilder
@@ -205,6 +243,12 @@ struct HomeView: View {
                     item: PrestigeDisplayItem.fromTrack(track),
                     rank: index + 1
                 )
+                .onTapGesture {
+                    selectedPrestige = PrestigeSelection(
+                        item: PrestigeDisplayItem.fromTrack(track),
+                        rank: index + 1
+                    )
+                }
             }
         case .albums:
             ForEach(Array(viewModel.topAlbums.prefix(3).enumerated()), id: \.element.album.id) { index, album in
@@ -212,6 +256,12 @@ struct HomeView: View {
                     item: PrestigeDisplayItem.fromAlbum(album),
                     rank: index + 1
                 )
+                .onTapGesture {
+                    selectedPrestige = PrestigeSelection(
+                        item: PrestigeDisplayItem.fromAlbum(album),
+                        rank: index + 1
+                    )
+                }
             }
         case .artists:
             ForEach(Array(viewModel.topArtists.prefix(3).enumerated()), id: \.element.artist.id) { index, artist in
@@ -219,6 +269,12 @@ struct HomeView: View {
                     item: PrestigeDisplayItem.fromArtist(artist),
                     rank: index + 1
                 )
+                .onTapGesture {
+                    selectedPrestige = PrestigeSelection(
+                        item: PrestigeDisplayItem.fromArtist(artist),
+                        rank: index + 1
+                    )
+                }
             }
         }
     }
@@ -229,14 +285,32 @@ struct HomeView: View {
         case .tracks:
             ForEach(Array(viewModel.topTracks.dropFirst(3).prefix(22).enumerated()), id: \.element.totalTime) { index, track in
                 PrestigeTrackRow(track: track, rank: index + 4)
+                    .onTapGesture {
+                        selectedPrestige = PrestigeSelection(
+                            item: PrestigeDisplayItem.fromTrack(track),
+                            rank: index + 4
+                        )
+                    }
             }
         case .albums:
             ForEach(Array(viewModel.topAlbums.dropFirst(3).prefix(22).enumerated()), id: \.element.album.id) { index, album in
                 PrestigeAlbumRow(album: album, rank: index + 4)
+                    .onTapGesture {
+                        selectedPrestige = PrestigeSelection(
+                            item: PrestigeDisplayItem.fromAlbum(album),
+                            rank: index + 4
+                        )
+                    }
             }
         case .artists:
             ForEach(Array(viewModel.topArtists.dropFirst(3).prefix(22).enumerated()), id: \.element.artist.id) { index, artist in
                 PrestigeArtistRow(artist: artist, rank: index + 4)
+                    .onTapGesture {
+                        selectedPrestige = PrestigeSelection(
+                            item: PrestigeDisplayItem.fromArtist(artist),
+                            rank: index + 4
+                        )
+                    }
             }
         }
     }

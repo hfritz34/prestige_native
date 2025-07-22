@@ -38,6 +38,12 @@ struct MainTabView: View {
                     Text("Home")
                 }
             
+            RateView()
+                .tabItem {
+                    Image(systemName: "star.fill")
+                    Text("Rate")
+                }
+            
             Text("Friends")
                 .tabItem {
                     Image(systemName: "person.2.fill")

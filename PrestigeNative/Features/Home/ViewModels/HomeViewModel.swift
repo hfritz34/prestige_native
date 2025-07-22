@@ -15,6 +15,7 @@ class HomeViewModel: ObservableObject {
     @Published var topAlbums: [UserAlbumResponse] = []
     @Published var topArtists: [UserArtistResponse] = []
     @Published var selectedContentType: ContentType = .tracks
+    @Published var selectedTimeRange: PrestigeTimeRange = .allTime
     @Published var isLoading = false
     @Published var error: APIError?
     
@@ -101,6 +102,20 @@ enum ContentType: CaseIterable {
         case .tracks: return "Tracks"
         case .albums: return "Albums"
         case .artists: return "Artists"
+        }
+    }
+}
+
+enum PrestigeTimeRange: CaseIterable {
+    case allTime
+    case recentlyPlayed
+    case lastMonth
+    
+    var displayName: String {
+        switch self {
+        case .allTime: return "All Time"
+        case .recentlyPlayed: return "Recently Played"
+        case .lastMonth: return "Last Month"
         }
     }
 }

@@ -103,6 +103,8 @@ struct PrestigeDisplayItem {
     let imageUrl: String
     let totalTimeMilliseconds: Int
     let prestigeLevel: PrestigeLevel
+    let spotifyId: String
+    let contentType: ContentType
     
     // Convenience initializers for different item types
     static func fromTrack(_ track: UserTrackResponse) -> PrestigeDisplayItem {
@@ -111,7 +113,9 @@ struct PrestigeDisplayItem {
             subtitle: track.track.artists.first?.name ?? "Unknown Artist",
             imageUrl: track.track.album.images.first?.url ?? "",
             totalTimeMilliseconds: track.totalTime * 1000, // Convert seconds to milliseconds
-            prestigeLevel: track.prestigeLevel
+            prestigeLevel: track.prestigeLevel,
+            spotifyId: track.track.id,
+            contentType: .tracks
         )
     }
     
@@ -121,7 +125,9 @@ struct PrestigeDisplayItem {
             subtitle: album.album.artists.first?.name ?? "Unknown Artist",
             imageUrl: album.album.images.first?.url ?? "",
             totalTimeMilliseconds: album.totalTime * 1000, // Convert seconds to milliseconds
-            prestigeLevel: album.prestigeLevel
+            prestigeLevel: album.prestigeLevel,
+            spotifyId: album.album.id,
+            contentType: .albums
         )
     }
     
@@ -131,7 +137,9 @@ struct PrestigeDisplayItem {
             subtitle: "Artist",
             imageUrl: artist.artist.images.first?.url ?? "",
             totalTimeMilliseconds: artist.totalTime * 1000, // Convert seconds to milliseconds
-            prestigeLevel: artist.prestigeLevel
+            prestigeLevel: artist.prestigeLevel,
+            spotifyId: artist.artist.id,
+            contentType: .artists
         )
     }
 }
@@ -144,7 +152,9 @@ struct PrestigeDisplayItem {
                 subtitle: "Sample Artist",
                 imageUrl: "",
                 totalTimeMilliseconds: 7200000, // 2 hours in milliseconds
-                prestigeLevel: .gold
+                prestigeLevel: .gold,
+                spotifyId: "sample-track-id",
+                contentType: .tracks
             ),
             rank: 1
         )
@@ -155,7 +165,9 @@ struct PrestigeDisplayItem {
                 subtitle: "Another Artist",
                 imageUrl: "",
                 totalTimeMilliseconds: 3600000, // 1 hour in milliseconds
-                prestigeLevel: .silver
+                prestigeLevel: .silver,
+                spotifyId: "another-track-id",
+                contentType: .tracks
             ),
             rank: 2
         )

@@ -58,7 +58,7 @@ struct PrestigeDetailView: View {
                 RoundedRectangle(cornerRadius: 12)
                     .fill(Color.gray.opacity(0.3))
                     .overlay(
-                        Image(systemName: item.type.iconName)
+                        Image(systemName: item.contentType.iconName)
                             .font(.largeTitle)
                             .foregroundColor(.gray)
                     )
@@ -142,7 +142,7 @@ struct PrestigeDetailView: View {
                     color: Color(hex: item.prestigeLevel.color) ?? .blue
                 )
                 
-                if item.type == .tracks {
+                if item.contentType == .tracks {
                     StatCard(
                         title: "Play Count",
                         value: "\(Int(item.totalTimeMilliseconds / 1000 / 60 / 3))", // Rough estimate (3 min per play)
@@ -164,11 +164,14 @@ struct PrestigeDetailView: View {
     private var actionButtons: some View {
         VStack(spacing: 12) {
             Button(action: {
-                // TODO: Implement Spotify playback
+                SpotifyPlaybackService.shared.playContent(
+                    spotifyId: item.spotifyId,
+                    type: item.contentType
+                )
             }) {
                 HStack {
-                    Image(systemName: "play.fill")
-                    Text("Play on Spotify")
+                    Image(systemName: item.contentType == .tracks ? "play.fill" : "arrow.up.right.square")
+                    Text(item.contentType == .tracks ? "Play on Spotify" : "Open on Spotify")
                 }
                 .frame(maxWidth: .infinity)
                 .padding()
@@ -198,7 +201,7 @@ struct PrestigeDetailView: View {
     private var progressToNextTier: (percentage: Double, nextTier: PrestigeLevel, remainingTime: String)? {
         let totalMinutes = item.totalTimeMilliseconds / 1000 / 60
         let itemType: PrestigeCalculator.ItemType = {
-            switch item.type {
+            switch item.contentType {
             case .tracks: return .track
             case .albums: return .album
             case .artists: return .artist
@@ -211,16 +214,24 @@ struct PrestigeDetailView: View {
             itemType: itemType
         ) else { return nil }
         
-        let currentThresholds = getThresholds(for: itemType)
-        let currentIndex = item.prestigeLevel.order
-        let currentThreshold = currentIndex > 0 ? currentThresholds[currentIndex - 1] : 0
-        let nextThreshold = currentThresholds[min(currentIndex, currentThresholds.count - 1)]
+        // Calculate progress within current tier
+        let thresholds = getThresholds(for: itemType)
+        let currentTierIndex = item.prestigeLevel.order
         
-        let progress = currentThreshold == nextThreshold ? 100.0 : 
-            Double(totalMinutes - currentThreshold) / Double(nextThreshold - currentThreshold) * 100
+        // Get the threshold for the current tier (what was needed to reach it)
+        let currentTierThreshold = currentTierIndex > 0 ? thresholds[currentTierIndex - 1] : 0
+        
+        // Get the threshold for the next tier
+        let nextTierThreshold = currentTierIndex < thresholds.count ? thresholds[currentTierIndex] : thresholds.last ?? 0
+        
+        // Calculate progress from current tier to next tier
+        let progressInCurrentTier = Double(totalMinutes - currentTierThreshold)
+        let tierRange = Double(nextTierThreshold - currentTierThreshold)
+        
+        let percentage = tierRange > 0 ? (progressInCurrentTier / tierRange) * 100 : 0
         
         return (
-            percentage: min(max(progress, 0), 100),
+            percentage: min(max(percentage, 0), 100),
             nextTier: nextTierInfo.nextLevel,
             remainingTime: formatTime(Double(nextTierInfo.minutesNeeded))
         )
@@ -285,18 +296,7 @@ struct PrestigeProgressBar: View {
 
 // MARK: - Extensions
 
-extension PrestigeDisplayItem {
-    var type: ContentType {
-        // Determine type based on subtitle content
-        if subtitle == "Artist" {
-            return .artists
-        } else if subtitle.contains("tracks") || name.contains("Album") {
-            return .albums
-        } else {
-            return .tracks
-        }
-    }
-}
+// Note: Type detection now handled by explicit contentType property
 
 extension ContentType {
     var iconName: String {
@@ -308,38 +308,6 @@ extension ContentType {
     }
 }
 
-extension Color {
-    init?(hex: String) {
-        var hexSanitized = hex.trimmingCharacters(in: .whitespacesAndNewlines)
-        hexSanitized = hexSanitized.replacingOccurrences(of: "#", with: "")
-        
-        var rgb: UInt64 = 0
-        
-        var r: CGFloat = 0.0
-        var g: CGFloat = 0.0
-        var b: CGFloat = 0.0
-        var a: CGFloat = 1.0
-        
-        let length = hexSanitized.count
-        
-        guard Scanner(string: hexSanitized).scanHexInt64(&rgb) else { return nil }
-        
-        if length == 6 {
-            r = CGFloat((rgb & 0xFF0000) >> 16) / 255.0
-            g = CGFloat((rgb & 0x00FF00) >> 8) / 255.0
-            b = CGFloat(rgb & 0x0000FF) / 255.0
-        } else if length == 8 {
-            r = CGFloat((rgb & 0xFF000000) >> 24) / 255.0
-            g = CGFloat((rgb & 0x00FF0000) >> 16) / 255.0
-            b = CGFloat((rgb & 0x0000FF00) >> 8) / 255.0
-            a = CGFloat(rgb & 0x000000FF) / 255.0
-        } else {
-            return nil
-        }
-        
-        self.init(red: r, green: g, blue: b, opacity: a)
-    }
-}
 
 #Preview {
     PrestigeDetailView(
@@ -348,7 +316,9 @@ extension Color {
             subtitle: "Queen • A Night at the Opera",
             imageUrl: "https://example.com/image.jpg",
             totalTimeMilliseconds: 180000,
-            prestigeLevel: .gold
+            prestigeLevel: .gold,
+            spotifyId: "4u7EnebtmKWzUH433cf5Qv",
+            contentType: .tracks
         ),
         rank: 1
     )

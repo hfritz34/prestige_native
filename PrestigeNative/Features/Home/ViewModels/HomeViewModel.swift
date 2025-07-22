@@ -74,11 +74,11 @@ class HomeViewModel: ObservableObject {
         
         switch type {
         case .tracks:
-            await profileService.fetchTopTracks(userId: userId, limit: 25)
+            await profileService.fetchTopTracks(userId: userId, limit: 30)
         case .albums:
-            await profileService.fetchTopAlbums(userId: userId, limit: 25)
+            await profileService.fetchTopAlbums(userId: userId, limit: 30)
         case .artists:
-            await profileService.fetchTopArtists(userId: userId, limit: 25)
+            await profileService.fetchTopArtists(userId: userId, limit: 30)
         }
     }
 

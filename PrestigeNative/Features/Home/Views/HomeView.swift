@@ -45,18 +45,10 @@ struct HomeView: View {
                             ProgressView()
                                 .padding(.vertical, 50)
                         } else {
-                            // Top 3 Prestiges Section
+                            // Prestige Grid
                             if hasContent {
-                                topThreeSection
-                            }
-                            
-                            // More Top Prestiges Section
-                            if hasMoreThanThree {
-                                moreTopSection
-                            }
-                            
-                            // Empty state if no content
-                            if !hasContent {
+                                prestigeGridSection
+                            } else {
                                 emptyStateView
                             }
                         }
@@ -102,13 +94,6 @@ struct HomeView: View {
         }
     }
     
-    private var hasMoreThanThree: Bool {
-        switch viewModel.selectedContentType {
-        case .tracks: return viewModel.topTracks.count > 3
-        case .albums: return viewModel.topAlbums.count > 3
-        case .artists: return viewModel.topArtists.count > 3
-        }
-    }
     
     // MARK: - View Components
     
@@ -204,42 +189,29 @@ struct HomeView: View {
         }
     }
     
-    private var topThreeSection: some View {
+    private var prestigeGridSection: some View {
         VStack(alignment: .leading, spacing: 16) {
-            Text("Top 3 Prestiges")
+            Text("Your Top Prestiges")
                 .font(.title2)
                 .fontWeight(.bold)
                 .padding(.horizontal)
             
-            ScrollView(.horizontal, showsIndicators: false) {
-                HStack(spacing: 16) {
-                    topThreeContent
-                }
-                .padding(.horizontal)
-            }
-        }
-    }
-    
-    private var moreTopSection: some View {
-        VStack(alignment: .leading, spacing: 16) {
-            Text("More Top Prestiges")
-                .font(.title2)
-                .fontWeight(.bold)
-                .padding(.horizontal)
-            
-            LazyVStack(spacing: 12) {
-                moreTopContent
+            LazyVGrid(
+                columns: Array(repeating: GridItem(.flexible(), spacing: 12), count: 3),
+                spacing: 16
+            ) {
+                prestigeGridContent
             }
             .padding(.horizontal)
         }
     }
     
     @ViewBuilder
-    private var topThreeContent: some View {
+    private var prestigeGridContent: some View {
         switch viewModel.selectedContentType {
         case .tracks:
-            ForEach(Array(viewModel.topTracks.prefix(3).enumerated()), id: \.element.totalTime) { index, track in
-                PrestigeTopCard(
+            ForEach(Array(viewModel.topTracks.enumerated()), id: \.element.totalTime) { index, track in
+                PrestigeGridCard(
                     item: PrestigeDisplayItem.fromTrack(track),
                     rank: index + 1
                 )
@@ -251,8 +223,8 @@ struct HomeView: View {
                 }
             }
         case .albums:
-            ForEach(Array(viewModel.topAlbums.prefix(3).enumerated()), id: \.element.album.id) { index, album in
-                PrestigeTopCard(
+            ForEach(Array(viewModel.topAlbums.enumerated()), id: \.element.album.id) { index, album in
+                PrestigeGridCard(
                     item: PrestigeDisplayItem.fromAlbum(album),
                     rank: index + 1
                 )
@@ -264,8 +236,8 @@ struct HomeView: View {
                 }
             }
         case .artists:
-            ForEach(Array(viewModel.topArtists.prefix(3).enumerated()), id: \.element.artist.id) { index, artist in
-                PrestigeTopCard(
+            ForEach(Array(viewModel.topArtists.enumerated()), id: \.element.artist.id) { index, artist in
+                PrestigeGridCard(
                     item: PrestigeDisplayItem.fromArtist(artist),
                     rank: index + 1
                 )
@@ -275,42 +247,6 @@ struct HomeView: View {
                         rank: index + 1
                     )
                 }
-            }
-        }
-    }
-    
-    @ViewBuilder
-    private var moreTopContent: some View {
-        switch viewModel.selectedContentType {
-        case .tracks:
-            ForEach(Array(viewModel.topTracks.dropFirst(3).prefix(22).enumerated()), id: \.element.totalTime) { index, track in
-                PrestigeTrackRow(track: track, rank: index + 4)
-                    .onTapGesture {
-                        selectedPrestige = PrestigeSelection(
-                            item: PrestigeDisplayItem.fromTrack(track),
-                            rank: index + 4
-                        )
-                    }
-            }
-        case .albums:
-            ForEach(Array(viewModel.topAlbums.dropFirst(3).prefix(22).enumerated()), id: \.element.album.id) { index, album in
-                PrestigeAlbumRow(album: album, rank: index + 4)
-                    .onTapGesture {
-                        selectedPrestige = PrestigeSelection(
-                            item: PrestigeDisplayItem.fromAlbum(album),
-                            rank: index + 4
-                        )
-                    }
-            }
-        case .artists:
-            ForEach(Array(viewModel.topArtists.dropFirst(3).prefix(22).enumerated()), id: \.element.artist.id) { index, artist in
-                PrestigeArtistRow(artist: artist, rank: index + 4)
-                    .onTapGesture {
-                        selectedPrestige = PrestigeSelection(
-                            item: PrestigeDisplayItem.fromArtist(artist),
-                            rank: index + 4
-                        )
-                    }
             }
         }
     }

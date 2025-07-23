@@ -14,7 +14,7 @@ Earn Rewards: Unlock cosmetic badges and achievements for your listening milesto
 Live Feed: Stay in the loop with what your friends are currently vibing to on Spotify.
 🧠 Inspired by Maslow's Peak Experiences: Abraham Maslow identified music as a universal pathway to peak human experiences – moments of joy, connection, and self-realization. Prestige builds on this idea, creating a space where music is not just listened to but celebrated and shared.
 
-🎶 Why Prestige? In 2024, music has become a lifestyle for millions globally. Despite the explosion of streaming platforms and fandoms, there’s no single community where music lovers can come together, share their passion, and dive deep into the magic of music. Prestige fills this gap by fostering connection through:
+🎶 Why Prestige? In 2025, music has become a lifestyle for millions globally. Despite the explosion of streaming platforms and fandoms, there’s no single community where music lovers can come together, share their passion, and dive deep into the magic of music. Prestige fills this gap by fostering connection through:
 
 Sharing your music taste.
 Competing with fellow fans to prove your dedication.

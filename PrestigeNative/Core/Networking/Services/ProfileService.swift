@@ -25,7 +25,7 @@ class ProfileService: ObservableObject {
     // MARK: - Profile Data Methods
     
     /// Fetch user's top tracks with prestige levels
-    func fetchTopTracks(userId: String, limit: Int = 30) async {
+    func fetchTopTracks(userId: String, limit: Int = 60) async {
         await MainActor.run { isLoading = true }
         
         do {
@@ -49,7 +49,7 @@ class ProfileService: ObservableObject {
     }
     
     /// Fetch user's top albums with prestige levels
-    func fetchTopAlbums(userId: String, limit: Int = 30) async {
+    func fetchTopAlbums(userId: String, limit: Int = 60) async {
         await MainActor.run { isLoading = true }
         
         do {

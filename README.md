@@ -21,6 +21,6 @@ Competing with fellow fans to prove your dedication.
 Learning about others through their unique playlists and preferences.
 🛠️ Built For Music Lovers By Music Lovers: Your music is more than background noise—it’s your story, told in melodies and rhythms. Prestige is a platform where you’re not defined by photos or followers, but by the beats that resonate with your soul.
 
-Let’s make music more social, more meaningful, and more connected. 🎧
+Let’s make music more social, more meaningful, and more connected. 
 
 Citations: Abraham Maslow, "Music, Education, and Peak Experiences," in Documentary Report of the Tanglewood Symposium, ed. Robert Choate (Washington, DC: Music Educators National Conference, 1968).

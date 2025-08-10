@@ -15,7 +15,7 @@ class RatingViewModel: ObservableObject {
     // MARK: - Published Properties
     
     @Published var categories: [RatingCategoryModel] = []
-    @Published var userRatings: [RatingItemType: [Rating]] = [:]
+    @Published var userRatings: [String: [Rating]] = [:]
     @Published var unratedItems: [RatingItemData] = []
     @Published var recentlyPlayedItems: [RatingItemData] = []
     
@@ -36,7 +36,7 @@ class RatingViewModel: ObservableObject {
     // MARK: - Services
     
     private let ratingService = RatingService.shared
-    private let spotifyService = SpotifyService.shared
+    private let spotifyService = SpotifyService()
     private var cancellables = Set<AnyCancellable>()
     
     // MARK: - Rating Flow State
@@ -66,7 +66,10 @@ class RatingViewModel: ObservableObject {
         
         ratingService.$userRatings
             .receive(on: DispatchQueue.main)
-            .assign(to: &$userRatings)
+            .sink { [weak self] ratings in
+                self?.userRatings = ratings
+            }
+            .store(in: &cancellables)
         
         ratingService.$isLoading
             .receive(on: DispatchQueue.main)
@@ -110,7 +113,7 @@ class RatingViewModel: ObservableObject {
             // This would typically fetch from Spotify service
             // For now, using placeholder logic
             let allItems = try await fetchAllUserItems(type: selectedItemType)
-            let ratedIds = userRatings[selectedItemType]?.map { $0.itemId } ?? []
+            let ratedIds = userRatings[selectedItemType.rawValue]?.map { $0.itemId } ?? []
             
             unratedItems = allItems.filter { !ratedIds.contains($0.id) }
         } catch {
@@ -122,7 +125,7 @@ class RatingViewModel: ObservableObject {
         do {
             // Fetch recently played from Spotify
             let recentTracks = try await spotifyService.getRecentlyPlayed()
-            let ratedIds = userRatings[.track]?.map { $0.itemId } ?? []
+            let ratedIds = userRatings[RatingItemType.track.rawValue]?.map { $0.itemId } ?? []
             
             recentlyPlayedItems = recentTracks
                 .filter { !ratedIds.contains($0.id) }
@@ -310,7 +313,7 @@ class RatingViewModel: ObservableObject {
     // MARK: - Helper Methods
     
     private func getRatingsInCategory(_ category: RatingCategoryModel) -> [Rating] {
-        return userRatings[selectedItemType]?
+        return userRatings[selectedItemType.rawValue]?
             .filter { $0.categoryId == category.id }
             .sorted { $0.position < $1.position } ?? []
     }
@@ -338,18 +341,18 @@ class RatingViewModel: ObservableObject {
     }
     
     var ratingStatistics: RatingStatistics? {
-        guard let ratings = userRatings[selectedItemType] else { return nil }
+        guard let ratings = userRatings[selectedItemType.rawValue] else { return nil }
         return ratingService.calculateStatistics(for: ratings)
     }
     
     var filteredRatings: [Rating] {
-        userRatings[selectedItemType] ?? []
+        userRatings[selectedItemType.rawValue] ?? []
     }
 }
 
 // MARK: - Array Extension for Removing Duplicates
 
-extension Array where Element: RatingItemData {
+extension Array where Element == RatingItemData {
     func removingDuplicates() -> [Element] {
         var seen = Set<String>()
         return filter { item in

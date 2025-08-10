@@ -70,6 +70,51 @@ class SpotifyService: ObservableObject {
     func clearSearchResults() {
         searchResults = nil
     }
+    
+    // MARK: - Recently Played
+    
+    /// Fetch user's recently played tracks
+    func getRecentlyPlayed() async throws -> [RatingItemData] {
+        do {
+            await MainActor.run { isLoading = true }
+            
+            let recentTracks: [RecentlyPlayedResponse] = try await apiClient.get(
+                APIEndpoints.spotifyRecentlyPlayed,
+                responseType: [RecentlyPlayedResponse].self
+            )
+            
+            let ratingItemData = recentTracks.map { track in
+                RatingItemData(
+                    id: track.id,
+                    name: track.trackName,
+                    imageUrl: track.imageUrl,
+                    artists: [track.artistName],
+                    albumName: nil, // Not provided in RecentlyPlayedResponse
+                    itemType: .track
+                )
+            }
+            
+            await MainActor.run {
+                self.isLoading = false
+                self.error = nil
+            }
+            
+            return ratingItemData
+        } catch let apiError as APIError {
+            await MainActor.run {
+                self.error = apiError
+                self.isLoading = false
+            }
+            throw apiError
+        } catch {
+            let wrappedError = APIError.networkError(error)
+            await MainActor.run {
+                self.error = wrappedError
+                self.isLoading = false
+            }
+            throw wrappedError
+        }
+    }
 }
 
 // MARK: - Supporting Types

@@ -10,6 +10,7 @@ import SwiftUI
 
 struct RatingModal: View {
     @EnvironmentObject var viewModel: RatingViewModel
+    @StateObject private var ratingService = RatingService.shared
     @Environment(\.dismiss) private var dismiss
     
     var body: some View {
@@ -28,6 +29,13 @@ struct RatingModal: View {
         }
         .presentationDetents([.medium, .large])
         .presentationDragIndicator(.visible)
+        .onAppear {
+            Task {
+                if ratingService.categories.isEmpty {
+                    await loadCategories()
+                }
+            }
+        }
     }
     
     // MARK: - Header Section
@@ -161,12 +169,12 @@ struct RatingModal: View {
                 .fontWeight(.bold)
                 .padding(.top, 20)
             
-            if viewModel.categories.isEmpty {
+            if ratingService.categories.isEmpty {
                 ProgressView("Loading categories...")
                     .padding()
             } else {
                 VStack(spacing: 16) {
-                    ForEach(viewModel.categories) { category in
+                    ForEach(ratingService.categories) { category in
                         RatingCategoryButton(
                             category: category,
                             isSelected: viewModel.selectedCategory?.id == category.id,
@@ -259,6 +267,16 @@ struct RatingModal: View {
             Spacer()
         }
         .padding(.top, 40)
+    }
+    
+    // MARK: - Helper Methods
+    
+    private func loadCategories() async {
+        do {
+            _ = try await ratingService.fetchCategories()
+        } catch {
+            print("Failed to load categories in modal: \\(error)")
+        }
     }
 }
 

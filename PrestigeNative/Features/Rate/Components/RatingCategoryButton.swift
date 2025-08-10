@@ -124,7 +124,7 @@ struct RatingCategoryGrid: View {
     VStack(spacing: 20) {
         RatingCategoryButton(
             category: RatingCategoryModel(
-                id: "1",
+                id: 1,
                 name: "Loved",
                 minScore: 6.8,
                 maxScore: 10.0,
@@ -137,7 +137,7 @@ struct RatingCategoryGrid: View {
         
         CompactRatingCategoryButton(
             category: RatingCategoryModel(
-                id: "2",
+                id: 2,
                 name: "Liked",
                 minScore: 3.4,
                 maxScore: 6.7,
@@ -154,9 +154,9 @@ struct RatingCategoryGrid: View {
 #Preview("Category Grid") {
     RatingCategoryGrid(
         categories: [
-            RatingCategoryModel(id: "1", name: "Loved", minScore: 6.8, maxScore: 10.0, colorHex: "#22c55e", displayOrder: 1),
-            RatingCategoryModel(id: "2", name: "Liked", minScore: 3.4, maxScore: 6.7, colorHex: "#eab308", displayOrder: 2),
-            RatingCategoryModel(id: "3", name: "Disliked", minScore: 0.0, maxScore: 3.3, colorHex: "#ef4444", displayOrder: 3)
+            RatingCategoryModel(id: 1, name: "Loved", minScore: 6.8, maxScore: 10.0, colorHex: "#22c55e", displayOrder: 1),
+            RatingCategoryModel(id: 2, name: "Liked", minScore: 3.4, maxScore: 6.7, colorHex: "#eab308", displayOrder: 2),
+            RatingCategoryModel(id: 3, name: "Disliked", minScore: 0.0, maxScore: 3.3, colorHex: "#ef4444", displayOrder: 3)
         ],
         selectedCategory: .constant(nil),
         onSelect: { _ in }

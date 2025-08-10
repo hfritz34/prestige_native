@@ -62,9 +62,9 @@ struct Rating: Codable, Identifiable {
 // MARK: - Rating Item Type
 
 enum RatingItemType: String, Codable, CaseIterable {
-    case track = "Track"
-    case album = "Album"
-    case artist = "Artist"
+    case track = "track"
+    case album = "album"
+    case artist = "artist"
     
     var displayName: String {
         switch self {
@@ -132,6 +132,18 @@ struct ComparisonResultResponse: Codable {
 struct RatingInitResponse: Codable {
     let existingRating: Rating?
     let itemData: RatingItemData
+}
+
+// MARK: - Server Rating Response (flat DTO from API)
+
+struct ServerRatingResponse: Codable {
+    let itemId: String
+    let itemType: String
+    let categoryId: Int?
+    let personalScore: Double?
+    let position: Int?
+    let albumId: String?
+    let isNewRating: Bool
 }
 
 // MARK: - Rating Item Data

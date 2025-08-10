@@ -117,6 +117,24 @@ class SpotifyService: ObservableObject {
     }
 }
 
+// MARK: - User Library Search (Backend)
+
+struct UserLibrarySearchResult: Codable {
+    let total: Int
+    let page: Int
+    let pageSize: Int
+    let items: [UserLibrarySearchItem]
+}
+
+struct UserLibrarySearchItem: Codable {
+    let id: String
+    let name: String
+    let imageUrl: String?
+    let artists: [String]
+    let albumName: String?
+    let itemType: String
+}
+
 // MARK: - Supporting Types
 
 enum SearchType: String, CaseIterable {

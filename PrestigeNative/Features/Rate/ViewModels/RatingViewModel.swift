@@ -9,6 +9,7 @@
 import Foundation
 import Combine
 import SwiftUI
+import UIKit
 
 @MainActor
 class RatingViewModel: ObservableObject {
@@ -39,7 +40,9 @@ class RatingViewModel: ObservableObject {
     
     private let ratingService = RatingService.shared
     private let spotifyService = SpotifyService()
+    private var authManager: AuthManager?
     private var cancellables = Set<AnyCancellable>()
+    private var itemCache: [String: RatingItemData] = [:]
     
     // MARK: - Rating Flow State
     
@@ -55,9 +58,7 @@ class RatingViewModel: ObservableObject {
     
     init() {
         setupBindings()
-        Task {
-            await loadInitialData()
-        }
+        // Initial data load will be triggered from views after AuthManager is injected
     }
     
     private func setupBindings() {
@@ -151,14 +152,15 @@ class RatingViewModel: ObservableObject {
         await MainActor.run { isSearching = true }
         
         do {
-            // Option 1: Frontend search through existing data
+            // Prefer backend search for accuracy and scale
+            let backendResults = try await searchUserLibrary(query: query)
+            // Fallback: also merge frontend results to include local-only items
             let frontendResults = await searchExistingData(query: query)
-            
-            // Option 2: Backend search (if implemented)
-            // let backendResults = try await searchUserLibrary(query: query)
-            
+
+            // Merge, preferring backend items
+            let merged = (backendResults + frontendResults).removingDuplicates()
             await MainActor.run {
-                self.searchResults = frontendResults
+                self.searchResults = merged
                 self.isSearching = false
             }
         } catch {
@@ -205,11 +207,23 @@ class RatingViewModel: ObservableObject {
         return results.removingDuplicates()
     }
     
-    // Backend search implementation (placeholder)
+    // Backend search implementation
     private func searchUserLibrary(query: String) async throws -> [RatingItemData] {
-        // This would call a backend endpoint like: /api/search/user-library
-        // For now, return empty array
-        return []
+        let type = selectedItemType.rawValue
+        let endpoint = APIEndpoints.searchUserLibrary(query: query, type: type)
+        let result: UserLibrarySearchResult = try await APIClient.shared.get(endpoint, responseType: UserLibrarySearchResult.self)
+        let mapped = result.items.compactMap { item in
+            RatingItemData(
+                id: item.id,
+                name: item.name,
+                imageUrl: item.imageUrl,
+                artists: item.artists,
+                albumName: item.albumName,
+                itemType: RatingItemType(rawValue: item.itemType) ?? selectedItemType
+            )
+        }
+        cacheItems(mapped)
+        return mapped
     }
     
     // MARK: - Rating Flow
@@ -221,12 +235,25 @@ class RatingViewModel: ObservableObject {
         
         // Check for existing rating
         do {
-            let response = try await ratingService.initializeRating(
+            let server = try await ratingService.initializeRating(
                 itemType: item.itemType,
                 itemId: item.id
             )
             
-            if let existing = response.existingRating {
+            if server.isNewRating == false,
+               let catId = server.categoryId,
+               let score = server.personalScore,
+               let pos = server.position {
+                let existing = Rating(
+                    itemId: server.itemId,
+                    itemType: RatingItemType(rawValue: server.itemType) ?? item.itemType,
+                    albumId: server.albumId,
+                    categoryId: catId,
+                    category: nil,
+                    position: pos,
+                    personalScore: score,
+                    isNewRating: false
+                )
                 existingRating = existing
                 selectedCategory = categories.first { $0.id == existing.categoryId }
             }
@@ -258,37 +285,37 @@ class RatingViewModel: ObservableObject {
         guard let category = selectedCategory,
               let item = currentRatingItem else { return }
         
-        ratingState = .comparing
-        
         // Get existing ratings in the selected category
         let categoryRatings = getRatingsInCategory(category)
         
-        // For tracks, filter by album if applicable
-        let relevantRatings: [Rating]
-        if item.itemType == .track, let _ = item.albumName {
-            relevantRatings = categoryRatings.filter { _ in
-                // This would need the album ID from the rating
-                // For now, using all ratings in category
-                return true
-            }
-        } else {
-            relevantRatings = categoryRatings
+        // If there are no items to compare, save immediately
+        guard !categoryRatings.isEmpty else {
+            saveRating(position: 0)
+            return
         }
         
-        // Sort by position
-        let sortedRatings = relevantRatings.sorted { $0.position < $1.position }
+        // Sort by position ascending
+        let sortedRatings = categoryRatings.sorted { $0.position < $1.position }
         
-        // Create comparison items
-        // Using linear insertion for now (can be optimized to binary search)
-        comparisonItems = []
+        // Select strategic comparison points ~25%, 50%, 75%
+        let indices = strategicIndices(count: sortedRatings.count)
+        let selectedRatings = indices.map { sortedRatings[$0] }
+        
+        // Use cached item data when available; fall back to minimal placeholder
+        comparisonItems = selectedRatings.map { rating in
+            if let cached = itemCache[rating.itemId] { return cached }
+            return RatingItemData(
+                id: rating.itemId,
+                name: "Unknown",
+                imageUrl: nil,
+                artists: nil,
+                albumName: nil,
+                itemType: rating.itemType
+            )
+        }
+        
         currentComparisonIndex = 0
-        
-        // Start from the lowest scored items
-        if !sortedRatings.isEmpty {
-            // Would need to fetch item data for each rating
-            // For now, starting comparison flow
-            ratingState = .comparing
-        }
+        ratingState = .comparing
     }
     
     func handleComparison(winnerId: String) async {
@@ -305,6 +332,8 @@ class RatingViewModel: ObservableObject {
                     itemType: item.itemType,
                     winnerId: winnerId
                 )
+                // Haptic feedback for comparison
+                UIImpactFeedbackGenerator(style: .medium).impactOccurred()
             } catch {
                 print("Failed to submit comparison: \(error)")
             }
@@ -354,6 +383,7 @@ class RatingViewModel: ObservableObject {
                 )
                 
                 ratingState = .completed
+                UINotificationFeedbackGenerator().notificationOccurred(.success)
                 
                 // Update local state
                 await loadUserRatings()
@@ -396,29 +426,27 @@ class RatingViewModel: ObservableObject {
     }
     
     private func fetchAllUserItems(type: RatingItemType) async throws -> [RatingItemData] {
+        // Ensure we have an authenticated user
+        guard let userId = authManager?.user?.id, !userId.isEmpty else {
+            throw APIError.authenticationError
+        }
+        
         // Fetch user's prestige data and convert to RatingItemData
         switch type {
         case .track:
-            return try await fetchUserTracks()
+            return try await fetchUserTracks(userId: userId)
         case .album:
-            return try await fetchUserAlbums()
+            return try await fetchUserAlbums(userId: userId)
         case .artist:
-            return try await fetchUserArtists()
+            return try await fetchUserArtists(userId: userId)
         }
     }
     
-    private func fetchUserTracks() async throws -> [RatingItemData] {
-        // Get current user ID from auth manager
-        let authManager = AuthManager()
-        guard let user = authManager.user else {
-            throw APIError.authenticationError
-        }
-        let userId = user.id
-        
+    private func fetchUserTracks(userId: String) async throws -> [RatingItemData] {
         // Fetch user's tracks from API
         let userTracks = try await APIClient.shared.getUserTracks(userId: userId)
         
-        return userTracks.map { userTrack in
+        let items = userTracks.map { userTrack in
             let track = userTrack.track
             return RatingItemData(
                 id: track.id,
@@ -429,18 +457,14 @@ class RatingViewModel: ObservableObject {
                 itemType: .track
             )
         }
+        cacheItems(items)
+        return items
     }
     
-    private func fetchUserAlbums() async throws -> [RatingItemData] {
-        let authManager = AuthManager()
-        guard let user = authManager.user else {
-            throw APIError.authenticationError
-        }
-        let userId = user.id
-        
+    private func fetchUserAlbums(userId: String) async throws -> [RatingItemData] {
         let userAlbums = try await APIClient.shared.getUserAlbums(userId: userId)
         
-        return userAlbums.map { userAlbum in
+        let items = userAlbums.map { userAlbum in
             let album = userAlbum.album
             return RatingItemData(
                 id: album.id,
@@ -451,18 +475,14 @@ class RatingViewModel: ObservableObject {
                 itemType: .album
             )
         }
+        cacheItems(items)
+        return items
     }
     
-    private func fetchUserArtists() async throws -> [RatingItemData] {
-        let authManager = AuthManager()
-        guard let user = authManager.user else {
-            throw APIError.authenticationError
-        }
-        let userId = user.id
-        
+    private func fetchUserArtists(userId: String) async throws -> [RatingItemData] {
         let userArtists = try await APIClient.shared.getUserArtists(userId: userId)
         
-        return userArtists.map { userArtist in
+        let items = userArtists.map { userArtist in
             let artist = userArtist.artist
             return RatingItemData(
                 id: artist.id,
@@ -473,6 +493,8 @@ class RatingViewModel: ObservableObject {
                 itemType: .artist
             )
         }
+        cacheItems(items)
+        return items
     }
     
     func resetRatingFlow() {
@@ -490,6 +512,19 @@ class RatingViewModel: ObservableObject {
         searchResults = []
         isSearching = false
     }
+
+    // MARK: - Item Cache Helpers
+    private func cacheItems(_ items: [RatingItemData]) {
+        for item in items { itemCache[item.id] = item }
+    }
+
+    func upsertItemData(_ item: RatingItemData) {
+        itemCache[item.id] = item
+    }
+
+    func getItemData(for rating: Rating) -> RatingItemData? {
+        return itemCache[rating.itemId]
+    }
     
     // MARK: - Computed Properties
     
@@ -505,6 +540,24 @@ class RatingViewModel: ObservableObject {
     var filteredRatings: [Rating] {
         userRatings[selectedItemType.rawValue] ?? []
     }
+
+    // MARK: - Dependency Injection
+    @MainActor
+    func setAuthManager(_ manager: AuthManager) {
+        self.authManager = manager
+    }
+
+    // MARK: - Comparison Utilities
+    private func strategicIndices(count: Int) -> [Int] {
+        guard count > 0 else { return [] }
+        let positions: [Double] = [0.25, 0.5, 0.75]
+        var indices = Set<Int>()
+        for p in positions {
+            let idx = min(max(Int((Double(count) - 1) * p), 0), count - 1)
+            indices.insert(idx)
+        }
+        return Array(indices).sorted()
+    }
 }
 
 // MARK: - Array Extension for Removing Duplicates
@@ -519,3 +572,4 @@ extension Array where Element == RatingItemData {
         }
     }
 }
+

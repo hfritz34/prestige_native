@@ -7,10 +7,10 @@
 //
 
 import SwiftUI
+import UIKit
 
 struct RatingModal: View {
     @EnvironmentObject var viewModel: RatingViewModel
-    @StateObject private var ratingService = RatingService.shared
     @Environment(\.dismiss) private var dismiss
     
     var body: some View {
@@ -29,13 +29,6 @@ struct RatingModal: View {
         }
         .presentationDetents([.medium, .large])
         .presentationDragIndicator(.visible)
-        .onAppear {
-            Task {
-                if ratingService.categories.isEmpty {
-                    await loadCategories()
-                }
-            }
-        }
     }
     
     // MARK: - Header Section
@@ -76,6 +69,7 @@ struct RatingModal: View {
             // Item being rated
             if let item = viewModel.currentRatingItem {
                 itemPreview(item)
+                    .onAppear { viewModel.upsertItemData(item) }
             }
             
             Divider()
@@ -169,16 +163,17 @@ struct RatingModal: View {
                 .fontWeight(.bold)
                 .padding(.top, 20)
             
-            if ratingService.categories.isEmpty {
+            if viewModel.categories.isEmpty {
                 ProgressView("Loading categories...")
                     .padding()
             } else {
                 VStack(spacing: 16) {
-                    ForEach(ratingService.categories) { category in
+                    ForEach(viewModel.categories) { category in
                         RatingCategoryButton(
                             category: category,
                             isSelected: viewModel.selectedCategory?.id == category.id,
                             action: {
+                                UIImpactFeedbackGenerator(style: .light).impactOccurred()
                                 viewModel.selectCategory(category)
                             }
                         )
@@ -270,14 +265,6 @@ struct RatingModal: View {
     }
     
     // MARK: - Helper Methods
-    
-    private func loadCategories() async {
-        do {
-            _ = try await ratingService.fetchCategories()
-        } catch {
-            print("Failed to load categories in modal: \\(error)")
-        }
-    }
 }
 
 #Preview {

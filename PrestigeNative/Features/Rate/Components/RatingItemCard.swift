@@ -14,17 +14,23 @@ struct RatingItemCard: View {
     let rating: Rating?
     let showRating: Bool
     let onTap: (() -> Void)?
+    let onSwipeRight: (() -> Void)?
+    let onSwipeLeft: (() -> Void)?
     
     init(
         itemData: RatingItemData,
         rating: Rating? = nil,
         showRating: Bool = true,
-        onTap: (() -> Void)? = nil
+        onTap: (() -> Void)? = nil,
+        onSwipeRight: (() -> Void)? = nil,
+        onSwipeLeft: (() -> Void)? = nil
     ) {
         self.itemData = itemData
         self.rating = rating
         self.showRating = showRating
         self.onTap = onTap
+        self.onSwipeRight = onSwipeRight
+        self.onSwipeLeft = onSwipeLeft
     }
     
     private var subtitle: String {
@@ -97,6 +103,16 @@ struct RatingItemCard: View {
             )
         }
         .buttonStyle(PlainButtonStyle())
+        .simultaneousGesture(
+            DragGesture(minimumDistance: 20)
+                .onEnded { value in
+                    let dx = value.translation.width
+                    let dy = value.translation.height
+                    // Only treat as swipe if mostly horizontal to avoid fighting vertical scrolling
+                    guard abs(dx) > abs(dy), abs(dx) > 80 else { return }
+                    if dx > 0 { onSwipeRight?() } else { onSwipeLeft?() }
+                }
+        )
     }
     
     private var iconForItemType: String {
@@ -323,14 +339,12 @@ extension View {
                 itemType: .track
             ),
             rating: Rating(
-                id: "1",
-                userId: "user1",
                 itemId: "1",
                 itemType: .track,
                 albumId: nil,
-                categoryId: "loved",
+                categoryId: 1,
                 category: RatingCategoryModel(
-                    id: "loved",
+                    id: 1,
                     name: "Loved",
                     minScore: 6.8,
                     maxScore: 10.0,
@@ -339,8 +353,7 @@ extension View {
                 ),
                 position: 0,
                 personalScore: 9.5,
-                createdAt: Date(),
-                updatedAt: Date()
+                isNewRating: false
             )
         )
         
@@ -354,17 +367,14 @@ extension View {
                 itemType: .track
             ),
             rating: Rating(
-                id: "2",
-                userId: "user1",
                 itemId: "2",
                 itemType: .track,
                 albumId: nil,
-                categoryId: "liked",
+                categoryId: 2,
                 category: nil,
                 position: 5,
                 personalScore: 5.2,
-                createdAt: Date(),
-                updatedAt: Date()
+                isNewRating: false
             ),
             showPosition: true
         )

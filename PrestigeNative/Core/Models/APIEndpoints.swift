@@ -53,6 +53,12 @@ enum APIEndpoints {
     static func userRatings(itemType: String) -> String { "api/rating/user/\(itemType)" }
     static func deleteRating(itemType: String, itemId: String) -> String { "api/rating/user/\(itemType)/\(itemId)" }
     static let ratingSuggestions = "api/rating/suggestions"
+
+    // MARK: - Search
+    static func searchUserLibrary(query: String, type: String, page: Int = 1, pageSize: Int = 20) -> String {
+        let encodedQuery = query.addingPercentEncoding(withAllowedCharacters: .urlQueryAllowed) ?? query
+        return "api/search/user-library?query=\(encodedQuery)&type=\(type)&page=\(page)&pageSize=\(pageSize)"
+    }
 }
 
 // MARK: - URL Construction Helpers

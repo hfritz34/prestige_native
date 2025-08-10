@@ -24,16 +24,24 @@ class RatingService: ObservableObject {
     
     func fetchCategories() async throws -> [RatingCategoryModel] {
         do {
-            let response = try await apiClient.get(
+            // Try decoding as wrapper { categories: [...] }
+            if let wrapped: RatingCategoryResponse = try? await apiClient.get(
                 APIEndpoints.ratingCategories,
                 responseType: RatingCategoryResponse.self
-            )
-            
-            await MainActor.run {
-                self.categories = response.categories.sorted { $0.displayOrder < $1.displayOrder }
+            ) {
+                let sorted = wrapped.categories.sorted { $0.displayOrder < $1.displayOrder }
+                await MainActor.run { self.categories = sorted }
+                return sorted
             }
             
-            return response.categories
+            // Fallback: API might return a bare array
+            let arrayResponse: [RatingCategoryModel] = try await apiClient.get(
+                APIEndpoints.ratingCategories,
+                responseType: [RatingCategoryModel].self
+            )
+            let sorted = arrayResponse.sorted { $0.displayOrder < $1.displayOrder }
+            await MainActor.run { self.categories = sorted }
+            return sorted
         } catch {
             await MainActor.run { self.error = error as? APIError }
             throw error
@@ -42,13 +50,13 @@ class RatingService: ObservableObject {
     
     // MARK: - Initialize Rating Process
     
-    func initializeRating(itemType: RatingItemType, itemId: String) async throws -> RatingInitResponse {
+    func initializeRating(itemType: RatingItemType, itemId: String) async throws -> ServerRatingResponse {
         do {
             let endpoint = APIEndpoints.rateItem(itemType: itemType.rawValue, itemId: itemId)
             return try await apiClient.post(
                 endpoint,
                 body: EmptyBody(),
-                responseType: RatingInitResponse.self
+                responseType: ServerRatingResponse.self
             )
         } catch {
             await MainActor.run { self.error = error as? APIError }
@@ -72,17 +80,13 @@ class RatingService: ObservableObject {
         )
         
         do {
-            let response = try await apiClient.post(
+            let server = try await apiClient.post(
                 APIEndpoints.saveRating,
                 body: request,
-                responseType: RatingResponse.self
+                responseType: ServerRatingResponse.self
             )
             
-            guard response.isSuccess, let rating = response.rating else {
-                throw APIError.invalidResponse
-            }
-            
-            return rating
+            return server.toClientRating()
         } catch {
             await MainActor.run { self.error = error as? APIError }
             throw error
@@ -123,17 +127,17 @@ class RatingService: ObservableObject {
             await MainActor.run { self.isLoading = true }
             
             let endpoint = APIEndpoints.userRatings(itemType: itemType.rawValue)
-            let ratings = try await apiClient.get(
+            let serverRatings = try await apiClient.get(
                 endpoint,
-                responseType: [Rating].self
+                responseType: [ServerRatingResponse].self
             )
             
             await MainActor.run {
-                self.userRatings[itemType.rawValue] = ratings
+                self.userRatings[itemType.rawValue] = serverRatings.compactMap { $0.toClientRatingOrNil() }
                 self.isLoading = false
             }
             
-            return ratings
+            return self.userRatings[itemType.rawValue] ?? []
         } catch {
             await MainActor.run {
                 self.error = error as? APIError
@@ -203,6 +207,39 @@ class RatingService: ObservableObject {
         return ratings
             .filter { $0.categoryId == categoryId }
             .sorted { $0.position < $1.position }
+    }
+}
+
+// MARK: - Mapping Helpers
+
+private extension ServerRatingResponse {
+    func toClientRatingOrNil() -> Rating? {
+        guard let categoryId = categoryId, let score = personalScore, let position = position else {
+            return nil
+        }
+        return Rating(
+            itemId: itemId,
+            itemType: RatingItemType(rawValue: itemType) ?? .track,
+            albumId: albumId,
+            categoryId: categoryId,
+            category: nil,
+            position: position,
+            personalScore: score,
+            isNewRating: isNewRating
+        )
+    }
+    
+    func toClientRating() -> Rating {
+        Rating(
+            itemId: itemId,
+            itemType: RatingItemType(rawValue: itemType) ?? .track,
+            albumId: albumId,
+            categoryId: categoryId ?? 0,
+            category: nil,
+            position: position ?? 0,
+            personalScore: personalScore ?? 0,
+            isNewRating: isNewRating
+        )
     }
 }
 

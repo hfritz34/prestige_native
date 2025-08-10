@@ -45,10 +45,16 @@ class APIClient: ObservableObject {
                 throw APIError.invalidResponse
             }
             
-            // Log response for debugging
+            // Log response for debugging (truncate large bodies)
             print("🔵 APIClient: Response status: \(httpResponse.statusCode)")
             if let responseString = String(data: data, encoding: .utf8) {
-                print("🔵 APIClient: Response body: \(responseString)")
+                let maxLogChars = 2000
+                if responseString.count > maxLogChars {
+                    let prefix = responseString.prefix(maxLogChars)
+                    print("🔵 APIClient: Response body (truncated to \(maxLogChars) chars, total=\(responseString.count)): \(prefix) ...")
+                } else {
+                    print("🔵 APIClient: Response body: \(responseString)")
+                }
             }
             
             // Handle successful responses

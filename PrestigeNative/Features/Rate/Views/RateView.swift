@@ -13,6 +13,10 @@ struct RateView: View {
     @State private var searchText = ""
     @State private var selectedTab: RatingTab = .unrated
     @EnvironmentObject var authManager: AuthManager
+    @State private var unratedLimit: Int = 50
+    @State private var topRatedLimit: Int = 50
+    @State private var yourRatingsLimit: Int = 50
+    @State private var searchLimit: Int = 50
     
     var body: some View {
         NavigationView {
@@ -28,18 +32,24 @@ struct RateView: View {
                 
                 // Content based on selected tab
                 contentSection
+                    .id(selectedTab)
             }
             .navigationBarHidden(true)
             .background(Color(UIColor.systemBackground))
-            .sheet(isPresented: $viewModel.showRatingModal) {
+            .sheet(
+                isPresented: Binding<Bool>(
+                    get: { viewModel.showRatingModal },
+                    set: { viewModel.showRatingModal = $0 }
+                )
+            ) {
                 RatingModal()
                     .environmentObject(viewModel)
             }
         }
         .onAppear {
-            Task {
-                await viewModel.loadInitialData()
-            }
+            // Inject AuthManager and then load data (prevents missing user ID issues)
+            viewModel.setAuthManager(authManager)
+            Task { await viewModel.loadInitialData() }
         }
     }
     
@@ -62,18 +72,24 @@ struct RateView: View {
                     .textFieldStyle(PlainTextFieldStyle())
                     .font(.system(size: 16))
                     .onChange(of: searchText) { newValue in
-                        Task {
-                            await viewModel.searchLibrary(query: newValue)
-                        }
+                        Task { await viewModel.searchLibrary(query: newValue) }
                     }
                 
                 if !searchText.isEmpty {
-                    Button(action: { 
+                    Button(action: {
                         searchText = ""
                         viewModel.clearSearch()
                         UIApplication.shared.sendAction(#selector(UIResponder.resignFirstResponder), to: nil, from: nil, for: nil)
                     }) {
                         Image(systemName: "xmark.circle.fill")
+                            .foregroundColor(.secondary)
+                            .font(.system(size: 14))
+                    }
+                } else {
+                    Button(action: {
+                        UIApplication.shared.sendAction(#selector(UIResponder.resignFirstResponder), to: nil, from: nil, for: nil)
+                    }) {
+                        Image(systemName: "keyboard.chevron.compact.down")
                             .foregroundColor(.secondary)
                             .font(.system(size: 14))
                     }
@@ -144,8 +160,9 @@ struct RateView: View {
         } else if !searchText.isEmpty {
             searchResultsView
         } else {
-            ScrollView {
-                LazyVStack(spacing: 12) {
+            ScrollViewReader { proxy in
+                ScrollView(.vertical, showsIndicators: true) {
+                    LazyVStack(spacing: 12) {
                     switch selectedTab {
                     case .unrated:
                         unratedContent
@@ -154,9 +171,15 @@ struct RateView: View {
                     case .yourRatings:
                         yourRatingsContent
                     }
+                        Color.clear.frame(height: 1).id("bottom")
+                    }
+                    .padding(.horizontal)
+                    .padding(.top, 16)
+                    .frame(maxWidth: .infinity, alignment: .top)
                 }
-                .padding(.horizontal)
-                .padding(.top, 16)
+                .onChange(of: selectedTab) { _ in
+                    proxy.scrollTo("bottom", anchor: .bottom)
+                }
             }
         }
     }
@@ -181,7 +204,8 @@ struct RateView: View {
                 )
                 .padding(.top, 60)
             } else {
-                ForEach(filteredUnratedItems, id: \.id) { item in
+                let items = Array(filteredUnratedItems.prefix(unratedLimit))
+                ForEach(items, id: \.id) { item in
                     RatingItemCard(
                         itemData: item,
                         rating: nil,
@@ -190,7 +214,19 @@ struct RateView: View {
                         Task {
                             await viewModel.startRating(for: item)
                         }
+                    } onSwipeRight: {
+                        Task { await viewModel.startRating(for: item) }
+                    } onSwipeLeft: {
+                        // no-op for unrated list
                     }
+                    .onAppear {
+                        if item.id == items.last?.id, unratedLimit < filteredUnratedItems.count {
+                            unratedLimit += 50
+                        }
+                    }
+                }
+                if unratedLimit < filteredUnratedItems.count {
+                    loadMoreButton { unratedLimit += 50 }
                 }
             }
         }
@@ -206,7 +242,8 @@ struct RateView: View {
                 )
                 .padding(.top, 60)
             } else {
-                ForEach(Array(topRatedItems.enumerated()), id: \.element.id) { index, item in
+                let items = Array(topRatedItems.prefix(topRatedLimit))
+                ForEach(Array(items.enumerated()), id: \.element.id) { index, item in
                     RatingItemCard(
                         itemData: item.itemData,
                         rating: item.rating,
@@ -214,6 +251,15 @@ struct RateView: View {
                     ) {
                         Task {
                             await viewModel.startRating(for: item.itemData)
+                        }
+                    } onSwipeRight: {
+                        Task { await viewModel.startRating(for: item.itemData) }
+                    } onSwipeLeft: {
+                        Task { await viewModel.deleteRating(item.rating) }
+                    }
+                    .onAppear {
+                        if item.id == items.last?.id, topRatedLimit < topRatedItems.count {
+                            topRatedLimit += 50
                         }
                     }
                     .contextMenu {
@@ -223,6 +269,9 @@ struct RateView: View {
                             }
                         }
                     }
+                }
+                if topRatedLimit < topRatedItems.count {
+                    loadMoreButton { topRatedLimit += 50 }
                 }
             }
         }
@@ -238,7 +287,8 @@ struct RateView: View {
                 )
                 .padding(.top, 60)
             } else {
-                ForEach(allRatedItems, id: \.id) { item in
+                let items = Array(allRatedItems.prefix(yourRatingsLimit))
+                ForEach(items, id: \.id) { item in
                     RatingItemCard(
                         itemData: item.itemData,
                         rating: item.rating,
@@ -246,6 +296,11 @@ struct RateView: View {
                     ) {
                         Task {
                             await viewModel.startRating(for: item.itemData)
+                        }
+                    }
+                    .onAppear {
+                        if item.id == items.last?.id, yourRatingsLimit < allRatedItems.count {
+                            yourRatingsLimit += 50
                         }
                     }
                     .contextMenu {
@@ -261,6 +316,9 @@ struct RateView: View {
                             }
                         }
                     }
+                }
+                if yourRatingsLimit < allRatedItems.count {
+                    loadMoreButton { yourRatingsLimit += 50 }
                 }
             }
         }
@@ -294,7 +352,8 @@ struct RateView: View {
                             .padding(.horizontal)
                             .padding(.top, 8)
                         
-                        ForEach(viewModel.searchResults, id: \.id) { item in
+                        let items = Array(viewModel.searchResults.prefix(searchLimit))
+                        ForEach(items, id: \.id) { item in
                             let existingRating = viewModel.userRatings[item.itemType.rawValue]?.first { $0.itemId == item.id }
                             
                             RatingItemCard(
@@ -304,6 +363,17 @@ struct RateView: View {
                             ) {
                                 Task {
                                     await viewModel.startRating(for: item)
+                                }
+                    } onSwipeRight: {
+                        Task { await viewModel.startRating(for: item) }
+                    } onSwipeLeft: {
+                        if let rating = existingRating {
+                            Task { await viewModel.deleteRating(rating) }
+                        }
+                            }
+                            .onAppear {
+                                if item.id == items.last?.id, searchLimit < viewModel.searchResults.count {
+                                    searchLimit += 50
                                 }
                             }
                             .contextMenu {
@@ -327,6 +397,9 @@ struct RateView: View {
                                     }
                                 }
                             }
+                        }
+                        if searchLimit < viewModel.searchResults.count {
+                            loadMoreButton { searchLimit += 50 }
                         }
                     }
                     .padding(.horizontal)
@@ -353,11 +426,10 @@ struct RateView: View {
             .prefix(20) // Show top 20
         
         return Array(ratings).compactMap { rating in
-            // Create RatingItemData from rating - this would need to be fetched from API
-            // For now, using placeholder data
-            let itemData = RatingItemData(
+            // Prefer cached data from VM; otherwise minimal fallback
+            let itemData = viewModel.getItemData(for: rating) ?? RatingItemData(
                 id: rating.itemId,
-                name: "Item \(rating.itemId)", // Placeholder
+                name: "Unknown",
                 imageUrl: nil,
                 artists: nil,
                 albumName: nil,
@@ -375,9 +447,9 @@ struct RateView: View {
                      }
         
         return ratings.sorted { $0.personalScore > $1.personalScore }.compactMap { rating in
-            let itemData = RatingItemData(
+            let itemData = viewModel.getItemData(for: rating) ?? RatingItemData(
                 id: rating.itemId,
-                name: "Item \(rating.itemId)", // Placeholder
+                name: "Unknown",
                 imageUrl: nil,
                 artists: nil,
                 albumName: nil,
@@ -387,6 +459,23 @@ struct RateView: View {
         }
     }
 }
+// MARK: - Load More Button
+
+@ViewBuilder
+private func loadMoreButton(_ action: @escaping () -> Void) -> some View {
+    Button(action: action) {
+        HStack {
+            Spacer()
+            ProgressView().padding(.trailing, 8)
+            Text("Load more")
+                .font(.subheadline)
+                .foregroundColor(.secondary)
+            Spacer()
+        }
+        .padding(.vertical, 8)
+    }
+}
+
 
 // MARK: - Supporting Views
 

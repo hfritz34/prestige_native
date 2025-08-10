@@ -345,7 +345,7 @@ struct RatingProgressRing: View {
         HStack(spacing: 12) {
             RatingCategoryLabel(
                 category: RatingCategoryModel(
-                    id: "1",
+                    id: 1,
                     name: "Loved",
                     minScore: 6.8,
                     maxScore: 10.0,
@@ -356,7 +356,7 @@ struct RatingProgressRing: View {
             
             RatingCategoryLabel(
                 category: RatingCategoryModel(
-                    id: "2",
+                    id: 2,
                     name: "Liked",
                     minScore: 3.4,
                     maxScore: 6.7,

@@ -1,32 +1,45 @@
 //
 //  RateView.swift
-//  Song Rating View
+//  Rating View - Main rating interface
 //
-//  Scaffold for future rating functionality where users can
-//  discover and rate songs, albums, and artists.
+//  Provides a clean, native iOS interface for rating and managing
+//  user's music library with search, filtering, and rating actions.
 //
 
 import SwiftUI
 
 struct RateView: View {
+    @StateObject private var viewModel = RatingViewModel()
     @State private var searchText = ""
-    @State private var selectedCategory: RatingCategory = .discover
+    @State private var selectedTab: RatingTab = .unrated
     @EnvironmentObject var authManager: AuthManager
     
     var body: some View {
         NavigationView {
             VStack(spacing: 0) {
-                // Header
+                // Header with search
                 headerSection
                 
-                // Category selector
-                categorySelector
+                // Item type filter
+                itemTypeFilter
                 
-                // Content based on selected category
+                // Tab selector
+                tabSelector
+                
+                // Content based on selected tab
                 contentSection
             }
             .navigationBarHidden(true)
             .background(Color(UIColor.systemBackground))
+            .sheet(isPresented: $viewModel.showRatingModal) {
+                RatingModal()
+                    .environmentObject(viewModel)
+            }
+        }
+        .onAppear {
+            Task {
+                await viewModel.loadInitialData()
+            }
         }
     }
     
@@ -43,32 +56,47 @@ struct RateView: View {
             HStack {
                 Image(systemName: "magnifyingglass")
                     .foregroundColor(.secondary)
+                    .font(.system(size: 16, weight: .medium))
                 
-                TextField("Search songs, albums, or artists...", text: $searchText)
+                TextField("Search your library...", text: $searchText)
                     .textFieldStyle(PlainTextFieldStyle())
+                    .font(.system(size: 16))
                 
                 if !searchText.isEmpty {
-                    Button(action: { searchText = "" }) {
+                    Button(action: { 
+                        searchText = ""
+                        UIApplication.shared.sendAction(#selector(UIResponder.resignFirstResponder), to: nil, from: nil, for: nil)
+                    }) {
                         Image(systemName: "xmark.circle.fill")
                             .foregroundColor(.secondary)
+                            .font(.system(size: 14))
                     }
                 }
             }
-            .padding(12)
-            .background(Color(UIColor.secondarySystemBackground))
-            .cornerRadius(10)
+            .padding(.horizontal, 16)
+            .padding(.vertical, 12)
+            .background(
+                RoundedRectangle(cornerRadius: 12)
+                    .fill(Color(UIColor.secondarySystemBackground))
+            )
             .padding(.horizontal)
         }
     }
     
-    private var categorySelector: some View {
+    private var itemTypeFilter: some View {
         ScrollView(.horizontal, showsIndicators: false) {
-            HStack(spacing: 16) {
-                ForEach(RatingCategory.allCases, id: \.self) { category in
-                    CategoryButton(
-                        title: category.displayName,
-                        isSelected: selectedCategory == category,
-                        action: { selectedCategory = category }
+            HStack(spacing: 12) {
+                ForEach(RatingItemType.allCases, id: \.self) { itemType in
+                    ItemTypeButton(
+                        itemType: itemType,
+                        isSelected: viewModel.selectedItemType == itemType,
+                        action: {
+                            viewModel.selectedItemType = itemType
+                            Task {
+                                await viewModel.loadUserRatings()
+                                await viewModel.loadUnratedItems()
+                            }
+                        }
                     )
                 }
             }
@@ -77,163 +105,266 @@ struct RateView: View {
         }
     }
     
+    private var tabSelector: some View {
+        HStack(spacing: 0) {
+            ForEach(RatingTab.allCases, id: \.self) { tab in
+                Button(action: { 
+                    withAnimation(.easeInOut(duration: 0.2)) {
+                        selectedTab = tab 
+                    }
+                }) {
+                    VStack(spacing: 4) {
+                        Text(tab.title)
+                            .font(.subheadline)
+                            .fontWeight(selectedTab == tab ? .semibold : .medium)
+                            .foregroundColor(selectedTab == tab ? .blue : .secondary)
+                        
+                        Rectangle()
+                            .frame(height: 2)
+                            .foregroundColor(selectedTab == tab ? .blue : .clear)
+                    }
+                }
+                .frame(maxWidth: .infinity)
+            }
+        }
+        .padding(.horizontal)
+        .padding(.top, 8)
+    }
+    
     @ViewBuilder
     private var contentSection: some View {
-        ScrollView {
-            VStack(spacing: 20) {
-                switch selectedCategory {
-                case .discover:
-                    discoverContent
-                case .topRated:
-                    topRatedContent
-                case .yourRatings:
-                    yourRatingsContent
-                case .newReleases:
-                    newReleasesContent
+        if viewModel.isLoading {
+            loadingView
+        } else {
+            ScrollView {
+                LazyVStack(spacing: 12) {
+                    switch selectedTab {
+                    case .unrated:
+                        unratedContent
+                    case .topRated:
+                        topRatedContent
+                    case .yourRatings:
+                        yourRatingsContent
+                    }
                 }
+                .padding(.horizontal)
+                .padding(.top, 16)
             }
-            .padding(.vertical)
         }
     }
     
-    private var discoverContent: some View {
-        VStack(alignment: .leading, spacing: 16) {
-            Text("Discover New Music")
-                .font(.title2)
-                .fontWeight(.bold)
-                .padding(.horizontal)
-            
-            // Placeholder content
-            ForEach(0..<5) { _ in
-                RatingPlaceholderCard()
-                    .padding(.horizontal)
+    private var loadingView: some View {
+        VStack(spacing: 20) {
+            ForEach(0..<5, id: \.self) { _ in
+                RatingItemLoadingCard()
+            }
+        }
+        .padding(.horizontal)
+        .padding(.top, 20)
+    }
+    
+    private var unratedContent: some View {
+        Group {
+            if filteredUnratedItems.isEmpty {
+                EmptyStateView(
+                    icon: "music.note",
+                    title: "All Caught Up!",
+                    subtitle: "You've rated all your \(viewModel.selectedItemType.displayName.lowercased())"
+                )
+                .padding(.top, 60)
+            } else {
+                ForEach(filteredUnratedItems, id: \.id) { item in
+                    RatingItemCard(
+                        itemData: item,
+                        rating: nil,
+                        showRating: false
+                    ) {
+                        Task {
+                            await viewModel.startRating(for: item)
+                        }
+                    }
+                }
             }
         }
     }
     
     private var topRatedContent: some View {
-        VStack(alignment: .leading, spacing: 16) {
-            Text("Top Rated by Community")
-                .font(.title2)
-                .fontWeight(.bold)
-                .padding(.horizontal)
-            
-            // Placeholder content
-            ForEach(0..<5) { _ in
-                RatingPlaceholderCard()
-                    .padding(.horizontal)
+        Group {
+            if topRatedItems.isEmpty {
+                EmptyStateView(
+                    icon: "star.fill",
+                    title: "No Top Ratings Yet",
+                    subtitle: "Rate some \(viewModel.selectedItemType.displayName.lowercased()) to see your favorites here"
+                )
+                .padding(.top, 60)
+            } else {
+                ForEach(Array(topRatedItems.enumerated()), id: \.element.id) { index, item in
+                    RatingItemCard(
+                        itemData: item.itemData,
+                        rating: item.rating,
+                        showRating: true
+                    ) {
+                        Task {
+                            await viewModel.startRating(for: item.itemData)
+                        }
+                    }
+                    .contextMenu {
+                        Button("Remove Rating", systemImage: "trash", role: .destructive) {
+                            Task {
+                                await viewModel.deleteRating(item.rating)
+                            }
+                        }
+                    }
+                }
             }
         }
     }
     
     private var yourRatingsContent: some View {
-        VStack(alignment: .leading, spacing: 16) {
-            Text("Your Ratings")
-                .font(.title2)
-                .fontWeight(.bold)
-                .padding(.horizontal)
-            
-            // Empty state
-            EmptyStateView(
-                icon: "star",
-                title: "No Ratings Yet",
-                subtitle: "Start rating songs to see them here"
-            )
-            .padding(.top, 40)
+        Group {
+            if allRatedItems.isEmpty {
+                EmptyStateView(
+                    icon: "heart",
+                    title: "No Ratings Yet",
+                    subtitle: "Start rating \(viewModel.selectedItemType.displayName.lowercased()) to build your collection"
+                )
+                .padding(.top, 60)
+            } else {
+                ForEach(allRatedItems, id: \.id) { item in
+                    RatingItemCard(
+                        itemData: item.itemData,
+                        rating: item.rating,
+                        showRating: true
+                    ) {
+                        Task {
+                            await viewModel.startRating(for: item.itemData)
+                        }
+                    }
+                    .contextMenu {
+                        Button("Rate Again", systemImage: "star.circle") {
+                            Task {
+                                await viewModel.startRating(for: item.itemData)
+                            }
+                        }
+                        
+                        Button("Remove Rating", systemImage: "trash", role: .destructive) {
+                            Task {
+                                await viewModel.deleteRating(item.rating)
+                            }
+                        }
+                    }
+                }
+            }
         }
     }
     
-    private var newReleasesContent: some View {
-        VStack(alignment: .leading, spacing: 16) {
-            Text("New Releases")
-                .font(.title2)
-                .fontWeight(.bold)
-                .padding(.horizontal)
-            
-            // Placeholder content
-            ForEach(0..<5) { _ in
-                RatingPlaceholderCard()
-                    .padding(.horizontal)
-            }
+    // MARK: - Computed Properties
+    
+    private var filteredUnratedItems: [RatingItemData] {
+        let items = searchText.isEmpty ? viewModel.unratedItems : 
+                   viewModel.unratedItems.filter { item in
+                       item.name.localizedCaseInsensitiveContains(searchText) ||
+                       (item.artists?.joined(separator: " ").localizedCaseInsensitiveContains(searchText) ?? false)
+                   }
+        return items
+    }
+    
+    private var topRatedItems: [RatedItem] {
+        let ratings = viewModel.filteredRatings
+            .filter { $0.personalScore >= 7.0 } // Top rated threshold
+            .sorted { $0.personalScore > $1.personalScore }
+            .prefix(20) // Show top 20
+        
+        return Array(ratings).compactMap { rating in
+            // Create RatingItemData from rating - this would need to be fetched from API
+            // For now, using placeholder data
+            let itemData = RatingItemData(
+                id: rating.itemId,
+                name: "Item \(rating.itemId)", // Placeholder
+                imageUrl: nil,
+                artists: nil,
+                albumName: nil,
+                itemType: rating.itemType
+            )
+            return RatedItem(id: rating.id, rating: rating, itemData: itemData)
+        }
+    }
+    
+    private var allRatedItems: [RatedItem] {
+        let ratings = searchText.isEmpty ? viewModel.filteredRatings :
+                     viewModel.filteredRatings.filter { rating in
+                         // This would need item data to search properly
+                         return true // Placeholder
+                     }
+        
+        return ratings.sorted { $0.personalScore > $1.personalScore }.compactMap { rating in
+            let itemData = RatingItemData(
+                id: rating.itemId,
+                name: "Item \(rating.itemId)", // Placeholder
+                imageUrl: nil,
+                artists: nil,
+                albumName: nil,
+                itemType: rating.itemType
+            )
+            return RatedItem(id: rating.id, rating: rating, itemData: itemData)
         }
     }
 }
 
 // MARK: - Supporting Views
 
-struct CategoryButton: View {
-    let title: String
+struct ItemTypeButton: View {
+    let itemType: RatingItemType
     let isSelected: Bool
     let action: () -> Void
     
     var body: some View {
         Button(action: action) {
-            Text(title)
-                .font(.subheadline)
-                .fontWeight(isSelected ? .semibold : .medium)
-                .foregroundColor(isSelected ? .white : .primary)
-                .padding(.horizontal, 16)
-                .padding(.vertical, 8)
-                .background(
-                    RoundedRectangle(cornerRadius: 20)
-                        .fill(isSelected ? Color.blue : Color(UIColor.secondarySystemBackground))
-                )
-        }
-    }
-}
-
-struct RatingPlaceholderCard: View {
-    var body: some View {
-        HStack(spacing: 12) {
-            // Placeholder image
-            RoundedRectangle(cornerRadius: 8)
-                .fill(Color.gray.opacity(0.3))
-                .frame(width: 60, height: 60)
-            
-            VStack(alignment: .leading, spacing: 4) {
-                // Title placeholder
-                RoundedRectangle(cornerRadius: 4)
-                    .fill(Color.gray.opacity(0.3))
-                    .frame(width: 180, height: 16)
+            HStack(spacing: 6) {
+                Image(systemName: itemType.iconName)
+                    .font(.system(size: 14, weight: .medium))
                 
-                // Subtitle placeholder
-                RoundedRectangle(cornerRadius: 4)
-                    .fill(Color.gray.opacity(0.2))
-                    .frame(width: 120, height: 12)
-                
-                // Rating stars placeholder
-                HStack(spacing: 4) {
-                    ForEach(0..<5) { _ in
-                        Image(systemName: "star")
-                            .font(.caption)
-                            .foregroundColor(.gray.opacity(0.3))
-                    }
-                }
-                .padding(.top, 4)
+                Text(itemType.displayName)
+                    .font(.subheadline)
+                    .fontWeight(isSelected ? .semibold : .medium)
             }
-            
-            Spacer()
+            .foregroundColor(isSelected ? .white : .primary)
+            .padding(.horizontal, 16)
+            .padding(.vertical, 10)
+            .background(
+                Capsule()
+                    .fill(isSelected ? Color.blue : Color(UIColor.secondarySystemBackground))
+            )
         }
-        .padding()
-        .background(Color(UIColor.secondarySystemBackground))
-        .cornerRadius(12)
+        .scaleEffect(isSelected ? 1.02 : 1.0)
+        .animation(.spring(response: 0.3, dampingFraction: 0.7), value: isSelected)
     }
 }
 
 // MARK: - Supporting Types
 
-enum RatingCategory: CaseIterable {
-    case discover
+enum RatingTab: CaseIterable {
+    case unrated
     case topRated
     case yourRatings
-    case newReleases
     
-    var displayName: String {
+    var title: String {
         switch self {
-        case .discover: return "Discover"
+        case .unrated: return "Unrated"
         case .topRated: return "Top Rated"
         case .yourRatings: return "Your Ratings"
-        case .newReleases: return "New Releases"
+        }
+    }
+}
+
+// MARK: - Extensions
+
+extension RatingItemType {
+    var iconName: String {
+        switch self {
+        case .track: return "music.note"
+        case .album: return "square.stack"
+        case .artist: return "person.fill"
         }
     }
 }

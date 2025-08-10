@@ -11,7 +11,7 @@ import Foundation
 // MARK: - Rating Category
 
 struct RatingCategoryModel: Codable, Identifiable, Equatable {
-    let id: String
+    let id: Int
     let name: String
     let minScore: Double
     let maxScore: Double
@@ -40,17 +40,19 @@ struct RatingCategoryModel: Codable, Identifiable, Equatable {
 // MARK: - Rating
 
 struct Rating: Codable, Identifiable {
-    let id: String
-    let userId: String
     let itemId: String
     let itemType: RatingItemType
     let albumId: String?
-    let categoryId: String
+    let categoryId: Int
     let category: RatingCategoryModel?
     let position: Int
     let personalScore: Double
-    let createdAt: Date?
-    let updatedAt: Date?
+    let isNewRating: Bool
+    
+    // Computed ID for Identifiable conformance
+    var id: String {
+        "\(itemId)_\(itemType.rawValue)"
+    }
     
     var displayScore: String {
         String(format: "%.1f", personalScore)
@@ -99,7 +101,7 @@ struct SaveRatingRequest: Codable {
     let itemId: String
     let itemType: String
     let personalScore: Double
-    let categoryId: String
+    let categoryId: Int
 }
 
 struct ComparisonRequest: Codable {

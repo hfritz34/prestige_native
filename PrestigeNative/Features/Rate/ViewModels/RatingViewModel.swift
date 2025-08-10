@@ -396,9 +396,83 @@ class RatingViewModel: ObservableObject {
     }
     
     private func fetchAllUserItems(type: RatingItemType) async throws -> [RatingItemData] {
-        // This would fetch from Spotify service based on type
-        // For now, returning empty array
-        return []
+        // Fetch user's prestige data and convert to RatingItemData
+        switch type {
+        case .track:
+            return try await fetchUserTracks()
+        case .album:
+            return try await fetchUserAlbums()
+        case .artist:
+            return try await fetchUserArtists()
+        }
+    }
+    
+    private func fetchUserTracks() async throws -> [RatingItemData] {
+        // Get current user ID from auth manager
+        let authManager = AuthManager()
+        guard let user = try? await authManager.getUserInfo(),
+              let userId = user["sub"] as? String else {
+            return []
+        }
+        
+        // Fetch user's tracks from API
+        let userTracks = try await APIClient.shared.getUserTracks(userId: userId)
+        
+        return userTracks.map { userTrack in
+            let track = userTrack.track
+            RatingItemData(
+                id: track.id,
+                name: track.name,
+                imageUrl: track.album.images.first?.url,
+                artists: track.artists.map { $0.name },
+                albumName: track.album.name,
+                itemType: .track
+            )
+        }
+    }
+    
+    private func fetchUserAlbums() async throws -> [RatingItemData] {
+        let authManager = AuthManager()
+        guard let user = try? await authManager.getUserInfo(),
+              let userId = user["sub"] as? String else {
+            return []
+        }
+        
+        let userAlbums = try await APIClient.shared.getUserAlbums(userId: userId)
+        
+        return userAlbums.map { userAlbum in
+            let album = userAlbum.album
+            RatingItemData(
+                id: album.id,
+                name: album.name,
+                imageUrl: album.images.first?.url,
+                artists: album.artists.map { $0.name },
+                albumName: nil,
+                itemType: .album
+            )
+        }
+    }
+    
+    private func fetchUserArtists() async throws -> [RatingItemData] {
+        let authManager = AuthManager()
+        guard let user = try? await authManager.getUserInfo(),
+              let userId = user["sub"] as? String else {
+            return []
+        }
+        
+        let userArtists = try await APIClient.shared.getUserArtists(userId: userId)
+        
+        return userArtists.map { userArtist in
+            let artist = userArtist.artist
+            RatingItemData(
+                id: artist.id,
+                name: artist.name,
+                imageUrl: artist.images.first?.url,
+                artists: nil,
+                albumName: nil,
+                itemType: .artist
+            )
+        }
     }
     
     func resetRatingFlow() {

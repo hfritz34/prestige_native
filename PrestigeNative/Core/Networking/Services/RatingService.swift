@@ -62,7 +62,7 @@ class RatingService: ObservableObject {
         itemId: String,
         itemType: RatingItemType,
         score: Double,
-        categoryId: String
+        categoryId: Int
     ) async throws -> Rating {
         let request = SaveRatingRequest(
             itemId: itemId,
@@ -198,7 +198,7 @@ class RatingService: ObservableObject {
         }
     }
     
-    func getRatingsInCategory(_ categoryId: String, itemType: RatingItemType) -> [Rating] {
+    func getRatingsInCategory(_ categoryId: Int, itemType: RatingItemType) -> [Rating] {
         guard let ratings = userRatings[itemType.rawValue] else { return [] }
         return ratings
             .filter { $0.categoryId == categoryId }

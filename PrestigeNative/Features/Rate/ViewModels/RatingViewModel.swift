@@ -265,8 +265,8 @@ class RatingViewModel: ObservableObject {
         
         // For tracks, filter by album if applicable
         let relevantRatings: [Rating]
-        if item.itemType == .track, let albumId = item.albumName {
-            relevantRatings = categoryRatings.filter { rating in
+        if item.itemType == .track, let _ = item.albumName {
+            relevantRatings = categoryRatings.filter { _ in
                 // This would need the album ID from the rating
                 // For now, using all ratings in category
                 return true
@@ -410,17 +410,17 @@ class RatingViewModel: ObservableObject {
     private func fetchUserTracks() async throws -> [RatingItemData] {
         // Get current user ID from auth manager
         let authManager = AuthManager()
-        guard let user = try? await authManager.getUserInfo(),
-              let userId = user["sub"] as? String else {
-            return []
+        guard let user = authManager.user else {
+            throw APIError.authenticationError
         }
+        let userId = user.id
         
         // Fetch user's tracks from API
         let userTracks = try await APIClient.shared.getUserTracks(userId: userId)
         
         return userTracks.map { userTrack in
             let track = userTrack.track
-            RatingItemData(
+            return RatingItemData(
                 id: track.id,
                 name: track.name,
                 imageUrl: track.album.images.first?.url,
@@ -433,16 +433,16 @@ class RatingViewModel: ObservableObject {
     
     private func fetchUserAlbums() async throws -> [RatingItemData] {
         let authManager = AuthManager()
-        guard let user = try? await authManager.getUserInfo(),
-              let userId = user["sub"] as? String else {
-            return []
+        guard let user = authManager.user else {
+            throw APIError.authenticationError
         }
+        let userId = user.id
         
         let userAlbums = try await APIClient.shared.getUserAlbums(userId: userId)
         
         return userAlbums.map { userAlbum in
             let album = userAlbum.album
-            RatingItemData(
+            return RatingItemData(
                 id: album.id,
                 name: album.name,
                 imageUrl: album.images.first?.url,
@@ -455,16 +455,16 @@ class RatingViewModel: ObservableObject {
     
     private func fetchUserArtists() async throws -> [RatingItemData] {
         let authManager = AuthManager()
-        guard let user = try? await authManager.getUserInfo(),
-              let userId = user["sub"] as? String else {
-            return []
+        guard let user = authManager.user else {
+            throw APIError.authenticationError
         }
+        let userId = user.id
         
         let userArtists = try await APIClient.shared.getUserArtists(userId: userId)
         
         return userArtists.map { userArtist in
             let artist = userArtist.artist
-            RatingItemData(
+            return RatingItemData(
                 id: artist.id,
                 name: artist.name,
                 imageUrl: artist.images.first?.url,
@@ -484,6 +484,7 @@ class RatingViewModel: ObservableObject {
         comparisons = []
         ratingState = .idle
     }
+
     
     func clearSearch() {
         searchResults = []

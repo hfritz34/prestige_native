@@ -2,9 +2,6 @@
 //  RatingCategoryButton.swift
 //  Rating Category Selection Button
 //
-//  Visual button component for selecting rating categories
-//  with colors, emojis, and descriptions
-//
 
 import SwiftUI
 
@@ -120,7 +117,6 @@ struct RatingCategoryGrid: View {
         .padding()
     }
 }
-
 
 // MARK: - Preview
 

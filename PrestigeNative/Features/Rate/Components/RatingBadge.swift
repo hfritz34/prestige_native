@@ -2,9 +2,6 @@
 //  RatingBadge.swift
 //  Rating Badge Component
 //
-//  Small rating indicator badge for displaying ratings
-//  in lists and compact views throughout the app
-//
 
 import SwiftUI
 import Foundation

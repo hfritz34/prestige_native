@@ -44,6 +44,15 @@ enum APIEndpoints {
     // MARK: - Spotify Integration
     static let spotifySearch = "spotify/search"
     static let spotifyRecentlyPlayed = "spotify/recently-played"
+    
+    // MARK: - Rating System
+    static let ratingCategories = "api/rating/categories"
+    static func rateItem(itemType: String, itemId: String) -> String { "api/rating/rate/\(itemType)/\(itemId)" }
+    static let saveRating = "api/rating/save"
+    static let submitComparison = "api/rating/compare"
+    static func userRatings(itemType: String) -> String { "api/rating/user/\(itemType)" }
+    static func deleteRating(itemType: String, itemId: String) -> String { "api/rating/user/\(itemType)/\(itemId)" }
+    static let ratingSuggestions = "api/rating/suggestions"
 }
 
 // MARK: - URL Construction Helpers

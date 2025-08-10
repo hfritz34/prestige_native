@@ -251,7 +251,7 @@ struct PrestigeDetailView: View {
         }) {
             HStack {
                 Image(systemName: "star.fill")
-                Text("Rate this \(item.contentType.rawValue.dropLast())")
+                Text("Rate this \(getContentTypeName())")
             }
             .frame(maxWidth: .infinity)
             .padding()
@@ -339,6 +339,14 @@ struct PrestigeDetailView: View {
     private func removeCurrentRating() async {
         if let rating = currentRating {
             await ratingViewModel.deleteRating(rating)
+        }
+    }
+    
+    private func getContentTypeName() -> String {
+        switch item.contentType {
+        case .tracks: return "Track"
+        case .albums: return "Album"
+        case .artists: return "Artist"
         }
     }
     

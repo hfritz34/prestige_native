@@ -328,7 +328,7 @@ extension View {
                 itemType: .track,
                 albumId: nil,
                 categoryId: "loved",
-                category: RatingCategory(
+                category: RatingCategoryModel(
                     id: "loved",
                     name: "Loved",
                     minScore: 6.8,

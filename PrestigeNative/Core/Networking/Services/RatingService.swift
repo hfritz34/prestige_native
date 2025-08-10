@@ -13,7 +13,7 @@ class RatingService: ObservableObject {
     static let shared = RatingService()
     private let apiClient = APIClient.shared
     
-    @Published var categories: [RatingCategory] = []
+    @Published var categories: [RatingCategoryModel] = []
     @Published var userRatings: [String: [Rating]] = [:]
     @Published var isLoading = false
     @Published var error: APIError?
@@ -22,7 +22,7 @@ class RatingService: ObservableObject {
     
     // MARK: - Fetch Rating Categories
     
-    func fetchCategories() async throws -> [RatingCategory] {
+    func fetchCategories() async throws -> [RatingCategoryModel] {
         do {
             let response = try await apiClient.get(
                 APIEndpoints.ratingCategories,
@@ -192,7 +192,7 @@ class RatingService: ObservableObject {
     
     // MARK: - Helper Methods
     
-    func getCategoryForScore(_ score: Double) -> RatingCategory? {
+    func getCategoryForScore(_ score: Double) -> RatingCategoryModel? {
         return categories.first { category in
             score >= category.minScore && score <= category.maxScore
         }

@@ -10,7 +10,7 @@ import Foundation
 
 // MARK: - Rating Category
 
-struct RatingCategory: Codable, Identifiable, Equatable {
+struct RatingCategoryModel: Codable, Identifiable, Equatable {
     let id: String
     let name: String
     let minScore: Double
@@ -46,11 +46,11 @@ struct Rating: Codable, Identifiable {
     let itemType: RatingItemType
     let albumId: String?
     let categoryId: String
-    let category: RatingCategory?
+    let category: RatingCategoryModel?
     let position: Int
     let personalScore: Double
-    let createdAt: Date
-    let updatedAt: Date
+    let createdAt: Date?
+    let updatedAt: Date?
     
     var displayScore: String {
         String(format: "%.1f", personalScore)
@@ -118,7 +118,7 @@ struct RatingResponse: Codable {
 }
 
 struct RatingCategoryResponse: Codable {
-    let categories: [RatingCategory]
+    let categories: [RatingCategoryModel]
 }
 
 struct ComparisonResultResponse: Codable {
@@ -173,7 +173,7 @@ struct RatedItem: Identifiable {
 // MARK: - UI State Models
 
 struct RatingState {
-    var selectedCategory: RatingCategory?
+    var selectedCategory: RatingCategoryModel?
     var currentPosition: Int = 0
     var comparisons: [ComparisonPair] = []
     var currentComparisonIndex: Int = 0

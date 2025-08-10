@@ -199,10 +199,10 @@ struct StarShape: Shape {
 // MARK: - Rating Category Label
 
 struct RatingCategoryLabel: View {
-    let category: RatingCategory
+    let category: RatingCategoryModel
     let showEmoji: Bool
     
-    init(category: RatingCategory, showEmoji: Bool = true) {
+    init(category: RatingCategoryModel, showEmoji: Bool = true) {
         self.category = category
         self.showEmoji = showEmoji
     }
@@ -346,7 +346,7 @@ struct RatingProgressRing: View {
         // Category labels
         HStack(spacing: 12) {
             RatingCategoryLabel(
-                category: RatingCategory(
+                category: RatingCategoryModel(
                     id: "1",
                     name: "Loved",
                     minScore: 6.8,
@@ -357,7 +357,7 @@ struct RatingProgressRing: View {
             )
             
             RatingCategoryLabel(
-                category: RatingCategory(
+                category: RatingCategoryModel(
                     id: "2",
                     name: "Liked",
                     minScore: 3.4,

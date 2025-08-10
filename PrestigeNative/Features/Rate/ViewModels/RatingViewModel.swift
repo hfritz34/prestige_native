@@ -14,13 +14,13 @@ import SwiftUI
 class RatingViewModel: ObservableObject {
     // MARK: - Published Properties
     
-    @Published var categories: [RatingCategory] = []
+    @Published var categories: [RatingCategoryModel] = []
     @Published var userRatings: [RatingItemType: [Rating]] = [:]
     @Published var unratedItems: [RatingItemData] = []
     @Published var recentlyPlayedItems: [RatingItemData] = []
     
     @Published var selectedItemType: RatingItemType = .track
-    @Published var selectedCategory: RatingCategory?
+    @Published var selectedCategory: RatingCategoryModel?
     @Published var currentRatingItem: RatingItemData?
     @Published var existingRating: Rating?
     
@@ -155,7 +155,7 @@ class RatingViewModel: ObservableObject {
         }
     }
     
-    func selectCategory(_ category: RatingCategory) {
+    func selectCategory(_ category: RatingCategoryModel) {
         selectedCategory = category
         
         // If updating existing rating, skip to position selection
@@ -309,7 +309,7 @@ class RatingViewModel: ObservableObject {
     
     // MARK: - Helper Methods
     
-    private func getRatingsInCategory(_ category: RatingCategory) -> [Rating] {
+    private func getRatingsInCategory(_ category: RatingCategoryModel) -> [Rating] {
         return userRatings[selectedItemType]?
             .filter { $0.categoryId == category.id }
             .sorted { $0.position < $1.position } ?? []

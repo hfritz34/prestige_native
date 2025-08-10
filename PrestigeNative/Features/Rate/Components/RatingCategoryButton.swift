@@ -9,7 +9,7 @@
 import SwiftUI
 
 struct RatingCategoryButton: View {
-    let category: RatingCategory
+    let category: RatingCategoryModel
     let isSelected: Bool
     let action: () -> Void
     
@@ -59,7 +59,7 @@ struct RatingCategoryButton: View {
 // MARK: - Compact Version
 
 struct CompactRatingCategoryButton: View {
-    let category: RatingCategory
+    let category: RatingCategoryModel
     let isSelected: Bool
     let action: () -> Void
     
@@ -93,9 +93,9 @@ struct CompactRatingCategoryButton: View {
 // MARK: - Category Grid
 
 struct RatingCategoryGrid: View {
-    let categories: [RatingCategory]
-    @Binding var selectedCategory: RatingCategory?
-    let onSelect: (RatingCategory) -> Void
+    let categories: [RatingCategoryModel]
+    @Binding var selectedCategory: RatingCategoryModel?
+    let onSelect: (RatingCategoryModel) -> Void
     
     var body: some View {
         VStack(spacing: 16) {
@@ -158,7 +158,7 @@ extension Color {
 #Preview("Category Button") {
     VStack(spacing: 20) {
         RatingCategoryButton(
-            category: RatingCategory(
+            category: RatingCategoryModel(
                 id: "1",
                 name: "Loved",
                 minScore: 6.8,
@@ -171,7 +171,7 @@ extension Color {
         )
         
         CompactRatingCategoryButton(
-            category: RatingCategory(
+            category: RatingCategoryModel(
                 id: "2",
                 name: "Liked",
                 minScore: 3.4,
@@ -189,9 +189,9 @@ extension Color {
 #Preview("Category Grid") {
     RatingCategoryGrid(
         categories: [
-            RatingCategory(id: "1", name: "Loved", minScore: 6.8, maxScore: 10.0, colorHex: "#22c55e", displayOrder: 1),
-            RatingCategory(id: "2", name: "Liked", minScore: 3.4, maxScore: 6.7, colorHex: "#eab308", displayOrder: 2),
-            RatingCategory(id: "3", name: "Disliked", minScore: 0.0, maxScore: 3.3, colorHex: "#ef4444", displayOrder: 3)
+            RatingCategoryModel(id: "1", name: "Loved", minScore: 6.8, maxScore: 10.0, colorHex: "#22c55e", displayOrder: 1),
+            RatingCategoryModel(id: "2", name: "Liked", minScore: 3.4, maxScore: 6.7, colorHex: "#eab308", displayOrder: 2),
+            RatingCategoryModel(id: "3", name: "Disliked", minScore: 0.0, maxScore: 3.3, colorHex: "#ef4444", displayOrder: 3)
         ],
         selectedCategory: .constant(nil),
         onSelect: { _ in }

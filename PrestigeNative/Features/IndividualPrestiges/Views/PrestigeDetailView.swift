@@ -13,6 +13,7 @@ struct PrestigeDetailView: View {
     let rank: Int
     @Environment(\.dismiss) private var dismiss
     @State private var showingShareSheet = false
+    @StateObject private var ratingViewModel = RatingViewModel()
     
     var body: some View {
         NavigationView {
@@ -26,6 +27,9 @@ struct PrestigeDetailView: View {
                     
                     // Statistics
                     statisticsSection
+                    
+                    // Rating Section
+                    ratingSection
                     
                     // Actions
                     actionButtons
@@ -42,6 +46,15 @@ struct PrestigeDetailView: View {
                 }
             }
             .background(Color(UIColor.systemBackground))
+            .sheet(isPresented: $ratingViewModel.showRatingModal) {
+                RatingModal()
+                    .environmentObject(ratingViewModel)
+            }
+        }
+        .onAppear {
+            Task {
+                await loadItemRating()
+            }
         }
     }
     
@@ -161,6 +174,99 @@ struct PrestigeDetailView: View {
         }
     }
     
+    private var ratingSection: some View {
+        VStack(spacing: 16) {
+            Text("Rating")
+                .font(.headline)
+                .frame(maxWidth: .infinity, alignment: .leading)
+            
+            if let rating = currentRating {
+                // Show existing rating
+                ratedItemView(rating)
+            } else {
+                // Show rate button
+                unratedItemView
+            }
+        }
+    }
+    
+    private func ratedItemView(_ rating: Rating) -> some View {
+        VStack(spacing: 16) {
+            // Rating display
+            HStack {
+                RatingBadge(score: rating.personalScore, size: .large)
+                
+                VStack(alignment: .leading, spacing: 4) {
+                    if let category = rating.category {
+                        Text(category.displayName)
+                            .font(.subheadline)
+                            .fontWeight(.semibold)
+                    }
+                    
+                    Text("Score: \(rating.displayScore)")
+                        .font(.caption)
+                        .foregroundColor(.secondary)
+                }
+                
+                Spacer()
+            }
+            .padding()
+            .background(Color(UIColor.secondarySystemBackground))
+            .cornerRadius(12)
+            
+            // Action buttons
+            HStack(spacing: 12) {
+                Button("Rate Again") {
+                    Task {
+                        await startRatingFlow()
+                    }
+                }
+                .font(.subheadline)
+                .foregroundColor(.blue)
+                .padding(.horizontal, 20)
+                .padding(.vertical, 10)
+                .background(Color.blue.opacity(0.1))
+                .cornerRadius(8)
+                
+                Button("Remove Rating") {
+                    Task {
+                        await removeCurrentRating()
+                    }
+                }
+                .font(.subheadline)
+                .foregroundColor(.red)
+                .padding(.horizontal, 20)
+                .padding(.vertical, 10)
+                .background(Color.red.opacity(0.1))
+                .cornerRadius(8)
+            }
+        }
+    }
+    
+    private var unratedItemView: some View {
+        Button(action: {
+            Task {
+                await startRatingFlow()
+            }
+        }) {
+            HStack {
+                Image(systemName: "star.fill")
+                Text("Rate this \(item.contentType.rawValue.dropLast())")
+            }
+            .frame(maxWidth: .infinity)
+            .padding()
+            .background(
+                LinearGradient(
+                    colors: [Color.blue, Color.purple],
+                    startPoint: .leading,
+                    endPoint: .trailing
+                )
+            )
+            .foregroundColor(.white)
+            .cornerRadius(12)
+        }
+    }
+    
     private var actionButtons: some View {
         VStack(spacing: 12) {
             Button(action: {
@@ -193,6 +299,46 @@ struct PrestigeDetailView: View {
                 .foregroundColor(.primary)
                 .cornerRadius(12)
             }
+        }
+    }
+    
+    // MARK: - Rating Properties and Methods
+    
+    private var currentRating: Rating? {
+        let itemType = getRatingItemType()
+        return ratingViewModel.userRatings[itemType.rawValue]?.first { $0.itemId == item.spotifyId }
+    }
+    
+    private func getRatingItemType() -> RatingItemType {
+        switch item.contentType {
+        case .tracks: return .track
+        case .albums: return .album
+        case .artists: return .artist
+        }
+    }
+    
+    private func loadItemRating() async {
+        let itemType = getRatingItemType()
+        await ratingViewModel.loadUserRatings()
+        ratingViewModel.selectedItemType = itemType
+    }
+    
+    private func startRatingFlow() async {
+        let ratingItemData = RatingItemData(
+            id: item.spotifyId,
+            name: item.name,
+            imageUrl: item.imageUrl,
+            artists: item.contentType == .tracks ? [item.subtitle.components(separatedBy: " • ").first ?? ""] : nil,
+            albumName: item.contentType == .tracks ? item.subtitle.components(separatedBy: " • ").last : nil,
+            itemType: getRatingItemType()
+        )
+        
+        await ratingViewModel.startRating(for: ratingItemData)
+    }
+    
+    private func removeCurrentRating() async {
+        if let rating = currentRating {
+            await ratingViewModel.deleteRating(rating)
         }
     }
     

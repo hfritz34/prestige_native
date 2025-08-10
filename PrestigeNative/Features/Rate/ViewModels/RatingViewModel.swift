@@ -18,6 +18,8 @@ class RatingViewModel: ObservableObject {
     @Published var userRatings: [String: [Rating]] = [:]
     @Published var unratedItems: [RatingItemData] = []
     @Published var recentlyPlayedItems: [RatingItemData] = []
+    @Published var searchResults: [RatingItemData] = []
+    @Published var isSearching = false
     
     @Published var selectedItemType: RatingItemType = .track
     @Published var selectedCategory: RatingCategoryModel?
@@ -133,6 +135,81 @@ class RatingViewModel: ObservableObject {
         } catch {
             print("Failed to load recently played: \(error)")
         }
+    }
+    
+    // MARK: - Search Functionality
+    
+    func searchLibrary(query: String) async {
+        guard !query.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else {
+            await MainActor.run {
+                searchResults = []
+                isSearching = false
+            }
+            return
+        }
+        
+        await MainActor.run { isSearching = true }
+        
+        do {
+            // Option 1: Frontend search through existing data
+            let frontendResults = await searchExistingData(query: query)
+            
+            // Option 2: Backend search (if implemented)
+            // let backendResults = try await searchUserLibrary(query: query)
+            
+            await MainActor.run {
+                self.searchResults = frontendResults
+                self.isSearching = false
+            }
+        } catch {
+            await MainActor.run {
+                self.error = "Search failed: \(error.localizedDescription)"
+                self.isSearching = false
+            }
+        }
+    }
+    
+    private func searchExistingData(query: String) async -> [RatingItemData] {
+        let lowercaseQuery = query.lowercased()
+        var results: [RatingItemData] = []
+        
+        // Search through unrated items
+        let unratedMatches = unratedItems.filter { item in
+            item.name.lowercased().contains(lowercaseQuery) ||
+            (item.artists?.joined(separator: " ").lowercased().contains(lowercaseQuery) ?? false) ||
+            (item.albumName?.lowercased().contains(lowercaseQuery) ?? false)
+        }
+        results.append(contentsOf: unratedMatches)
+        
+        // Search through rated items (convert from ratings)
+        for (_, ratings) in userRatings {
+            let ratedItemsData = ratings.compactMap { rating -> RatingItemData? in
+                // Create item data from rating - ideally this would come from a proper data store
+                return RatingItemData(
+                    id: rating.itemId,
+                    name: "Rated Item \(rating.itemId)", // Placeholder
+                    imageUrl: nil,
+                    artists: nil,
+                    albumName: nil,
+                    itemType: rating.itemType
+                )
+            }
+            
+            let ratedMatches = ratedItemsData.filter { item in
+                item.name.lowercased().contains(lowercaseQuery)
+            }
+            results.append(contentsOf: ratedMatches)
+        }
+        
+        // Remove duplicates and return
+        return results.removingDuplicates()
+    }
+    
+    // Backend search implementation (placeholder)
+    private func searchUserLibrary(query: String) async throws -> [RatingItemData] {
+        // This would call a backend endpoint like: /api/search/user-library
+        // For now, return empty array
+        return []
     }
     
     // MARK: - Rating Flow
@@ -332,6 +409,11 @@ class RatingViewModel: ObservableObject {
         currentComparisonIndex = 0
         comparisons = []
         ratingState = .idle
+    }
+    
+    func clearSearch() {
+        searchResults = []
+        isSearching = false
     }
     
     // MARK: - Computed Properties

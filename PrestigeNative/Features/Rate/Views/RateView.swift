@@ -61,10 +61,16 @@ struct RateView: View {
                 TextField("Search your library...", text: $searchText)
                     .textFieldStyle(PlainTextFieldStyle())
                     .font(.system(size: 16))
+                    .onChange(of: searchText) { newValue in
+                        Task {
+                            await viewModel.searchLibrary(query: newValue)
+                        }
+                    }
                 
                 if !searchText.isEmpty {
                     Button(action: { 
                         searchText = ""
+                        viewModel.clearSearch()
                         UIApplication.shared.sendAction(#selector(UIResponder.resignFirstResponder), to: nil, from: nil, for: nil)
                     }) {
                         Image(systemName: "xmark.circle.fill")
@@ -135,6 +141,8 @@ struct RateView: View {
     private var contentSection: some View {
         if viewModel.isLoading {
             loadingView
+        } else if !searchText.isEmpty {
+            searchResultsView
         } else {
             ScrollView {
                 LazyVStack(spacing: 12) {
@@ -253,6 +261,75 @@ struct RateView: View {
                             }
                         }
                     }
+                }
+            }
+        }
+    }
+    
+    private var searchResultsView: some View {
+        VStack(spacing: 16) {
+            if viewModel.isSearching {
+                HStack {
+                    ProgressView()
+                        .scaleEffect(0.8)
+                    Text("Searching...")
+                        .font(.subheadline)
+                        .foregroundColor(.secondary)
+                }
+                .padding()
+            } else if viewModel.searchResults.isEmpty {
+                EmptyStateView(
+                    icon: "magnifyingglass",
+                    title: "No Results",
+                    subtitle: "No items found for '\(searchText)'"
+                )
+                .padding(.top, 60)
+            } else {
+                ScrollView {
+                    LazyVStack(spacing: 12) {
+                        Text("\(viewModel.searchResults.count) result\(viewModel.searchResults.count == 1 ? "" : "s") for '\(searchText)'")
+                            .font(.subheadline)
+                            .foregroundColor(.secondary)
+                            .frame(maxWidth: .infinity, alignment: .leading)
+                            .padding(.horizontal)
+                            .padding(.top, 8)
+                        
+                        ForEach(viewModel.searchResults, id: \.id) { item in
+                            let existingRating = viewModel.userRatings[item.itemType.rawValue]?.first { $0.itemId == item.id }
+                            
+                            RatingItemCard(
+                                itemData: item,
+                                rating: existingRating,
+                                showRating: existingRating != nil
+                            ) {
+                                Task {
+                                    await viewModel.startRating(for: item)
+                                }
+                            }
+                            .contextMenu {
+                                if let rating = existingRating {
+                                    Button("Rate Again", systemImage: "star.circle") {
+                                        Task {
+                                            await viewModel.startRating(for: item)
+                                        }
+                                    }
+                                    
+                                    Button("Remove Rating", systemImage: "trash", role: .destructive) {
+                                        Task {
+                                            await viewModel.deleteRating(rating)
+                                        }
+                                    }
+                                } else {
+                                    Button("Rate Item", systemImage: "star") {
+                                        Task {
+                                            await viewModel.startRating(for: item)
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                    .padding(.horizontal)
                 }
             }
         }

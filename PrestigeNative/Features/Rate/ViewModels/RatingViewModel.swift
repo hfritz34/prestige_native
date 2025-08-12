@@ -43,6 +43,7 @@ class RatingViewModel: ObservableObject {
     
     private let ratingService = RatingService.shared
     private let spotifyService = SpotifyService()
+    private let libraryService = LibraryService()
     private var authManager: AuthManager?
     private var cancellables = Set<AnyCancellable>()
     private var itemCache: [String: RatingItemData] = [:]
@@ -360,19 +361,43 @@ class RatingViewModel: ObservableObject {
         // Get the item at middle position for comparison
         let comparisonRating = searchState.sortedRatings[midIndex]
         
-        // Get item data for comparison
+        // Get item data for comparison with metadata
         let comparisonItem: RatingItemData
         if let cached = itemCache[comparisonRating.itemId] {
             comparisonItem = cached
         } else {
-            comparisonItem = RatingItemData(
-                id: comparisonRating.itemId,
-                name: "Item",
-                imageUrl: nil,
-                artists: nil,
-                albumName: nil,
-                itemType: comparisonRating.itemType
-            )
+            // Fetch item details from LibraryService
+            do {
+                let itemDetails = try await libraryService.getItemDetails(
+                    itemId: comparisonRating.itemId, 
+                    itemType: comparisonRating.itemType
+                )
+                
+                comparisonItem = RatingItemData(
+                    id: itemDetails.id,
+                    name: itemDetails.name,
+                    imageUrl: itemDetails.imageUrl,
+                    artists: itemDetails.artists,
+                    albumName: itemDetails.albumName,
+                    itemType: comparisonRating.itemType
+                )
+                
+                // Cache for future use
+                itemCache[comparisonRating.itemId] = comparisonItem
+                
+                print("✅ Fetched metadata for comparison item: \(itemDetails.name)")
+            } catch {
+                print("❌ Failed to fetch metadata for \(comparisonRating.itemId): \(error)")
+                // Fallback to basic item data
+                comparisonItem = RatingItemData(
+                    id: comparisonRating.itemId,
+                    name: "Loading...",
+                    imageUrl: nil,
+                    artists: nil,
+                    albumName: nil,
+                    itemType: comparisonRating.itemType
+                )
+            }
         }
         
         // Set up for comparison

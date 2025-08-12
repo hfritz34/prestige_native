@@ -24,7 +24,7 @@ struct HomeView: View {
         NavigationView {
             VStack(spacing: 0) {
                 // App Logo
-                Image("prestige_white")
+                Image("prestige_purple")
                     .resizable()
                     .scaledToFit()
                     .frame(height: 40)

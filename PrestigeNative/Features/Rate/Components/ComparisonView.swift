@@ -29,8 +29,7 @@ struct ComparisonView: View {
             // Comparison Content
             comparisonContent
             
-            // Action Buttons
-            actionButtons
+            // Removed Can't Decide button per user request
         }
         .padding()
         .onAppear {
@@ -129,21 +128,7 @@ struct ComparisonView: View {
         }
     }
     
-    private var actionButtons: some View {
-        HStack(spacing: 16) {
-            Button(action: onSkip) {
-                Text("Can't Decide")
-                    .font(.subheadline)
-                    .foregroundColor(.secondary)
-                    .padding(.vertical, 12)
-                    .frame(maxWidth: .infinity)
-                    .background(
-                        RoundedRectangle(cornerRadius: 12)
-                            .stroke(Color.gray.opacity(0.3), lineWidth: 1)
-                    )
-            }
-        }
-    }
+    // Can't Decide button removed per user request
     
     private func triggerSelectionAnimation() {
         withAnimation(.spring(response: 0.3, dampingFraction: 0.6)) {
@@ -172,31 +157,6 @@ struct ComparisonCard: View {
     var body: some View {
         Button(action: onTap) {
             VStack(spacing: 12) {
-                // New Badge
-                if isNew {
-                    HStack(spacing: 4) {
-                        Image(systemName: "sparkles")
-                            .font(.caption2)
-                        Text("NEW")
-                            .font(.caption)
-                            .fontWeight(.semibold)
-                    }
-                    .foregroundColor(.white)
-                    .padding(.horizontal, 10)
-                    .padding(.vertical, 5)
-                    .background(
-                        Capsule()
-                            .fill(
-                                LinearGradient(
-                                    colors: [Color.blue, Color.purple],
-                                    startPoint: .leading,
-                                    endPoint: .trailing
-                                )
-                            )
-                    )
-                    .shadow(color: Color.blue.opacity(0.3), radius: 4, x: 0, y: 2)
-                }
-                
                 // Artwork
                 AsyncImage(url: URL(string: itemData.imageUrl ?? "")) { image in
                     image
@@ -211,10 +171,35 @@ struct ComparisonCard: View {
                                 .foregroundColor(.gray)
                         )
                 }
-                .frame(maxWidth: .infinity)
-                .aspectRatio(1, contentMode: .fit)
+                .frame(width: 120, height: 120)
                 .clipShape(RoundedRectangle(cornerRadius: 12))
                 .shadow(radius: isSelected ? 8 : 4)
+                
+                // New Badge (positioned absolutely)
+                if isNew {
+                    HStack(spacing: 4) {
+                        Image(systemName: "sparkles")
+                            .font(.caption2)
+                        Text("NEW")
+                            .font(.caption)
+                            .fontWeight(.semibold)
+                    }
+                    .foregroundColor(.white)
+                    .padding(.horizontal, 8)
+                    .padding(.vertical, 4)
+                    .background(
+                        Capsule()
+                            .fill(
+                                LinearGradient(
+                                    colors: [Color.blue, Color.purple],
+                                    startPoint: .leading,
+                                    endPoint: .trailing
+                                )
+                            )
+                    )
+                    .shadow(color: Color.blue.opacity(0.3), radius: 3, x: 0, y: 1)
+                    .position(x: 100, y: 15)
+                }
                 
                 // Metadata
                 VStack(spacing: 6) {
@@ -239,6 +224,7 @@ struct ComparisonCard: View {
                             .lineLimit(1)
                     }
                 }
+                .frame(height: 50) // Fixed height for consistent alignment
             }
             .padding()
             .background(

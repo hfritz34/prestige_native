@@ -244,29 +244,29 @@ struct RateView: View {
             } else {
                 let items = Array(topRatedItems.prefix(topRatedLimit))
                 ForEach(Array(items.enumerated()), id: \.element.id) { index, item in
-                    RatingItemCard(
+                    SwipeableRatingCard(
                         itemData: item.itemData,
                         rating: item.rating,
-                        showRating: true
-                    ) {
-                        Task {
-                            await viewModel.startRating(for: item.itemData)
-                        }
-                    } onSwipeRight: {
-                        Task { await viewModel.startRating(for: item.itemData) }
-                    } onSwipeLeft: {
-                        Task { await viewModel.deleteRating(item.rating) }
-                    }
-                    .onAppear {
-                        if item.id == items.last?.id, topRatedLimit < topRatedItems.count {
-                            topRatedLimit += 50
-                        }
-                    }
-                    .contextMenu {
-                        Button("Remove Rating", systemImage: "trash", role: .destructive) {
+                        showRating: true,
+                        onTap: {
+                            Task {
+                                await viewModel.startRating(for: item.itemData)
+                            }
+                        },
+                        onRerate: {
+                            Task {
+                                await viewModel.startRating(for: item.itemData)
+                            }
+                        },
+                        onDelete: {
                             Task {
                                 await viewModel.deleteRating(item.rating)
                             }
+                        }
+                    )
+                    .onAppear {
+                        if item.id == items.last?.id, topRatedLimit < topRatedItems.count {
+                            topRatedLimit += 50
                         }
                     }
                 }
@@ -289,31 +289,29 @@ struct RateView: View {
             } else {
                 let items = Array(allRatedItems.prefix(yourRatingsLimit))
                 ForEach(items, id: \.id) { item in
-                    RatingItemCard(
+                    SwipeableRatingCard(
                         itemData: item.itemData,
                         rating: item.rating,
-                        showRating: true
-                    ) {
-                        Task {
-                            await viewModel.startRating(for: item.itemData)
-                        }
-                    }
-                    .onAppear {
-                        if item.id == items.last?.id, yourRatingsLimit < allRatedItems.count {
-                            yourRatingsLimit += 50
-                        }
-                    }
-                    .contextMenu {
-                        Button("Rate Again", systemImage: "star.circle") {
+                        showRating: true,
+                        onTap: {
                             Task {
                                 await viewModel.startRating(for: item.itemData)
                             }
-                        }
-                        
-                        Button("Remove Rating", systemImage: "trash", role: .destructive) {
+                        },
+                        onRerate: {
+                            Task {
+                                await viewModel.startRating(for: item.itemData)
+                            }
+                        },
+                        onDelete: {
                             Task {
                                 await viewModel.deleteRating(item.rating)
                             }
+                        }
+                    )
+                    .onAppear {
+                        if item.id == items.last?.id, yourRatingsLimit < allRatedItems.count {
+                            yourRatingsLimit += 50
                         }
                     }
                 }

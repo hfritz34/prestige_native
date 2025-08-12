@@ -12,6 +12,7 @@ import UIKit
 struct RatingModal: View {
     @EnvironmentObject var viewModel: RatingViewModel
     @Environment(\.dismiss) private var dismiss
+    @State private var showCelebration = false
     
     var body: some View {
         NavigationView {
@@ -92,39 +93,44 @@ struct RatingModal: View {
     }
     
     private func itemPreview(_ item: RatingItemData) -> some View {
-        HStack(spacing: 12) {
+        HStack(spacing: 14) {
             AsyncImage(url: URL(string: item.imageUrl ?? "")) { image in
                 image
                     .resizable()
                     .aspectRatio(contentMode: .fill)
             } placeholder: {
-                RoundedRectangle(cornerRadius: 8)
-                    .fill(Color.gray.opacity(0.3))
+                RoundedRectangle(cornerRadius: 10)
+                    .fill(Color.gray.opacity(0.2))
                     .overlay(
                         Image(systemName: item.itemType.iconName)
-                            .font(.title2)
-                            .foregroundColor(.gray)
+                            .font(.title3)
+                            .foregroundColor(.gray.opacity(0.6))
                     )
             }
-            .frame(width: 50, height: 50)
-            .clipShape(RoundedRectangle(cornerRadius: 8))
+            .frame(width: 56, height: 56)
+            .clipShape(RoundedRectangle(cornerRadius: 10))
+            .shadow(color: Color.black.opacity(0.1), radius: 2, x: 0, y: 1)
             
-            VStack(alignment: .leading, spacing: 2) {
+            VStack(alignment: .leading, spacing: 4) {
                 Text(item.name)
-                    .font(.subheadline)
-                    .fontWeight(.semibold)
+                    .font(.body)
+                    .fontWeight(.medium)
                     .lineLimit(1)
                 
-                if let artists = item.artists {
+                if let artists = item.artists, !artists.isEmpty {
                     Text(artists.joined(separator: ", "))
-                        .font(.caption)
+                        .font(.footnote)
                         .foregroundColor(.secondary)
                         .lineLimit(1)
                 }
                 
-                Text(item.itemType.singularName)
-                    .font(.caption2)
-                    .foregroundColor(.blue)
+                HStack(spacing: 4) {
+                    Image(systemName: item.itemType.iconName)
+                        .font(.caption2)
+                    Text(item.itemType.singularName)
+                        .font(.caption)
+                }
+                .foregroundColor(.blue.opacity(0.8))
             }
             
             Spacer()
@@ -157,17 +163,18 @@ struct RatingModal: View {
     }
     
     private var categorySelectionView: some View {
-        VStack(spacing: 24) {
+        VStack(spacing: 20) {
             Text("How did you feel about it?")
-                .font(.title2)
-                .fontWeight(.bold)
-                .padding(.top, 20)
+                .font(.title3)
+                .fontWeight(.semibold)
+                .padding(.top, 24)
+                .padding(.horizontal, 20)
             
             if viewModel.categories.isEmpty {
                 ProgressView("Loading categories...")
                     .padding()
             } else {
-                VStack(spacing: 16) {
+                VStack(spacing: 12) {
                     ForEach(viewModel.categories) { category in
                         RatingCategoryButton(
                             category: category,
@@ -180,6 +187,7 @@ struct RatingModal: View {
                         .padding(.horizontal, 20)
                     }
                 }
+                .padding(.bottom, 16)
             }
             
             Spacer()
@@ -234,19 +242,28 @@ struct RatingModal: View {
     }
     
     private var completedView: some View {
-        VStack(spacing: 24) {
-            Image(systemName: "checkmark.circle.fill")
-                .font(.system(size: 60))
-                .foregroundColor(.green)
+        ZStack {
+            // Celebration effects for new top item
+            if showCelebration {
+                CelebrationView()
+                    .allowsHitTesting(false)
+            }
             
-            Text("Rating Saved!")
-                .font(.title2)
-                .fontWeight(.bold)
-            
-            Text("Your rating has been added successfully.")
-                .font(.subheadline)
-                .foregroundColor(.secondary)
-                .multilineTextAlignment(.center)
+            VStack(spacing: 24) {
+                Image(systemName: showCelebration ? "star.fill" : "checkmark.circle.fill")
+                    .font(.system(size: 60))
+                    .foregroundColor(showCelebration ? .yellow : .green)
+                    .scaleEffect(showCelebration ? 1.2 : 1.0)
+                    .animation(.spring(response: 0.5, dampingFraction: 0.6), value: showCelebration)
+                
+                Text(showCelebration ? "New Top Item!" : "Rating Saved!")
+                    .font(.title2)
+                    .fontWeight(.bold)
+                
+                Text(showCelebration ? "You've found a new favorite!" : "Your rating has been added successfully.")
+                    .font(.subheadline)
+                    .foregroundColor(.secondary)
+                    .multilineTextAlignment(.center)
             
             Button("Done") {
                 dismiss()
@@ -259,9 +276,29 @@ struct RatingModal: View {
             .background(Color.blue)
             .clipShape(Capsule())
             
-            Spacer()
+                Spacer()
+            }
+            .padding(.top, 40)
         }
-        .padding(.top, 40)
+        .onAppear {
+            checkForTopRating()
+        }
+    }
+    
+    private func checkForTopRating() {
+        // Check if the new rating is at position 0 (top of category)
+        if let searchState = viewModel.binarySearchState,
+           searchState.finalPosition == 0 {
+            showCelebration = true
+            
+            // Strong haptic feedback for new top item
+            UINotificationFeedbackGenerator().notificationOccurred(.success)
+            
+            // Stop celebration after a delay
+            DispatchQueue.main.asyncAfter(deadline: .now() + 3) {
+                showCelebration = false
+            }
+        }
     }
     
     // MARK: - Helper Methods

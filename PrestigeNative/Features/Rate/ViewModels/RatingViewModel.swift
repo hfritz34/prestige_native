@@ -31,6 +31,9 @@ class RatingViewModel: ObservableObject {
     @Published var currentComparisonIndex = 0
     @Published var comparisons: [ComparisonPair] = []
     
+    // Binary search state
+    var binarySearchState: BinarySearchState?
+    
     @Published var isLoading = false
     @Published var error: String?
     @Published var showRatingModal = false
@@ -52,6 +55,25 @@ class RatingViewModel: ObservableObject {
         case comparing
         case saving
         case completed
+    }
+    
+    // MARK: - Binary Search State
+    
+    struct BinarySearchState {
+        var sortedRatings: [Rating]
+        var leftIndex: Int
+        var rightIndex: Int
+        var currentMidIndex: Int
+        var comparisonResults: [(itemId: String, winnerId: String)]
+        var finalPosition: Int?
+        
+        mutating func recordComparison(itemId: String, winnerId: String) {
+            comparisonResults.append((itemId: itemId, winnerId: winnerId))
+        }
+        
+        var isComplete: Bool {
+            finalPosition != nil
+        }
     }
     
     // MARK: - Initialization
@@ -288,97 +310,139 @@ class RatingViewModel: ObservableObject {
         // Get existing ratings in the selected category
         let categoryRatings = getRatingsInCategory(category)
         
-        // If there are no items to compare, save immediately
+        // If there are no items to compare, save immediately at top position
         guard !categoryRatings.isEmpty else {
-            saveRating(position: 0)
+            // First item in category gets the upper bound score
+            let score = category.maxScore
+            saveRating(position: 0, score: score)
             return
         }
         
-        // Sort by position ascending
-        let sortedRatings = categoryRatings.sorted { $0.position < $1.position }
+        // Sort by position ascending (highest score to lowest)
+        let sortedRatings = categoryRatings.sorted { $0.personalScore > $1.personalScore }
         
-        // Select strategic comparison points ~25%, 50%, 75%
-        let indices = strategicIndices(count: sortedRatings.count)
-        let selectedRatings = indices.map { sortedRatings[$0] }
+        // Initialize binary search state
+        binarySearchState = BinarySearchState(
+            sortedRatings: sortedRatings,
+            leftIndex: 0,
+            rightIndex: sortedRatings.count - 1,
+            currentMidIndex: sortedRatings.count / 2,
+            comparisonResults: [],
+            finalPosition: nil
+        )
         
-        // Use cached item data when available; fall back to minimal placeholder
-        comparisonItems = selectedRatings.map { rating in
-            if let cached = itemCache[rating.itemId] { return cached }
-            return RatingItemData(
-                id: rating.itemId,
-                name: "Unknown",
+        // Start with middle item for comparison
+        startNextComparison()
+    }
+    
+    private func startNextComparison() {
+        guard var searchState = binarySearchState,
+              let item = currentRatingItem else { return }
+        
+        // Check if search is complete
+        if searchState.leftIndex > searchState.rightIndex {
+            // Binary search complete, determine final position
+            let finalPosition = searchState.leftIndex
+            binarySearchState?.finalPosition = finalPosition
+            
+            // Calculate score based on position
+            let score = calculateScoreForPosition(finalPosition)
+            saveRating(position: finalPosition, score: score)
+            return
+        }
+        
+        // Calculate middle index (favor higher value for even count)
+        let midIndex = (searchState.leftIndex + searchState.rightIndex + 1) / 2
+        binarySearchState?.currentMidIndex = midIndex
+        
+        // Get the item at middle position for comparison
+        let comparisonRating = searchState.sortedRatings[midIndex]
+        
+        // Get item data for comparison
+        let comparisonItem: RatingItemData
+        if let cached = itemCache[comparisonRating.itemId] {
+            comparisonItem = cached
+        } else {
+            comparisonItem = RatingItemData(
+                id: comparisonRating.itemId,
+                name: "Item",
                 imageUrl: nil,
                 artists: nil,
                 albumName: nil,
-                itemType: rating.itemType
+                itemType: comparisonRating.itemType
             )
         }
         
+        // Set up for comparison
+        comparisonItems = [comparisonItem]
         currentComparisonIndex = 0
         ratingState = .comparing
     }
     
     func handleComparison(winnerId: String) async {
-        guard let item = currentRatingItem else { return }
+        guard let item = currentRatingItem,
+              var searchState = binarySearchState else { return }
+        
+        // Get the comparison item
+        guard currentComparisonIndex < comparisonItems.count else { return }
+        let comparisonItem = comparisonItems[currentComparisonIndex]
         
         // Submit comparison to backend
-        if currentComparisonIndex < comparisonItems.count {
-            let comparisonItem = comparisonItems[currentComparisonIndex]
-            
-            do {
-                _ = try await ratingService.submitComparison(
-                    itemId1: item.id,
-                    itemId2: comparisonItem.id,
-                    itemType: item.itemType,
-                    winnerId: winnerId
-                )
-                // Haptic feedback for comparison
-                UIImpactFeedbackGenerator(style: .medium).impactOccurred()
-            } catch {
-                print("Failed to submit comparison: \(error)")
-            }
+        do {
+            _ = try await ratingService.submitComparison(
+                itemId1: item.id,
+                itemId2: comparisonItem.id,
+                itemType: item.itemType,
+                winnerId: winnerId
+            )
+            // Haptic feedback for comparison
+            UIImpactFeedbackGenerator(style: .medium).impactOccurred()
+        } catch {
+            print("Failed to submit comparison: \(error)")
         }
         
-        // Move to next comparison or finish
-        if currentComparisonIndex < comparisonItems.count - 1 {
-            currentComparisonIndex += 1
+        // Record comparison result
+        searchState.recordComparison(itemId: comparisonItem.id, winnerId: winnerId)
+        binarySearchState = searchState
+        
+        // Update binary search bounds based on comparison result
+        if winnerId == item.id {
+            // New item won - it should be placed higher (to the left)
+            binarySearchState?.rightIndex = searchState.currentMidIndex - 1
         } else {
-            // Determine final position based on comparisons
-            let position = calculateFinalPosition()
-            saveRating(position: position)
+            // Existing item won - new item should be placed lower (to the right)
+            binarySearchState?.leftIndex = searchState.currentMidIndex + 1
         }
+        
+        // Continue with next comparison
+        startNextComparison()
     }
     
     func skipComparison() {
-        // Skip current comparison
-        if currentComparisonIndex < comparisonItems.count - 1 {
-            currentComparisonIndex += 1
-        } else {
-            // Use middle position if all comparisons skipped
-            let position = comparisonItems.count / 2
-            saveRating(position: position)
-        }
+        guard var searchState = binarySearchState else { return }
+        
+        // For skipped comparisons, treat as a tie and place after the current item
+        binarySearchState?.leftIndex = searchState.currentMidIndex + 1
+        
+        // Continue with next comparison
+        startNextComparison()
     }
     
-    private func calculateFinalPosition() -> Int {
-        // Based on comparison results, determine position
-        // This is a simplified version - actual implementation would
-        // use the comparison results to find the correct position
-        return currentComparisonIndex
-    }
-    
-    private func saveRating(position: Int) {
+    private func saveRating(position: Int, score: Double? = nil) {
         guard let category = selectedCategory,
               let item = currentRatingItem else { return }
         
         ratingState = .saving
+        
+        // Calculate score if not provided
+        let finalScore = score ?? calculateScoreForPosition(position)
         
         Task {
             do {
                 let rating = try await ratingService.saveRating(
                     itemId: item.id,
                     itemType: item.itemType,
-                    score: Double(position), // Backend will calculate actual score
+                    score: finalScore,
                     categoryId: category.id
                 )
                 
@@ -505,6 +569,7 @@ class RatingViewModel: ObservableObject {
         currentComparisonIndex = 0
         comparisons = []
         ratingState = .idle
+        binarySearchState = nil
     }
 
     
@@ -547,16 +612,44 @@ class RatingViewModel: ObservableObject {
         self.authManager = manager
     }
 
-    // MARK: - Comparison Utilities
-    private func strategicIndices(count: Int) -> [Int] {
-        guard count > 0 else { return [] }
-        let positions: [Double] = [0.25, 0.5, 0.75]
-        var indices = Set<Int>()
-        for p in positions {
-            let idx = min(max(Int((Double(count) - 1) * p), 0), count - 1)
-            indices.insert(idx)
+    // MARK: - Score Calculation
+    
+    private func calculateScoreForPosition(_ position: Int) -> Double {
+        guard let category = selectedCategory,
+              let searchState = binarySearchState else { return 5.0 }
+        
+        let sortedRatings = searchState.sortedRatings
+        
+        // If inserting at the beginning (new top item)
+        if position == 0 {
+            if sortedRatings.isEmpty {
+                return category.maxScore // First item gets max score
+            } else {
+                // New top item - slightly higher than current top
+                let currentTop = sortedRatings[0].personalScore
+                return min(currentTop + 0.1, category.maxScore)
+            }
         }
-        return Array(indices).sorted()
+        
+        // If inserting at the end
+        if position >= sortedRatings.count {
+            if sortedRatings.isEmpty {
+                return category.maxScore
+            } else {
+                // New bottom item - slightly lower than current bottom
+                let currentBottom = sortedRatings[sortedRatings.count - 1].personalScore
+                return max(currentBottom - 0.1, category.minScore)
+            }
+        }
+        
+        // Inserting in the middle - calculate average between neighbors
+        let higherItem = sortedRatings[position - 1]
+        let lowerItem = sortedRatings[position]
+        
+        let score = (higherItem.personalScore + lowerItem.personalScore) / 2.0
+        
+        // Ensure score stays within category bounds
+        return max(category.minScore, min(score, category.maxScore))
     }
 }
 

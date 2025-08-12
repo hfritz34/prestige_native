@@ -20,24 +20,24 @@ struct RatingCategoryButton: View {
     
     var body: some View {
         Button(action: action) {
-            VStack(spacing: 12) {
+            VStack(spacing: 10) {
                 // Emoji
                 Text(category.emoji)
-                    .font(.system(size: 48))
+                    .font(.system(size: 40))
                 
                 // Category Name
                 Text(category.displayName)
-                    .font(.headline)
-                    .fontWeight(.semibold)
+                    .font(.body)
+                    .fontWeight(.medium)
                     .multilineTextAlignment(.center)
                 
                 // Score Range
                 Text("\(String(format: "%.1f", category.minScore)) - \(String(format: "%.1f", category.maxScore))")
                     .font(.caption)
-                    .foregroundColor(.secondary)
+                    .foregroundColor(.secondary.opacity(0.8))
             }
             .frame(maxWidth: .infinity)
-            .padding(.vertical, 24)
+            .padding(.vertical, 20)
             .padding(.horizontal, 16)
             .background(
                 RoundedRectangle(cornerRadius: 16)

@@ -18,6 +18,7 @@ struct ComparisonView: View {
     
     @State private var selectedItemId: String?
     @State private var showVersus = true
+    @State private var selectionAnimation = false
     @Namespace private var animation
     
     var body: some View {
@@ -42,45 +43,54 @@ struct ComparisonView: View {
     // MARK: - Subviews
     
     private var progressHeader: some View {
-        VStack(spacing: 8) {
+        VStack(spacing: 12) {
             Text("Which do you prefer?")
-                .font(.title2)
-                .fontWeight(.bold)
+                .font(.title3)
+                .fontWeight(.semibold)
+                .foregroundColor(.primary)
             
-            HStack(spacing: 4) {
-                Text("Comparison")
+            HStack(spacing: 6) {
+                Text("Step")
                     .foregroundColor(.secondary)
                 Text("\(progress.current)")
-                    .fontWeight(.semibold)
+                    .fontWeight(.medium)
+                    .foregroundColor(.blue)
                 Text("of")
                     .foregroundColor(.secondary)
                 Text("\(progress.total)")
-                    .fontWeight(.semibold)
+                    .fontWeight(.medium)
+                    .foregroundColor(.blue)
             }
-            .font(.subheadline)
+            .font(.footnote)
             
             // Progress Bar
             GeometryReader { geometry in
                 ZStack(alignment: .leading) {
-                    RoundedRectangle(cornerRadius: 4)
-                        .fill(Color.gray.opacity(0.3))
-                        .frame(height: 8)
+                    RoundedRectangle(cornerRadius: 3)
+                        .fill(Color.gray.opacity(0.2))
+                        .frame(height: 6)
                     
-                    RoundedRectangle(cornerRadius: 4)
-                        .fill(Color.blue)
+                    RoundedRectangle(cornerRadius: 3)
+                        .fill(
+                            LinearGradient(
+                                colors: [Color.blue, Color.blue.opacity(0.8)],
+                                startPoint: .leading,
+                                endPoint: .trailing
+                            )
+                        )
                         .frame(
                             width: geometry.size.width * (Double(progress.current) / Double(progress.total)),
-                            height: 8
+                            height: 6
                         )
-                        .animation(.spring(), value: progress.current)
+                        .animation(.spring(response: 0.4, dampingFraction: 0.8), value: progress.current)
                 }
             }
-            .frame(height: 8)
+            .frame(height: 6)
         }
     }
     
     private var comparisonContent: some View {
-        HStack(spacing: 16) {
+        HStack(spacing: 20) {
             // New Item (Left)
             ComparisonCard(
                 itemData: newItem,
@@ -89,6 +99,7 @@ struct ComparisonView: View {
                 onTap: {
                     withHapticFeedback {
                         selectedItemId = newItem.id
+                        triggerSelectionAnimation()
                         onSelection(newItem.id)
                     }
                 }
@@ -109,6 +120,7 @@ struct ComparisonView: View {
                 onTap: {
                     withHapticFeedback {
                         selectedItemId = comparisonItem.id
+                        triggerSelectionAnimation()
                         onSelection(comparisonItem.id)
                     }
                 }
@@ -132,6 +144,18 @@ struct ComparisonView: View {
             }
         }
     }
+    
+    private func triggerSelectionAnimation() {
+        withAnimation(.spring(response: 0.3, dampingFraction: 0.6)) {
+            selectionAnimation = true
+        }
+        
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.3) {
+            withAnimation(.spring(response: 0.3, dampingFraction: 0.8)) {
+                selectionAnimation = false
+            }
+        }
+    }
 }
 
 // MARK: - Comparison Card
@@ -143,19 +167,34 @@ struct ComparisonCard: View {
     let onTap: () -> Void
     
     @State private var isPressed = false
+    @State private var showSelectionRing = false
     
     var body: some View {
         Button(action: onTap) {
             VStack(spacing: 12) {
                 // New Badge
                 if isNew {
-                    Text("NEW")
-                        .font(.caption)
-                        .fontWeight(.bold)
-                        .foregroundColor(.white)
-                        .padding(.horizontal, 8)
-                        .padding(.vertical, 4)
-                        .background(Capsule().fill(Color.blue))
+                    HStack(spacing: 4) {
+                        Image(systemName: "sparkles")
+                            .font(.caption2)
+                        Text("NEW")
+                            .font(.caption)
+                            .fontWeight(.semibold)
+                    }
+                    .foregroundColor(.white)
+                    .padding(.horizontal, 10)
+                    .padding(.vertical, 5)
+                    .background(
+                        Capsule()
+                            .fill(
+                                LinearGradient(
+                                    colors: [Color.blue, Color.purple],
+                                    startPoint: .leading,
+                                    endPoint: .trailing
+                                )
+                            )
+                    )
+                    .shadow(color: Color.blue.opacity(0.3), radius: 4, x: 0, y: 2)
                 }
                 
                 // Artwork
@@ -178,13 +217,15 @@ struct ComparisonCard: View {
                 .shadow(radius: isSelected ? 8 : 4)
                 
                 // Metadata
-                VStack(spacing: 4) {
+                VStack(spacing: 6) {
                     Text(itemData.name)
-                        .font(.headline)
+                        .font(.footnote)
+                        .fontWeight(.medium)
                         .lineLimit(2)
                         .multilineTextAlignment(.center)
+                        .foregroundColor(.primary)
                     
-                    if let artists = itemData.artists {
+                    if let artists = itemData.artists, !artists.isEmpty {
                         Text(artists.joined(separator: ", "))
                             .font(.caption)
                             .foregroundColor(.secondary)
@@ -194,24 +235,51 @@ struct ComparisonCard: View {
                     if itemData.itemType == .track, let albumName = itemData.albumName {
                         Text(albumName)
                             .font(.caption2)
-                            .foregroundColor(.secondary)
+                            .foregroundColor(.secondary.opacity(0.8))
                             .lineLimit(1)
                     }
                 }
             }
             .padding()
             .background(
-                RoundedRectangle(cornerRadius: 16)
-                    .fill(Color(UIColor.secondarySystemBackground))
-                    .overlay(
+                ZStack {
+                    // Selection ring animation
+                    if isSelected {
                         RoundedRectangle(cornerRadius: 16)
                             .stroke(
-                                isSelected ? Color.blue : Color.clear,
-                                lineWidth: isSelected ? 3 : 0
+                                LinearGradient(
+                                    colors: [Color.blue, Color.purple],
+                                    startPoint: .topLeading,
+                                    endPoint: .bottomTrailing
+                                ),
+                                lineWidth: 3
                             )
-                    )
+                            .scaleEffect(showSelectionRing ? 1.05 : 1.0)
+                            .opacity(showSelectionRing ? 0 : 1)
+                            .animation(.easeOut(duration: 0.5), value: showSelectionRing)
+                    }
+                    
+                    // Main background
+                    RoundedRectangle(cornerRadius: 16)
+                        .fill(Color(UIColor.secondarySystemBackground))
+                        .overlay(
+                            RoundedRectangle(cornerRadius: 16)
+                                .stroke(
+                                    isSelected ? Color.blue : Color.clear,
+                                    lineWidth: isSelected ? 3 : 0
+                                )
+                        )
+                }
             )
             .scaleEffect(isPressed ? 0.95 : (isSelected ? 1.02 : 1.0))
+            .onChange(of: isSelected) { newValue in
+                if newValue {
+                    showSelectionRing = true
+                    DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
+                        showSelectionRing = false
+                    }
+                }
+            }
         }
         .buttonStyle(PlainButtonStyle())
         .onLongPressGesture(minimumDuration: 0, maximumDistance: .infinity, pressing: { pressing in
@@ -233,10 +301,24 @@ struct ComparisonCard: View {
 // MARK: - Versus Indicator
 
 struct VersusIndicator: View {
-    @State private var rotation: Double = 0
+    @State private var pulseScale: CGFloat = 1.0
     
     var body: some View {
         ZStack {
+            // Outer glow effect
+            Circle()
+                .fill(
+                    LinearGradient(
+                        colors: [Color.blue.opacity(0.3), Color.purple.opacity(0.3)],
+                        startPoint: .topLeading,
+                        endPoint: .bottomTrailing
+                    )
+                )
+                .frame(width: 60, height: 60)
+                .blur(radius: 8)
+                .scaleEffect(pulseScale)
+            
+            // Main circle
             Circle()
                 .fill(
                     LinearGradient(
@@ -246,22 +328,19 @@ struct VersusIndicator: View {
                     )
                 )
                 .frame(width: 50, height: 50)
-                .shadow(radius: 4)
+                .shadow(color: Color.black.opacity(0.2), radius: 4, x: 0, y: 2)
             
             Text("VS")
                 .font(.system(size: 18, weight: .black, design: .rounded))
                 .foregroundColor(.white)
         }
-        .rotation3DEffect(
-            Angle(degrees: rotation),
-            axis: (x: 0, y: 1, z: 0)
-        )
         .onAppear {
+            // Subtle pulse animation
             withAnimation(
-                Animation.easeInOut(duration: 2)
+                Animation.easeInOut(duration: 1.5)
                     .repeatForever(autoreverses: true)
             ) {
-                rotation = 360
+                pulseScale = 1.15
             }
         }
     }

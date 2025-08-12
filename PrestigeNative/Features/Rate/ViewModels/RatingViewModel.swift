@@ -318,7 +318,7 @@ class RatingViewModel: ObservableObject {
             return
         }
         
-        // Sort by position ascending (highest score to lowest)
+        // Sort by score descending (highest score first)
         let sortedRatings = categoryRatings.sorted { $0.personalScore > $1.personalScore }
         
         // Initialize binary search state
@@ -352,7 +352,7 @@ class RatingViewModel: ObservableObject {
         }
         
         // Calculate middle index (favor higher value for even count)
-        let midIndex = (searchState.leftIndex + searchState.rightIndex + 1) / 2
+        let midIndex = (searchState.leftIndex + searchState.rightIndex) / 2
         binarySearchState?.currentMidIndex = midIndex
         
         // Get the item at middle position for comparison
@@ -407,10 +407,10 @@ class RatingViewModel: ObservableObject {
         
         // Update binary search bounds based on comparison result
         if winnerId == item.id {
-            // New item won - it should be placed higher (to the left)
+            // New item won - it's better, so it goes LEFT (higher position/score)
             binarySearchState?.rightIndex = searchState.currentMidIndex - 1
         } else {
-            // Existing item won - new item should be placed lower (to the right)
+            // Existing item won - new item is worse, so it goes RIGHT (lower position/score)
             binarySearchState?.leftIndex = searchState.currentMidIndex + 1
         }
         
@@ -421,7 +421,7 @@ class RatingViewModel: ObservableObject {
     func skipComparison() {
         guard var searchState = binarySearchState else { return }
         
-        // For skipped comparisons, treat as a tie and place after the current item
+        // For skipped comparisons, treat as a tie and place after the current item (lower score)
         binarySearchState?.leftIndex = searchState.currentMidIndex + 1
         
         // Continue with next comparison
@@ -486,7 +486,7 @@ class RatingViewModel: ObservableObject {
     private func getRatingsInCategory(_ category: RatingCategoryModel) -> [Rating] {
         return userRatings[selectedItemType.rawValue]?
             .filter { $0.categoryId == category.id }
-            .sorted { $0.position < $1.position } ?? []
+            .sorted { $0.personalScore > $1.personalScore } ?? []  // Sort by score descending (highest first)
     }
     
     private func fetchAllUserItems(type: RatingItemType) async throws -> [RatingItemData] {
@@ -620,31 +620,28 @@ class RatingViewModel: ObservableObject {
         
         let sortedRatings = searchState.sortedRatings
         
-        // If inserting at the beginning (new top item)
-        if position == 0 {
-            if sortedRatings.isEmpty {
-                return category.maxScore // First item gets max score
-            } else {
-                // New top item - slightly higher than current top
-                let currentTop = sortedRatings[0].personalScore
-                return min(currentTop + 0.1, category.maxScore)
-            }
+        // If this is the first item in the category
+        if sortedRatings.isEmpty {
+            return category.maxScore // First item always gets max score of category
         }
         
-        // If inserting at the end
+        // If inserting at position 0 (new highest rated item)
+        if position == 0 {
+            // New top item - gets the max score (10 for "loved", 6.7 for "liked", etc)
+            return category.maxScore
+        }
+        
+        // If inserting at the end (new lowest rated item in category)
         if position >= sortedRatings.count {
-            if sortedRatings.isEmpty {
-                return category.maxScore
-            } else {
-                // New bottom item - slightly lower than current bottom
-                let currentBottom = sortedRatings[sortedRatings.count - 1].personalScore
-                return max(currentBottom - 0.1, category.minScore)
-            }
+            // New bottom item - slightly above minimum for category
+            let currentBottom = sortedRatings[sortedRatings.count - 1].personalScore
+            // Give it a score between the current bottom and category minimum
+            return max((currentBottom + category.minScore) / 2.0, category.minScore + 0.1)
         }
         
         // Inserting in the middle - calculate average between neighbors
-        let higherItem = sortedRatings[position - 1]
-        let lowerItem = sortedRatings[position]
+        let higherItem = sortedRatings[position - 1]  // Item with higher score
+        let lowerItem = sortedRatings[position]       // Item with lower score
         
         let score = (higherItem.personalScore + lowerItem.personalScore) / 2.0
         

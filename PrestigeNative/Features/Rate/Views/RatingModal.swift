@@ -286,9 +286,12 @@ struct RatingModal: View {
     }
     
     private func checkForTopRating() {
-        // Check if the new rating is at position 0 (top of category)
+        // Only celebrate for true 10s - position 0 in the "I really liked it" category
         if let searchState = viewModel.binarySearchState,
-           searchState.finalPosition == 0 {
+           let category = viewModel.selectedCategory,
+           searchState.finalPosition == 0,
+           category.maxScore >= 10.0 {  // Only for the highest category (loved/really liked)
+            
             showCelebration = true
             
             // Strong haptic feedback for new top item

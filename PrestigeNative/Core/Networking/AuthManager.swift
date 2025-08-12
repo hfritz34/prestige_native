@@ -202,6 +202,9 @@ class AuthManager: ObservableObject {
             self.error = nil
         }
         
+        // Inject this AuthManager into APIClient for authenticated requests
+        APIClient.shared.setAuthManager(self)
+        print("✅ Auth: Injected AuthManager into APIClient")
         print("✅ Auth: User authenticated successfully - \(authUser.nickname)")
     }
     

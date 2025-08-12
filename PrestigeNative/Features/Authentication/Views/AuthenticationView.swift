@@ -17,6 +17,11 @@ struct AuthenticationView: View {
                 // Main app content will go here
                 MainTabView()
                     .environmentObject(authManager)
+                    .onAppear {
+                        // Inject AuthManager into APIClient when user is authenticated
+                        APIClient.shared.setAuthManager(authManager)
+                        print("✅ Auth: Injected AuthManager into APIClient")
+                    }
             } else {
                 LoginView()
                     .environmentObject(authManager)

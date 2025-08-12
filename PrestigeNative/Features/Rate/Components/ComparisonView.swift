@@ -156,26 +156,8 @@ struct ComparisonCard: View {
     
     var body: some View {
         Button(action: onTap) {
-            VStack(spacing: 12) {
-                // Artwork
-                AsyncImage(url: URL(string: itemData.imageUrl ?? "")) { image in
-                    image
-                        .resizable()
-                        .aspectRatio(contentMode: .fill)
-                } placeholder: {
-                    RoundedRectangle(cornerRadius: 12)
-                        .fill(Color.gray.opacity(0.3))
-                        .overlay(
-                            Image(systemName: iconForItemType)
-                                .font(.largeTitle)
-                                .foregroundColor(.gray)
-                        )
-                }
-                .frame(width: 120, height: 120)
-                .clipShape(RoundedRectangle(cornerRadius: 12))
-                .shadow(radius: isSelected ? 8 : 4)
-                
-                // New Badge (positioned absolutely)
+            VStack(spacing: 8) {
+                // NEW Badge positioned above artwork
                 if isNew {
                     HStack(spacing: 4) {
                         Image(systemName: "sparkles")
@@ -198,11 +180,32 @@ struct ComparisonCard: View {
                             )
                     )
                     .shadow(color: Color.blue.opacity(0.3), radius: 3, x: 0, y: 1)
-                    .position(x: 100, y: 15)
+                } else {
+                    // Spacer to maintain consistent layout
+                    Spacer()
+                        .frame(height: 28) // Match badge height
                 }
                 
+                // Artwork
+                AsyncImage(url: URL(string: itemData.imageUrl ?? "")) { image in
+                    image
+                        .resizable()
+                        .aspectRatio(contentMode: .fill)
+                } placeholder: {
+                    RoundedRectangle(cornerRadius: 12)
+                        .fill(Color.gray.opacity(0.3))
+                        .overlay(
+                            Image(systemName: iconForItemType)
+                                .font(.title2)
+                                .foregroundColor(.gray)
+                        )
+                }
+                .frame(width: 120, height: 120)
+                .clipShape(RoundedRectangle(cornerRadius: 12))
+                .shadow(radius: isSelected ? 8 : 4)
+                
                 // Metadata
-                VStack(spacing: 6) {
+                VStack(spacing: 4) {
                     Text(itemData.name)
                         .font(.footnote)
                         .fontWeight(.medium)

@@ -255,6 +255,10 @@ class RatingViewModel: ObservableObject {
         ratingState = .selectingCategory
         showRatingModal = true
         
+        // Reset selection state for new rating flow
+        selectedCategory = nil
+        existingRating = nil
+        
         // Check for existing rating
         do {
             let server = try await ratingService.initializeRating(
@@ -312,9 +316,8 @@ class RatingViewModel: ObservableObject {
         
         // If there are no items to compare, save immediately at top position
         guard !categoryRatings.isEmpty else {
-            // First item in category gets the upper bound score
-            let score = category.maxScore
-            saveRating(position: 0, score: score)
+            // First item in category gets position 0
+            saveRating(position: 0)
             return
         }
         
@@ -345,9 +348,8 @@ class RatingViewModel: ObservableObject {
             let finalPosition = searchState.leftIndex
             binarySearchState?.finalPosition = finalPosition
             
-            // Calculate score based on position
-            let score = calculateScoreForPosition(finalPosition)
-            saveRating(position: finalPosition, score: score)
+            // Save rating with position - let backend calculate score
+            saveRating(position: finalPosition)
             return
         }
         
@@ -428,21 +430,18 @@ class RatingViewModel: ObservableObject {
         startNextComparison()
     }
     
-    private func saveRating(position: Int, score: Double? = nil) {
+    private func saveRating(position: Int) {
         guard let category = selectedCategory,
               let item = currentRatingItem else { return }
         
         ratingState = .saving
-        
-        // Calculate score if not provided
-        let finalScore = score ?? calculateScoreForPosition(position)
         
         Task {
             do {
                 let rating = try await ratingService.saveRating(
                     itemId: item.id,
                     itemType: item.itemType,
-                    score: finalScore,
+                    position: position,
                     categoryId: category.id
                 )
                 
@@ -612,42 +611,6 @@ class RatingViewModel: ObservableObject {
         self.authManager = manager
     }
 
-    // MARK: - Score Calculation
-    
-    private func calculateScoreForPosition(_ position: Int) -> Double {
-        guard let category = selectedCategory,
-              let searchState = binarySearchState else { return 5.0 }
-        
-        let sortedRatings = searchState.sortedRatings
-        
-        // If this is the first item in the category
-        if sortedRatings.isEmpty {
-            return category.maxScore // First item always gets max score of category
-        }
-        
-        // If inserting at position 0 (new highest rated item)
-        if position == 0 {
-            // New top item - gets the max score (10 for "loved", 6.7 for "liked", etc)
-            return category.maxScore
-        }
-        
-        // If inserting at the end (new lowest rated item in category)
-        if position >= sortedRatings.count {
-            // New bottom item - slightly above minimum for category
-            let currentBottom = sortedRatings[sortedRatings.count - 1].personalScore
-            // Give it a score between the current bottom and category minimum
-            return max((currentBottom + category.minScore) / 2.0, category.minScore + 0.1)
-        }
-        
-        // Inserting in the middle - calculate average between neighbors
-        let higherItem = sortedRatings[position - 1]  // Item with higher score
-        let lowerItem = sortedRatings[position]       // Item with lower score
-        
-        let score = (higherItem.personalScore + lowerItem.personalScore) / 2.0
-        
-        // Ensure score stays within category bounds
-        return max(category.minScore, min(score, category.maxScore))
-    }
 }
 
 // MARK: - Array Extension for Removing Duplicates

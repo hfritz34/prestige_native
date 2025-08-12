@@ -11,14 +11,16 @@ import Combine
 
 class RatingService: ObservableObject {
     static let shared = RatingService()
-    private let apiClient = APIClient.shared
+    private let apiClient: APIClient
     
     @Published var categories: [RatingCategoryModel] = []
     @Published var userRatings: [String: [Rating]] = [:]
     @Published var isLoading = false
     @Published var error: APIError?
     
-    private init() {}
+    private init(apiClient: APIClient = APIClient.shared) {
+        self.apiClient = apiClient
+    }
     
     // MARK: - Fetch Rating Categories
     
@@ -69,13 +71,13 @@ class RatingService: ObservableObject {
     func saveRating(
         itemId: String,
         itemType: RatingItemType,
-        score: Double,
+        position: Int,
         categoryId: Int
     ) async throws -> Rating {
         let request = SaveRatingRequest(
             itemId: itemId,
             itemType: itemType.rawValue,
-            personalScore: score,
+            position: position,
             categoryId: categoryId
         )
         

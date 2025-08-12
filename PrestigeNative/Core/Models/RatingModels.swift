@@ -100,7 +100,7 @@ struct RatingComparison: Codable {
 struct SaveRatingRequest: Codable {
     let itemId: String
     let itemType: String
-    let personalScore: Double
+    let position: Int
     let categoryId: Int
 }
 

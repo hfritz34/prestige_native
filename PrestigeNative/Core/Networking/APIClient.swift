@@ -16,6 +16,7 @@ class APIClient: ObservableObject {
     private let baseURL: String
     private let maxRetries = 2
     private let session: URLSession
+    private var authManager: AuthManager?
     
     @Published var isLoading = false
     @Published var lastError: APIError?
@@ -118,11 +119,20 @@ class APIClient: ObservableObject {
         return request
     }
     
+    /// Set the AuthManager for dependency injection
+    func setAuthManager(_ manager: AuthManager) {
+        self.authManager = manager
+    }
+    
     /// Get authentication token from AuthManager
     private func getAuthToken() async -> String? {
+        guard let authManager = authManager else {
+            await MainActor.run { lastError = .authenticationError }
+            print("⚠️ APIClient: AuthManager not injected")
+            return nil
+        }
+        
         do {
-            // This will be injected properly when we set up dependency injection
-            let authManager = AuthManager()
             return try await authManager.getAccessToken()
         } catch {
             await MainActor.run { lastError = .authenticationError }

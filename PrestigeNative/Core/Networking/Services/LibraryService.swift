@@ -66,7 +66,7 @@ class LibraryService: ObservableObject {
         } catch {
             await MainActor.run { 
                 isLoading = false
-                self.error = error as? APIError ?? .unknownError
+                self.error = error as? APIError ?? .networkError(error)
             }
             throw error
         }
@@ -78,7 +78,9 @@ class LibraryService: ObservableObject {
         
         // Process in batches to avoid overwhelming the API
         let batchSize = 5
-        for batch in items.chunked(into: batchSize) {
+        let batches = items.chunked(into: batchSize)
+        
+        for (index, batch) in batches.enumerated() {
             let batchResults = await withTaskGroup(of: ItemDetailsResponse?.self) { group in
                 for item in batch {
                     group.addTask {
@@ -102,8 +104,8 @@ class LibraryService: ObservableObject {
             
             results.append(contentsOf: batchResults)
             
-            // Small delay between batches to be API-friendly
-            if batch != items.chunked(into: batchSize).last {
+            // Small delay between batches to be API-friendly (except for last batch)
+            if index < batches.count - 1 {
                 try? await Task.sleep(nanoseconds: 100_000_000) // 0.1 seconds
             }
         }

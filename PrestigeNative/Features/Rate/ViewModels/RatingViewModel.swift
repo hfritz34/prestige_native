@@ -9,7 +9,9 @@
 import Foundation
 import Combine
 import SwiftUI
+#if os(iOS)
 import UIKit
+#endif
 
 @MainActor
 class RatingViewModel: ObservableObject {
@@ -341,7 +343,7 @@ class RatingViewModel: ObservableObject {
     
     private func startNextComparison() {
         guard var searchState = binarySearchState,
-              let item = currentRatingItem else { return }
+              let _ = currentRatingItem else { return }
         
         // Check if search is complete
         if searchState.leftIndex > searchState.rightIndex {
@@ -366,37 +368,46 @@ class RatingViewModel: ObservableObject {
         if let cached = itemCache[comparisonRating.itemId] {
             comparisonItem = cached
         } else {
-            // Fetch item details from LibraryService
-            do {
-                let itemDetails = try await libraryService.getItemDetails(
-                    itemId: comparisonRating.itemId, 
-                    itemType: comparisonRating.itemType
-                )
-                
-                comparisonItem = RatingItemData(
-                    id: itemDetails.id,
-                    name: itemDetails.name,
-                    imageUrl: itemDetails.imageUrl,
-                    artists: itemDetails.artists,
-                    albumName: itemDetails.albumName,
-                    itemType: comparisonRating.itemType
-                )
-                
-                // Cache for future use
-                itemCache[comparisonRating.itemId] = comparisonItem
-                
-                print("✅ Fetched metadata for comparison item: \(itemDetails.name)")
-            } catch {
-                print("❌ Failed to fetch metadata for \(comparisonRating.itemId): \(error)")
-                // Fallback to basic item data
-                comparisonItem = RatingItemData(
-                    id: comparisonRating.itemId,
-                    name: "Loading...",
-                    imageUrl: nil,
-                    artists: nil,
-                    albumName: nil,
-                    itemType: comparisonRating.itemType
-                )
+            // Create placeholder item first for immediate display
+            comparisonItem = RatingItemData(
+                id: comparisonRating.itemId,
+                name: "Loading...",
+                imageUrl: nil,
+                artists: nil,
+                albumName: nil,
+                itemType: comparisonRating.itemType
+            )
+            
+            // Fetch item details from LibraryService asynchronously
+            Task {
+                do {
+                    let itemDetails = try await libraryService.getItemDetails(
+                        itemId: comparisonRating.itemId, 
+                        itemType: comparisonRating.itemType
+                    )
+                    
+                    let updatedItem = RatingItemData(
+                        id: itemDetails.id,
+                        name: itemDetails.name,
+                        imageUrl: itemDetails.imageUrl,
+                        artists: itemDetails.artists,
+                        albumName: itemDetails.albumName,
+                        itemType: comparisonRating.itemType
+                    )
+                    
+                    // Cache for future use
+                    await MainActor.run {
+                        itemCache[comparisonRating.itemId] = updatedItem
+                        // Update comparison items if this is still the current comparison
+                        if comparisonItems.first?.id == comparisonRating.itemId {
+                            comparisonItems = [updatedItem]
+                        }
+                    }
+                    
+                    print("✅ Fetched metadata for comparison item: \(itemDetails.name)")
+                } catch {
+                    print("❌ Failed to fetch metadata for \(comparisonRating.itemId): \(error)")
+                }
             }
         }
         
@@ -471,7 +482,9 @@ class RatingViewModel: ObservableObject {
                 )
                 
                 ratingState = .completed
+                #if os(iOS)
                 UINotificationFeedbackGenerator().notificationOccurred(.success)
+                #endif
                 
                 // Update local state
                 await loadUserRatings()

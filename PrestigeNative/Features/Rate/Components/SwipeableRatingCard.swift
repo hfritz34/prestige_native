@@ -144,12 +144,12 @@ struct SwipeableRatingCard: View {
                         // Only start dragging if the gesture is more horizontal than vertical
                         let translation = value.translation
                         if !isDragging {
-                            let isHorizontal = abs(translation.x) > abs(translation.y)
-                            let hasSignificantMovement = abs(translation.x) > 15
+                            let isHorizontal = abs(translation.width) > abs(translation.height)
+                            let hasSignificantMovement = abs(translation.width) > 15
                             
                             if isHorizontal && hasSignificantMovement {
                                 isDragging = true
-                            } else if abs(translation.y) > 15 {
+                            } else if abs(translation.height) > 15 {
                                 // Vertical movement detected, don't start dragging
                                 return
                             }
@@ -158,7 +158,7 @@ struct SwipeableRatingCard: View {
                         if isDragging {
                             withAnimation(.interactiveSpring(response: 0.25, dampingFraction: 0.8)) {
                                 // Apply resistance at the edges
-                                let rawOffset = translation.x
+                                let rawOffset = translation.width
                                 if rawOffset > 0 {
                                     offset = min(rawOffset * (rawOffset > maxSwipeDistance ? 0.3 : 1.0), maxSwipeDistance * 1.2)
                                 } else {
@@ -178,8 +178,8 @@ struct SwipeableRatingCard: View {
                     .onEnded { value in
                         guard isDragging else { return }
                         
-                        let velocity = value.velocity.x
-                        let translation = value.translation.x
+                        let velocity = value.velocity.width
+                        let translation = value.translation.width
                         
                         // Determine if action should be triggered
                         let shouldTriggerAction = abs(translation) > swipeThreshold || abs(velocity) > 500

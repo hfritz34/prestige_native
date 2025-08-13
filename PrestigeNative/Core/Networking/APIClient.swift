@@ -65,6 +65,15 @@ class APIClient: ObservableObject {
                 return try decoder.decode(T.self, from: data)
             }
             
+            // Handle rate limiting (429) with exponential backoff
+            if httpResponse.statusCode == 429 && retries < maxRetries {
+                let retryAfter = httpResponse.value(forHTTPHeaderField: "Retry-After")
+                let delay = Double(retryAfter ?? "1") ?? Double(1000 * pow(2, Double(retries))) / 1000.0
+                print("⏳ Rate limited. Retrying after \(delay) seconds (attempt \(retries + 1)/\(maxRetries))")
+                try await Task.sleep(nanoseconds: UInt64(delay * 1_000_000_000))
+                return try await retryRequest(request, responseType: responseType, retries: retries + 1)
+            }
+            
             // Handle server errors with retry logic
             if httpResponse.statusCode >= 500 && retries < maxRetries {
                 let delay = Double(500 * pow(2, Double(retries))) / 1000.0

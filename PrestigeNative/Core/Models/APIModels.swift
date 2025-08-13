@@ -1,6 +1,6 @@
 //
 //  APIModels.swift
-//  Core API Models for Prestige iOS
+//  Core API Models for PreNostige iOS
 //
 //  This file contains basic API response models that correspond to
 //  the Prestige.Api backend responses

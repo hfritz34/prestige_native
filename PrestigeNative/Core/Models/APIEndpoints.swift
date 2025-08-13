@@ -54,6 +54,10 @@ enum APIEndpoints {
     static func deleteRating(itemType: String, itemId: String) -> String { "api/rating/user/\(itemType)/\(itemId)" }
     static let ratingSuggestions = "api/rating/suggestions"
 
+    // MARK: - Library
+    static let batchItemDetails = "api/library/items/batch"
+    static func itemDetails(itemType: String, itemId: String) -> String { "api/library/item/\(itemType)/\(itemId)" }
+
     // MARK: - Search
     static func searchUserLibrary(query: String, type: String, page: Int = 1, pageSize: Int = 20) -> String {
         let encodedQuery = query.addingPercentEncoding(withAllowedCharacters: .urlQueryAllowed) ?? query

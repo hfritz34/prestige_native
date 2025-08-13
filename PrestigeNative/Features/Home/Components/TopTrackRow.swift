@@ -21,20 +21,13 @@ struct TopTrackRow: View {
                 .frame(width: 30, alignment: .leading)
             
             // Track Image
-            AsyncImage(url: URL(string: track.track.album.images.first?.url ?? "")) { image in
-                image
-                    .resizable()
-                    .aspectRatio(contentMode: .fill)
-            } placeholder: {
-                Rectangle()
-                    .foregroundColor(.gray.opacity(0.3))
-                    .overlay(
-                        Image(systemName: "music.note")
-                            .foregroundColor(.gray)
-                            .font(.caption)
-                    )
-            }
-            .frame(width: 50, height: 50)
+            CachedAsyncImage(
+                url: track.track.album.images.first?.url,
+                placeholder: Image(systemName: "music.note"),
+                contentMode: .fill,
+                maxWidth: 50,
+                maxHeight: 50
+            )
             .clipShape(RoundedRectangle(cornerRadius: 6))
             
             // Track Info

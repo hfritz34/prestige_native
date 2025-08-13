@@ -48,20 +48,13 @@ struct RatingItemCard: View {
         Button(action: { onTap?() }) {
             HStack(spacing: 12) {
                 // Artwork
-                AsyncImage(url: URL(string: itemData.imageUrl ?? "")) { image in
-                    image
-                        .resizable()
-                        .aspectRatio(contentMode: .fill)
-                } placeholder: {
-                    RoundedRectangle(cornerRadius: 8)
-                        .fill(Color.gray.opacity(0.3))
-                        .overlay(
-                            Image(systemName: iconForItemType)
-                                .font(.title2)
-                                .foregroundColor(.gray)
-                        )
-                }
-                .frame(width: 64, height: 64)
+                CachedAsyncImage(
+                    url: itemData.imageUrl,
+                    placeholder: Image(systemName: iconForItemType),
+                    contentMode: .fill,
+                    maxWidth: 64,
+                    maxHeight: 64
+                )
                 .clipShape(RoundedRectangle(cornerRadius: 8))
                 
                 // Content

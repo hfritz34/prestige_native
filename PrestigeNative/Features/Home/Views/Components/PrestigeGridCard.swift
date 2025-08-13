@@ -61,20 +61,13 @@ struct PrestigeGridCard: View {
                     }
                     
                     // Album artwork
-                    AsyncImage(url: URL(string: item.imageUrl)) { image in
-                        image
-                            .resizable()
-                            .aspectRatio(contentMode: .fill)
-                    } placeholder: {
-                        RoundedRectangle(cornerRadius: 8)
-                            .fill(Color.gray.opacity(0.2))
-                            .overlay(
-                                Image(systemName: getIconForType())
-                                    .font(.title2)
-                                    .foregroundColor(.gray)
-                            )
-                    }
-                    .frame(width: 80, height: 80)
+                    CachedAsyncImage(
+                        url: item.imageUrl,
+                        placeholder: Image(systemName: getIconForType()),
+                        contentMode: .fill,
+                        maxWidth: 80,
+                        maxHeight: 80
+                    )
                     .clipShape(RoundedRectangle(cornerRadius: 8))
                     .shadow(color: .black.opacity(0.2), radius: 2, x: 0, y: 1)
                     

@@ -187,20 +187,13 @@ struct ComparisonCard: View {
                 }
                 
                 // Artwork
-                AsyncImage(url: URL(string: itemData.imageUrl ?? "")) { image in
-                    image
-                        .resizable()
-                        .aspectRatio(contentMode: .fill)
-                } placeholder: {
-                    RoundedRectangle(cornerRadius: 12)
-                        .fill(Color.gray.opacity(0.3))
-                        .overlay(
-                            Image(systemName: iconForItemType)
-                                .font(.title2)
-                                .foregroundColor(.gray)
-                        )
-                }
-                .frame(width: 120, height: 120)
+                CachedAsyncImage(
+                    url: itemData.imageUrl,
+                    placeholder: Image(systemName: iconForItemType),
+                    contentMode: .fill,
+                    maxWidth: 120,
+                    maxHeight: 120
+                )
                 .clipShape(RoundedRectangle(cornerRadius: 12))
                 .shadow(radius: isSelected ? 8 : 4)
                 

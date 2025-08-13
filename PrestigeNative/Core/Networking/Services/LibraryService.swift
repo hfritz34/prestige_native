@@ -34,27 +34,30 @@ class LibraryService: ObservableObject {
     
     // MARK: - Public Methods
     
-    /// Get item details with caching
+    /// Get item details with enhanced caching
     func getItemDetails(itemId: String, itemType: RatingItemType) async throws -> ItemDetailsResponse {
         let cacheKey = "\(itemType.rawValue)_\(itemId)"
         
-        // Check cache first
+        // Check local memory cache first for immediate response
         if let cachedItem = itemCache[cacheKey] {
-            print("📦 Cache hit for \(itemType.rawValue) \(itemId)")
+            print("📦 Memory cache hit for \(itemType.rawValue) \(itemId)")
             return cachedItem
         }
         
-        // Fetch from API
+        // Check response cache service
+        let endpoint = APIEndpoints.itemDetails(itemType: itemType.rawValue, itemId: itemId)
+        
         print("🌐 Fetching \(itemType.rawValue) \(itemId) from API")
         await MainActor.run { isLoading = true }
         
         do {
-            let response = try await apiClient.get(
-                "/api/library/item/\(itemType.rawValue)/\(itemId)",
-                responseType: ItemDetailsResponse.self
+            let response = try await apiClient.getCached(
+                endpoint,
+                responseType: ItemDetailsResponse.self,
+                category: .itemMetadata
             )
             
-            // Cache the result
+            // Cache in memory for immediate future access
             itemCache[cacheKey] = response
             
             await MainActor.run { 
@@ -72,13 +75,98 @@ class LibraryService: ObservableObject {
         }
     }
     
-    /// Get multiple item details efficiently
+    /// Get multiple item details efficiently using batch endpoint
     func getItemDetailsBatch(items: [(id: String, type: RatingItemType)]) async -> [ItemDetailsResponse] {
-        var results: [ItemDetailsResponse] = []
+        guard !items.isEmpty else { return [] }
         
-        // Process in batches to avoid overwhelming the API
-        let batchSize = 5
+        // Check cache first for all items
+        var cachedResults: [ItemDetailsResponse] = []
+        var uncachedItems: [(id: String, type: RatingItemType)] = []
+        
+        for item in items {
+            let cacheKey = "\(item.type.rawValue)_\(item.id)"
+            if let cachedItem = itemCache[cacheKey] {
+                cachedResults.append(cachedItem)
+            } else {
+                uncachedItems.append(item)
+            }
+        }
+        
+        // If all items are cached, return immediately
+        if uncachedItems.isEmpty {
+            print("📦 All \(items.count) items found in cache")
+            return cachedResults
+        }
+        
+        print("🌐 Fetching \(uncachedItems.count) items via batch endpoint (cached: \(cachedResults.count))")
+        
+        // Use new batch endpoint for uncached items
+        let batchResults = await fetchItemsBatch(uncachedItems)
+        
+        // Cache the new results
+        for result in batchResults {
+            let cacheKey = "\(result.itemType)_\(result.id)"
+            itemCache[cacheKey] = result
+        }
+        
+        // Combine cached and fresh results
+        return cachedResults + batchResults
+    }
+    
+    /// Internal method to call the new batch API endpoint
+    private func fetchItemsBatch(_ items: [(id: String, type: RatingItemType)]) async -> [ItemDetailsResponse] {
+        guard !items.isEmpty else { return [] }
+        
+        await MainActor.run { isLoading = true }
+        defer { Task { await MainActor.run { isLoading = false } } }
+        
+        do {
+            // Build batch request
+            var requestBuilder = BatchRequestBuilder()
+            requestBuilder.addItems(items)
+            let batchRequest = requestBuilder.build()
+            
+            // Call batch endpoint
+            let batchResponse = try await apiClient.post(
+                APIEndpoints.batchItemDetails,
+                body: batchRequest,
+                responseType: BatchItemResponse.self
+            )
+            
+            // Convert batch response to ItemDetailsResponse
+            let results = batchResponse.items.map { batchItem in
+                ItemDetailsResponse(from: batchItem)
+            }
+            
+            await MainActor.run { error = nil }
+            print("✅ Batch endpoint returned \(results.count) items")
+            
+            return results
+            
+        } catch let apiError as APIError {
+            print("❌ Batch request failed: \(apiError.localizedDescription)")
+            await MainActor.run { error = apiError }
+            
+            // Fallback to individual requests for critical operations
+            return await fallbackToIndividualRequests(items)
+            
+        } catch {
+            print("❌ Unexpected batch error: \(error)")
+            await MainActor.run { self.error = .networkError(error) }
+            
+            // Fallback to individual requests
+            return await fallbackToIndividualRequests(items)
+        }
+    }
+    
+    /// Fallback method when batch endpoint fails
+    private func fallbackToIndividualRequests(_ items: [(id: String, type: RatingItemType)]) async -> [ItemDetailsResponse] {
+        print("🔄 Falling back to individual requests for \(items.count) items")
+        
+        // Process in smaller batches to avoid overwhelming API during fallback
+        let batchSize = 3
         let batches = items.chunked(into: batchSize)
+        var results: [ItemDetailsResponse] = []
         
         for (index, batch) in batches.enumerated() {
             let batchResults = await withTaskGroup(of: ItemDetailsResponse?.self) { group in
@@ -87,26 +175,26 @@ class LibraryService: ObservableObject {
                         do {
                             return try await self.getItemDetails(itemId: item.id, itemType: item.type)
                         } catch {
-                            print("❌ Failed to fetch details for \(item.type.rawValue) \(item.id): \(error)")
+                            print("❌ Fallback failed for \(item.type.rawValue) \(item.id): \(error)")
                             return nil
                         }
                     }
                 }
                 
-                var results: [ItemDetailsResponse] = []
+                var batchResults: [ItemDetailsResponse] = []
                 for await result in group {
                     if let result = result {
-                        results.append(result)
+                        batchResults.append(result)
                     }
                 }
-                return results
+                return batchResults
             }
             
             results.append(contentsOf: batchResults)
             
-            // Small delay between batches to be API-friendly (except for last batch)
+            // Longer delay between batches during fallback to respect rate limits
             if index < batches.count - 1 {
-                try? await Task.sleep(nanoseconds: 100_000_000) // 0.1 seconds
+                try? await Task.sleep(nanoseconds: 250_000_000) // 0.25 seconds
             }
         }
         

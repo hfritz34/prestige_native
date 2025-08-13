@@ -22,52 +22,64 @@ struct SwipeableRatingCard: View {
     
     var body: some View {
         ZStack {
-            // Background action layers
+            // Background action layers with proper rounded corners
             HStack(spacing: 0) {
                 // Left swipe action (Re-rate) - Blue
                 if offset > 0 {
-                    HStack(spacing: 12) {
+                    HStack(spacing: 8) {
+                        Spacer()
+                        
                         Image(systemName: "star.circle.fill")
-                            .font(.title3)
+                            .font(.title2)
                             .foregroundColor(.white)
                         
-                        if offset > swipeThreshold {
-                            Text("Re-rate")
-                                .font(.subheadline)
-                                .fontWeight(.medium)
+                        if offset > 60 {
+                            Text("Rate Again")
+                                .font(.system(size: 15, weight: .semibold))
                                 .foregroundColor(.white)
+                                .lineLimit(1)
+                                .minimumScaleFactor(0.8)
                         }
                         
                         Spacer()
                     }
                     .frame(width: min(offset, maxSwipeDistance))
                     .frame(maxHeight: .infinity)
-                    .background(Color.blue)
-                    .padding(.leading, 16)
+                    .background(
+                        RoundedRectangle(cornerRadius: 12)
+                            .fill(Color.blue)
+                    )
+                    .clipped()
                 }
                 
                 Spacer()
                 
                 // Right swipe action (Delete) - Red
                 if offset < 0 {
-                    HStack(spacing: 12) {
+                    HStack(spacing: 8) {
                         Spacer()
                         
-                        if -offset > swipeThreshold {
+                        if -offset > 60 {
                             Text("Delete")
-                                .font(.subheadline)
-                                .fontWeight(.medium)
+                                .font(.system(size: 15, weight: .semibold))
                                 .foregroundColor(.white)
+                                .lineLimit(1)
+                                .minimumScaleFactor(0.8)
                         }
                         
                         Image(systemName: "trash.fill")
-                            .font(.title3)
+                            .font(.title2)
                             .foregroundColor(.white)
+                        
+                        Spacer()
                     }
                     .frame(width: min(-offset, maxSwipeDistance))
                     .frame(maxHeight: .infinity)
-                    .background(Color.red)
-                    .padding(.trailing, 16)
+                    .background(
+                        RoundedRectangle(cornerRadius: 12)
+                            .fill(Color.red)
+                    )
+                    .clipped()
                 }
             }
             .clipShape(RoundedRectangle(cornerRadius: 12))
@@ -75,20 +87,13 @@ struct SwipeableRatingCard: View {
             // Main content
             HStack(spacing: 12) {
                 // Artwork
-                AsyncImage(url: URL(string: itemData.imageUrl ?? "")) { image in
-                    image
-                        .resizable()
-                        .aspectRatio(contentMode: .fill)
-                } placeholder: {
-                    RoundedRectangle(cornerRadius: 8)
-                        .fill(Color.gray.opacity(0.3))
-                        .overlay(
-                            Image(systemName: iconForItemType)
-                                .font(.title2)
-                                .foregroundColor(.gray)
-                        )
-                }
-                .frame(width: 64, height: 64)
+                CachedAsyncImage(
+                    url: itemData.imageUrl,
+                    placeholder: Image(systemName: iconForItemType),
+                    contentMode: .fill,
+                    maxWidth: 64,
+                    maxHeight: 64
+                )
                 .clipShape(RoundedRectangle(cornerRadius: 8))
                 
                 // Content
@@ -139,35 +144,43 @@ struct SwipeableRatingCard: View {
                 }
             }
             .gesture(
-                DragGesture()
+                DragGesture(minimumDistance: 10, coordinateSpace: .local)
                     .onChanged { value in
-                        // Only start dragging if the gesture is more horizontal than vertical
                         let translation = value.translation
+                        
+                        // Determine if this should be a horizontal swipe
                         if !isDragging {
-                            let isHorizontal = abs(translation.width) > abs(translation.height)
-                            let hasSignificantMovement = abs(translation.width) > 15
+                            let horizontalMovement = abs(translation.width)
+                            let verticalMovement = abs(translation.height)
                             
-                            if isHorizontal && hasSignificantMovement {
+                            // Only start horizontal swiping if the movement is primarily horizontal
+                            if horizontalMovement > 20 && horizontalMovement > verticalMovement * 2 {
                                 isDragging = true
-                            } else if abs(translation.height) > 15 {
-                                // Vertical movement detected, don't start dragging
+                            } else if verticalMovement > 20 {
+                                // Vertical movement detected, don't interfere with scrolling
                                 return
                             }
                         }
                         
                         if isDragging {
                             withAnimation(.interactiveSpring(response: 0.25, dampingFraction: 0.8)) {
-                                // Apply resistance at the edges
+                                // Apply resistance at the edges with smoother curve
                                 let rawOffset = translation.width
+                                let resistance: CGFloat = 0.4
+                                
                                 if rawOffset > 0 {
-                                    offset = min(rawOffset * (rawOffset > maxSwipeDistance ? 0.3 : 1.0), maxSwipeDistance * 1.2)
+                                    offset = rawOffset > maxSwipeDistance ? 
+                                        maxSwipeDistance + (rawOffset - maxSwipeDistance) * resistance :
+                                        rawOffset
                                 } else {
-                                    offset = max(rawOffset * (-rawOffset > maxSwipeDistance ? 0.3 : 1.0), -maxSwipeDistance * 1.2)
+                                    offset = -rawOffset > maxSwipeDistance ?
+                                        -(maxSwipeDistance + (-rawOffset - maxSwipeDistance) * resistance) :
+                                        rawOffset
                                 }
                                 
-                                // Haptic feedback at threshold
+                                // Haptic feedback at threshold (only once per direction)
                                 if !actionTriggered && abs(offset) > swipeThreshold {
-                                    UIImpactFeedbackGenerator(style: .medium).impactOccurred()
+                                    UIImpactFeedbackGenerator(style: .light).impactOccurred()
                                     actionTriggered = true
                                 } else if actionTriggered && abs(offset) <= swipeThreshold {
                                     actionTriggered = false
@@ -181,19 +194,23 @@ struct SwipeableRatingCard: View {
                         let velocity = value.velocity.width
                         let translation = value.translation.width
                         
-                        // Determine if action should be triggered
-                        let shouldTriggerAction = abs(translation) > swipeThreshold || abs(velocity) > 500
+                        // More responsive action triggering
+                        let shouldTriggerAction = abs(translation) > swipeThreshold || abs(velocity) > 800
                         
-                        withAnimation(.spring(response: 0.5, dampingFraction: 0.8)) {
+                        withAnimation(.spring(response: 0.4, dampingFraction: 0.8)) {
                             if shouldTriggerAction {
                                 if translation > 0 {
                                     // Re-rate action
                                     UINotificationFeedbackGenerator().notificationOccurred(.success)
-                                    onRerate?()
+                                    DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
+                                        onRerate?()
+                                    }
                                 } else {
                                     // Delete action
                                     UINotificationFeedbackGenerator().notificationOccurred(.warning)
-                                    onDelete?()
+                                    DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
+                                        onDelete?()
+                                    }
                                 }
                             }
                             

@@ -160,9 +160,8 @@ struct RateView: View {
         } else if !searchText.isEmpty {
             searchResultsView
         } else {
-            ScrollViewReader { proxy in
-                ScrollView(.vertical, showsIndicators: true) {
-                    LazyVStack(spacing: 12) {
+            ScrollView(.vertical, showsIndicators: true) {
+                LazyVStack(spacing: 12) {
                     switch selectedTab {
                     case .unrated:
                         unratedContent
@@ -171,15 +170,12 @@ struct RateView: View {
                     case .yourRatings:
                         yourRatingsContent
                     }
-                        Color.clear.frame(height: 1).id("bottom")
-                    }
-                    .padding(.horizontal)
-                    .padding(.top, 16)
-                    .frame(maxWidth: .infinity, alignment: .top)
+                    
+                    // Bottom padding for safe scrolling
+                    Color.clear.frame(height: 100)
                 }
-                .onChange(of: selectedTab) { _ in
-                    proxy.scrollTo("bottom", anchor: .bottom)
-                }
+                .padding(.horizontal)
+                .padding(.top, 16)
             }
         }
     }

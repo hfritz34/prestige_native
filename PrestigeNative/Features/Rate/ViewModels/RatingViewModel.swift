@@ -631,7 +631,16 @@ class RatingViewModel: ObservableObject {
     // MARK: - Computed Properties
     
     var currentComparisonProgress: (current: Int, total: Int) {
-        (current: currentComparisonIndex + 1, total: max(comparisonItems.count, 1))
+        if let searchState = binarySearchState {
+            // Calculate progress based on binary search depth
+            let totalRatings = searchState.sortedRatings.count
+            let maxComparisons = totalRatings > 0 ? Int(log2(Double(totalRatings))) + 1 : 1
+            let currentComparison = searchState.comparisonResults.count + 1
+            return (current: min(currentComparison, maxComparisons), total: maxComparisons)
+        } else {
+            // Fallback for simple comparison mode
+            return (current: currentComparisonIndex + 1, total: max(comparisonItems.count, 1))
+        }
     }
     
     var ratingStatistics: RatingStatistics? {

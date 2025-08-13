@@ -143,21 +143,28 @@ struct SwipeableRatingCard: View {
                     onTap?()
                 }
             }
+            .contentShape(Rectangle())
             .gesture(
-                DragGesture(minimumDistance: 10, coordinateSpace: .local)
+                DragGesture(minimumDistance: 20, coordinateSpace: .local)
                     .onChanged { value in
                         let translation = value.translation
                         
-                        // Determine if this should be a horizontal swipe
+                        // Ultra-strict horizontal detection - only swipe if VERY clearly horizontal
                         if !isDragging {
                             let horizontalMovement = abs(translation.width)
                             let verticalMovement = abs(translation.height)
                             
-                            // Only start horizontal swiping if the movement is primarily horizontal
-                            if horizontalMovement > 20 && horizontalMovement > verticalMovement * 2 {
+                            // Extremely strict conditions for starting horizontal swipe:
+                            // 1. Must have moved at least 40 points horizontally
+                            // 2. Horizontal must be at least 4x vertical movement  
+                            // 3. Vertical movement must be under 10 points
+                            if horizontalMovement > 40 && 
+                               horizontalMovement > verticalMovement * 4 && 
+                               verticalMovement < 10 {
                                 isDragging = true
-                            } else if verticalMovement > 20 {
-                                // Vertical movement detected, don't interfere with scrolling
+                                print("🔄 Starting horizontal swipe: h=\(horizontalMovement), v=\(verticalMovement)")
+                            } else {
+                                // Any other movement pattern = don't interfere with scrolling
                                 return
                             }
                         }
@@ -193,6 +200,8 @@ struct SwipeableRatingCard: View {
                         
                         let velocity = value.velocity.width
                         let translation = value.translation.width
+                        
+                        print("🔄 Swipe ended: translation=\(translation), velocity=\(velocity)")
                         
                         // More responsive action triggering
                         let shouldTriggerAction = abs(translation) > swipeThreshold || abs(velocity) > 800

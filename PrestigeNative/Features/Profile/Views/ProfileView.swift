@@ -28,6 +28,9 @@ struct ProfileView: View {
                     // Favorites Section
                     favoritesSection
                     
+                    // Ratings Section
+                    ratingsSection
+                    
                     // Recently Played Section
                     recentlyPlayedSection
                 }
@@ -181,6 +184,69 @@ struct ProfileView: View {
             ScrollView(.horizontal, showsIndicators: false) {
                 HStack(alignment: .top, spacing: 12) {
                     favoritesCarouselContent
+                }
+                .padding(.horizontal)
+            }
+        }
+    }
+    
+    private var ratingsSection: some View {
+        VStack(alignment: .leading, spacing: 16) {
+            HStack {
+                Text("Ratings")
+                    .font(.title2)
+                    .fontWeight(.bold)
+                
+                Spacer()
+                
+                // Type selector for Ratings section
+                Menu {
+                    Button("Tracks") {
+                        // Future implementation: switch rating type
+                    }
+                    Button("Albums") {
+                        // Future implementation: switch rating type
+                    }
+                    Button("Artists") {
+                        // Future implementation: switch rating type
+                    }
+                } label: {
+                    HStack {
+                        Text("Tracks")
+                            .foregroundColor(.white)
+                        Image(systemName: "chevron.down")
+                            .foregroundColor(.white)
+                            .font(.caption)
+                    }
+                    .padding(.horizontal, 12)
+                    .padding(.vertical, 6)
+                    .background(Color.orange.opacity(0.8))
+                    .cornerRadius(6)
+                }
+            }
+            .padding(.horizontal)
+            
+            // Ratings carousel (placeholder for now)
+            ScrollView(.horizontal, showsIndicators: false) {
+                HStack(alignment: .top, spacing: 12) {
+                    // Placeholder content for ratings
+                    ForEach(0..<3) { index in
+                        VStack {
+                            RoundedRectangle(cornerRadius: 12)
+                                .fill(Color.gray.opacity(0.2))
+                                .frame(width: 120, height: 120)
+                                .overlay(
+                                    VStack {
+                                        Image(systemName: "star.fill")
+                                            .font(.title)
+                                            .foregroundColor(.orange)
+                                        Text("No ratings yet")
+                                            .font(.caption)
+                                            .foregroundColor(.secondary)
+                                    }
+                                )
+                        }
+                    }
                 }
                 .padding(.horizontal)
             }

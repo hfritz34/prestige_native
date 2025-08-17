@@ -23,6 +23,10 @@ struct SettingsView: View {
                     NavigationLink(destination: AccountSettingsView()) {
                         Label("Account", systemImage: "person.circle")
                     }
+                    
+                    NavigationLink(destination: FavoritesManagementView()) {
+                        Label("Manage Favorites", systemImage: "heart.fill")
+                    }
                 }
                 
                 // Data Section
@@ -398,6 +402,126 @@ struct AboutUsView: View {
     var body: some View {
         Text("About Us")
             .navigationTitle("About Us")
+    }
+}
+
+struct FavoritesManagementView: View {
+    @EnvironmentObject var authManager: AuthManager
+    @StateObject private var viewModel = AddFavoritesViewModel()
+    @State private var selectedTab = "tracks"
+    @State private var searchText = ""
+    
+    var body: some View {
+        VStack(spacing: 0) {
+            // Tab selector
+            HStack(spacing: 0) {
+                TabButton(title: "Songs", isSelected: selectedTab == "tracks") {
+                    selectedTab = "tracks"
+                    viewModel.selectedType = .tracks
+                }
+                
+                TabButton(title: "Albums", isSelected: selectedTab == "albums") {
+                    selectedTab = "albums"
+                    viewModel.selectedType = .albums
+                }
+                
+                TabButton(title: "Artists", isSelected: selectedTab == "artists") {
+                    selectedTab = "artists"
+                    viewModel.selectedType = .artists
+                }
+            }
+            .padding(.horizontal)
+            .padding(.vertical, 16)
+            
+            // Current favorites section
+            VStack(alignment: .leading, spacing: 12) {
+                Text("Current Favorites")
+                    .font(.headline)
+                    .padding(.horizontal)
+                
+                // Favorites list
+                ScrollView(.horizontal, showsIndicators: false) {
+                    HStack(spacing: 12) {
+                        if viewModel.currentFavorites.isEmpty {
+                            Text("No favorites selected yet")
+                                .foregroundColor(.secondary)
+                                .padding(.horizontal)
+                        } else {
+                            ForEach(viewModel.currentFavorites, id: \.id) { item in
+                                FavoriteChip(item: item) {
+                                    viewModel.toggleFavorite(item)
+                                }
+                            }
+                        }
+                    }
+                    .padding(.horizontal)
+                }
+                .frame(height: 60)
+            }
+            .padding(.vertical, 12)
+            .background(Color.gray.opacity(0.1))
+            
+            // Search section
+            VStack(spacing: 16) {
+                // Search bar
+                HStack {
+                    Image(systemName: "magnifyingglass")
+                        .foregroundColor(.secondary)
+                    
+                    TextField("Search for \(getSearchPlaceholder())", text: $searchText)
+                        .textFieldStyle(.plain)
+                        .onChange(of: searchText) { _, newValue in
+                            viewModel.searchQuery = newValue
+                        }
+                    
+                    if !searchText.isEmpty {
+                        Button {
+                            searchText = ""
+                        } label: {
+                            Image(systemName: "xmark.circle.fill")
+                                .foregroundColor(.secondary)
+                        }
+                    }
+                }
+                .padding(12)
+                .background(Color.gray.opacity(0.1))
+                .cornerRadius(10)
+                .padding(.horizontal)
+                
+                // Search results
+                ScrollView {
+                    LazyVStack(spacing: 8) {
+                        if viewModel.isSearching {
+                            ProgressView()
+                                .padding(.vertical, 50)
+                        } else {
+                            ForEach(viewModel.searchResults, id: \.id) { item in
+                                SearchResultRow(item: item, isSelected: viewModel.isFavorite(item)) {
+                                    viewModel.toggleFavorite(item)
+                                }
+                            }
+                        }
+                    }
+                    .padding(.horizontal)
+                }
+            }
+        }
+        .navigationTitle("Manage Favorites")
+        .navigationBarTitleDisplayMode(.inline)
+        .alert("Error", isPresented: $viewModel.showingError) {
+            Button("OK") { }
+        } message: {
+            Text(viewModel.errorMessage)
+        }
+    }
+    
+    private func getSearchPlaceholder() -> String {
+        switch selectedTab {
+        case "tracks": return "songs..."
+        case "albums": return "albums..."
+        case "artists": return "artists..."
+        default: return "items..."
+        }
     }
 }
 

@@ -128,24 +128,45 @@ class AddFavoritesViewModel: ObservableObject {
                 guard let userId = AuthManager.shared.user?.id else { return }
                 
                 let typeString = mapContentTypeToSearchType(selectedType)
-                let favorites = try await APIClient.shared.getFavorites(userId: userId, type: typeString)
                 
                 await MainActor.run {
-                    self.currentFavorites = favorites.compactMap { userTrack in
-                        SpotifyItem(
-                            id: userTrack.track.id,
-                            name: userTrack.track.name,
-                            type: "track",
-                            imageUrl: userTrack.track.album.images.first?.url,
-                            subtitle: userTrack.track.artists.first?.name
-                        )
+                    self.currentFavorites = []
+                }
+                
+                // The API endpoint returns different response types based on content type
+                // For now, we'll use a generic approach and handle the response appropriately
+                switch selectedType {
+                case .tracks:
+                    let trackFavorites = try await APIClient.shared.getFavorites(userId: userId, type: typeString)
+                    await MainActor.run {
+                        self.currentFavorites = trackFavorites.compactMap { userTrack in
+                            SpotifyItem(
+                                id: userTrack.track.id,
+                                name: userTrack.track.name,
+                                type: "track",
+                                imageUrl: userTrack.track.album.images.first?.url,
+                                subtitle: userTrack.track.artists.first?.name
+                            )
+                        }
+                    }
+                case .albums:
+                    // For albums, we'll need to handle a different response type
+                    // For now, we'll use empty array and handle this when backend supports it
+                    await MainActor.run {
+                        self.currentFavorites = []
+                    }
+                case .artists:
+                    // For artists, we'll need to handle a different response type
+                    // For now, we'll use empty array and handle this when backend supports it
+                    await MainActor.run {
+                        self.currentFavorites = []
                     }
                 }
             } catch {
                 await MainActor.run {
                     self.currentFavorites = []
                 }
-                print("Failed to load favorites: \(error)")
+                print("Failed to load favorites for \(selectedType): \(error)")
             }
         }
     }

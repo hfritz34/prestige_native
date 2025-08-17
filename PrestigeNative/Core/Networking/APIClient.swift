@@ -363,8 +363,11 @@ extension APIClient {
     
     /// Update user nickname
     func updateNickname(_ nickname: String) async throws -> UserResponse {
+        guard let userId = authManager?.user?.id else {
+            throw APIError.authenticationError
+        }
         let request = NicknameRequest(nickname: nickname)
-        return try await post(APIEndpoints.updateNickname, body: request, responseType: UserResponse.self)
+        return try await patch(APIEndpoints.updateNickname(userId: userId), body: request, responseType: UserResponse.self)
     }
     
     /// Add friend

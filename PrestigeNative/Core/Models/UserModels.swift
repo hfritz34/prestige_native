@@ -33,7 +33,7 @@ struct NicknameRequest: Codable {
     let nickname: String
     
     enum CodingKeys: String, CodingKey {
-        case nickname
+        case nickname = "nickName"
     }
 }
 

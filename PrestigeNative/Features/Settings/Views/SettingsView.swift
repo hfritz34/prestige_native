@@ -442,16 +442,19 @@ struct FavoritesManagementView: View {
                 TabButton(title: "Songs", icon: "music.note", isSelected: selectedTab == "tracks") {
                     selectedTab = "tracks"
                     viewModel.selectedType = .tracks
+                    viewModel.loadCurrentFavorites()
                 }
                 
                 TabButton(title: "Albums", icon: "square.stack", isSelected: selectedTab == "albums") {
                     selectedTab = "albums"
                     viewModel.selectedType = .albums
+                    viewModel.loadCurrentFavorites()
                 }
                 
                 TabButton(title: "Artists", icon: "music.mic", isSelected: selectedTab == "artists") {
                     selectedTab = "artists"
                     viewModel.selectedType = .artists
+                    viewModel.loadCurrentFavorites()
                 }
             }
             .padding(.horizontal)
@@ -484,6 +487,10 @@ struct FavoritesManagementView: View {
             }
             .padding(.vertical, 12)
             .background(Color.gray.opacity(0.1))
+            
+            // Add spacing between sections
+            Spacer()
+                .frame(height: 20)
             
             // Search section
             VStack(spacing: 16) {
@@ -532,6 +539,9 @@ struct FavoritesManagementView: View {
         }
         .navigationTitle("Manage Favorites")
         .navigationBarTitleDisplayMode(.inline)
+        .onAppear {
+            viewModel.loadCurrentFavorites()
+        }
         .alert("Error", isPresented: $viewModel.showingError) {
             Button("OK") { }
         } message: {

@@ -20,7 +20,7 @@ enum APIEndpoints {
     // MARK: - User Profile
     static func userProfile(userId: String) -> String { "users/\(userId)" }
     static func updateProfile(userId: String) -> String { "users/\(userId)" }
-    static let updateNickname = "users/nickname"
+    static func updateNickname(userId: String) -> String { "users/\(userId)/nickname" }
     static let setFavorites = "users/favorites"
     
     // MARK: - Prestige Data

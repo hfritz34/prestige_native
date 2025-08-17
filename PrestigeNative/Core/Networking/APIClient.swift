@@ -435,8 +435,62 @@ extension APIClient {
         let endpoint = "profiles/\(userId)/favorites/\(pluralType)/\(itemId)"
         struct EmptyBody: Codable {}
         
-        // The API returns the updated favorites list
-        return try await patch(endpoint, body: EmptyBody(), responseType: [UserTrackResponse].self)
+        print("🔵 APIClient: Toggling favorite - type: \(type), itemId: \(itemId)")
+        
+        do {
+            // Try to decode as UserTrackResponse array first
+            let result = try await patch(endpoint, body: EmptyBody(), responseType: [UserTrackResponse].self)
+            print("✅ Successfully toggled favorite, received \(result.count) items")
+            return result
+        } catch {
+            print("❌ Failed to decode as [UserTrackResponse]: \(error)")
+            
+            // If that fails, try alternative response formats that might be returned
+            do {
+                // Try as empty response (some APIs return 204 No Content)
+                struct SuccessResponse: Codable {
+                    let success: Bool?
+                    let message: String?
+                }
+                
+                let _ = try await patch(endpoint, body: EmptyBody(), responseType: SuccessResponse.self)
+                print("✅ Successfully toggled favorite (alternative response format)")
+                return []
+            } catch {
+                print("❌ Alternative format also failed: \(error)")
+                
+                // Last resort: make the call without expecting specific response format
+                // and just ensure it succeeds (for endpoints that return 200 with arbitrary JSON)
+                guard let url = APIEndpoints.fullURL(for: endpoint) else {
+                    throw APIError.invalidURL
+                }
+                
+                await MainActor.run { isLoading = true }
+                defer { Task { await MainActor.run { isLoading = false } } }
+                
+                let encoder = JSONEncoder()
+                let bodyData = try encoder.encode(EmptyBody())
+                let request = try await createAuthenticatedRequest(url: url, method: .PATCH, body: bodyData)
+                
+                let (data, response) = try await session.data(for: request)
+                
+                guard let httpResponse = response as? HTTPURLResponse else {
+                    throw APIError.invalidResponse
+                }
+                
+                print("🔵 Raw response status: \(httpResponse.statusCode)")
+                if let responseString = String(data: data, encoding: .utf8) {
+                    print("🔵 Raw response body: \(responseString)")
+                }
+                
+                if 200...299 ~= httpResponse.statusCode {
+                    print("✅ Successfully toggled favorite (raw success)")
+                    return []
+                } else {
+                    throw APIError.httpError(statusCode: httpResponse.statusCode, message: "Failed to toggle favorite")
+                }
+            }
+        }
     }
     
     /// Get favorites for a type

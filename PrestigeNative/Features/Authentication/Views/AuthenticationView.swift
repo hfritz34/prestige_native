@@ -55,23 +55,38 @@ struct AuthenticationView: View {
         Task {
             do {
                 guard let userId = authManager.user?.id else { 
+                    print("⚠️ No user ID available, cannot check setup status")
                     await MainActor.run {
                         userProfileLoaded = true
                     }
                     return 
                 }
                 
-                let userProfile = try await APIClient.shared.getUserProfile(userId: userId)
+                print("🔵 Checking user setup status for userId: \(userId)")
+                let userProfile = try await APIClient.shared.getUserProfile(userId: userId, quickCheck: true)
+                print("✅ User profile loaded - isSetup: \(userProfile.isSetup)")
+                
                 await MainActor.run {
                     authManager.userIsSetup = userProfile.isSetup
                     userProfileLoaded = true
                 }
             } catch {
-                print("Failed to check user setup status: \(error)")
-                // Default to showing main app on error
-                await MainActor.run {
-                    authManager.userIsSetup = true
-                    userProfileLoaded = true
+                print("❌ Failed to check user setup status: \(error)")
+                print("⚠️ Error details: \(error.localizedDescription)")
+                
+                // For timeout errors, assume user needs onboarding
+                if (error as NSError).code == NSURLErrorTimedOut {
+                    print("⚠️ Request timed out - defaulting to onboarding flow")
+                    await MainActor.run {
+                        authManager.userIsSetup = false  // Show onboarding on timeout
+                        userProfileLoaded = true
+                    }
+                } else {
+                    // For other errors, default to main app
+                    await MainActor.run {
+                        authManager.userIsSetup = true
+                        userProfileLoaded = true
+                    }
                 }
             }
         }

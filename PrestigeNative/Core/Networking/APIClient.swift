@@ -346,9 +346,35 @@ extension APIClient {
         return try await get(APIEndpoints.userArtists(userId: userId), responseType: [UserArtistResponse].self)
     }
     
-    /// Get user profile
-    func getUserProfile(userId: String) async throws -> UserResponse {
-        return try await get(APIEndpoints.userProfile(userId: userId), responseType: UserResponse.self)
+    /// Get user profile with shorter timeout for initial check
+    func getUserProfile(userId: String, quickCheck: Bool = false) async throws -> UserResponse {
+        if quickCheck {
+            // For initial setup check, use shorter timeout
+            var request = URLRequest(url: APIEndpoints.fullURL(for: APIEndpoints.userProfile(userId: userId))!)
+            request.timeoutInterval = 10.0 // 10 second timeout for quick check
+            request.httpMethod = "GET"
+            request.setValue("application/json", forHTTPHeaderField: "Content-Type")
+            
+            if let token = await getAuthToken() {
+                request.setValue("Bearer \(token)", forHTTPHeaderField: "Authorization")
+            }
+            
+            let (data, response) = try await session.data(for: request)
+            
+            guard let httpResponse = response as? HTTPURLResponse else {
+                throw APIError.invalidResponse
+            }
+            
+            if 200...299 ~= httpResponse.statusCode {
+                let decoder = JSONDecoder()
+                decoder.dateDecodingStrategy = .iso8601
+                return try decoder.decode(UserResponse.self, from: data)
+            } else {
+                throw APIError.httpError(statusCode: httpResponse.statusCode, message: nil)
+            }
+        } else {
+            return try await get(APIEndpoints.userProfile(userId: userId), responseType: UserResponse.self)
+        }
     }
     
     /// Get user friends

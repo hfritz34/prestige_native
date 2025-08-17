@@ -153,6 +153,9 @@ struct SpotifyFollowers: Codable {
     let total: Int
 }
 
+// Typealias for handling the different search result types
+typealias SpotifySearchItem = Codable
+
 // MARK: - Error Handling
 
 /// API error response structure

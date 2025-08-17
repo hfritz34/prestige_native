@@ -235,6 +235,35 @@ class APIClient: ObservableObject {
         }
     }
     
+    /// Perform PATCH request
+    func patch<T: Decodable, U: Encodable>(
+        _ endpoint: String,
+        body: U,
+        responseType: T.Type
+    ) async throws -> T {
+        guard let url = APIEndpoints.fullURL(for: endpoint) else {
+            throw APIError.invalidURL
+        }
+        
+        await MainActor.run { isLoading = true }
+        defer { Task { await MainActor.run { isLoading = false } } }
+        
+        let encoder = JSONEncoder()
+        encoder.dateEncodingStrategy = .iso8601
+        let bodyData = try encoder.encode(body)
+        
+        let request = try await createAuthenticatedRequest(url: url, method: .PATCH, body: bodyData)
+        
+        do {
+            let result = try await retryRequest(request, responseType: responseType)
+            await MainActor.run { lastError = nil }
+            return result
+        } catch let error as APIError {
+            await MainActor.run { lastError = error }
+            throw error
+        }
+    }
+    
     /// Perform DELETE request
     func delete<T: Decodable>(
         _ endpoint: String,
@@ -352,20 +381,38 @@ extension APIClient {
     /// Search Spotify
     func searchSpotify(query: String, type: String) async throws -> SpotifySearchResponse {
         let encodedQuery = query.addingPercentEncoding(withAllowedCharacters: .urlQueryAllowed) ?? query
-        let endpoint = "api/spotify/search?query=\(encodedQuery)&type=\(type)"
-        return try await get(endpoint, responseType: SpotifySearchResponse.self)
+        let pluralType = type == "track" ? "tracks" : type == "album" ? "albums" : "artists"
+        let endpoint = "spotify/\(pluralType)/search?Query=\(encodedQuery)"
+        
+        // Based on web app, endpoint returns array directly for each type
+        switch type {
+        case "track":
+            let tracks = try await get(endpoint, responseType: [SpotifyTrackSearch].self)
+            return SpotifySearchResponse(tracks: SpotifyTracksSearch(items: tracks), albums: nil, artists: nil)
+        case "album":
+            let albums = try await get(endpoint, responseType: [SpotifyAlbumSearch].self)
+            return SpotifySearchResponse(tracks: nil, albums: SpotifyAlbumsSearch(items: albums), artists: nil)
+        case "artist":
+            let artists = try await get(endpoint, responseType: [SpotifyArtistSearch].self)
+            return SpotifySearchResponse(tracks: nil, albums: nil, artists: SpotifyArtistsSearch(items: artists))
+        default:
+            return SpotifySearchResponse(tracks: nil, albums: nil, artists: nil)
+        }
     }
     
-    /// Add favorite item
-    func addFavorite(userId: String, type: String, itemId: String) async throws -> Data {
-        let endpoint = APIEndpoints.addFavorite(userId: userId, type: type, itemId: itemId)
-        return try await post(endpoint, body: Data(), responseType: Data.self)
+    /// Toggle favorite item (add/remove)
+    func toggleFavorite(userId: String, type: String, itemId: String) async throws -> [UserTrackResponse] {
+        let pluralType = type + "s" // tracks, albums, artists
+        let endpoint = "profiles/\(userId)/favorites/\(pluralType)/\(itemId)"
+        struct EmptyBody: Codable {}
+        return try await patch(endpoint, body: EmptyBody(), responseType: [UserTrackResponse].self)
     }
     
-    /// Remove favorite item
-    func removeFavorite(userId: String, type: String, itemId: String) async throws {
-        let endpoint = APIEndpoints.addFavorite(userId: userId, type: type, itemId: itemId)
-        try await delete(endpoint)
+    /// Get favorites for a type
+    func getFavorites(userId: String, type: String) async throws -> [UserTrackResponse] {
+        let pluralType = type + "s" // tracks, albums, artists
+        let endpoint = "profiles/\(userId)/favorites/\(pluralType)"
+        return try await get(endpoint, responseType: [UserTrackResponse].self)
     }
     
     /// Update user setup status
@@ -374,8 +421,7 @@ extension APIClient {
             throw APIError.authenticationError
         }
         let endpoint = "users/\(userId)/is-setup?isSetup=\(isSetup)"
-        let body = try JSONEncoder().encode(["isSetup": isSetup])
-        return try await put(endpoint, body: body, responseType: UserResponse.self)
+        return try await patch(endpoint, body: ["isSetup": isSetup], responseType: UserResponse.self)
     }
     
     /// Get user ratings for a specific item type

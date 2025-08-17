@@ -127,22 +127,24 @@ class AddFavoritesViewModel: ObservableObject {
             do {
                 guard let userId = AuthManager.shared.user?.id else { return }
                 
-                let endpoint: String
-                switch selectedType {
-                case .tracks:
-                    endpoint = APIEndpoints.favoriteTracks(userId: userId)
-                case .albums:
-                    endpoint = APIEndpoints.favoriteAlbums(userId: userId)
-                case .artists:
-                    endpoint = APIEndpoints.favoriteArtists(userId: userId)
-                }
+                let typeString = mapContentTypeToSearchType(selectedType)
+                let favorites = try await APIClient.shared.getFavorites(userId: userId, type: typeString)
                 
-                // For now, we'll just clear the favorites
-                // The actual implementation would fetch from the API
+                await MainActor.run {
+                    self.currentFavorites = favorites.compactMap { userTrack in
+                        SpotifyItem(
+                            id: userTrack.track.id,
+                            name: userTrack.track.name,
+                            type: "track",
+                            imageUrl: userTrack.track.album.images.first?.url,
+                            subtitle: userTrack.track.artists.first?.name
+                        )
+                    }
+                }
+            } catch {
                 await MainActor.run {
                     self.currentFavorites = []
                 }
-            } catch {
                 print("Failed to load favorites: \(error)")
             }
         }
@@ -166,8 +168,8 @@ class AddFavoritesViewModel: ObservableObject {
         Task {
             do {
                 guard let userId = AuthManager.shared.user?.id else { return }
-                let type = item.type == "track" ? "tracks" : item.type == "album" ? "albums" : "artists"
-                _ = try await apiClient.addFavorite(userId: userId, type: type, itemId: item.id)
+                let type = item.type == "track" ? "track" : item.type == "album" ? "album" : "artist"
+                _ = try await apiClient.toggleFavorite(userId: userId, type: type, itemId: item.id)
             } catch {
                 await MainActor.run {
                     self.errorMessage = "Failed to add favorite: \(error.localizedDescription)"
@@ -181,8 +183,8 @@ class AddFavoritesViewModel: ObservableObject {
         Task {
             do {
                 guard let userId = AuthManager.shared.user?.id else { return }
-                let type = item.type == "track" ? "tracks" : item.type == "album" ? "albums" : "artists"
-                _ = try await apiClient.removeFavorite(userId: userId, type: type, itemId: item.id)
+                let type = item.type == "track" ? "track" : item.type == "album" ? "album" : "artist"
+                _ = try await apiClient.toggleFavorite(userId: userId, type: type, itemId: item.id)
             } catch {
                 await MainActor.run {
                     self.errorMessage = "Failed to remove favorite: \(error.localizedDescription)"

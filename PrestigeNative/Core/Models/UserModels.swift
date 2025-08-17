@@ -63,35 +63,17 @@ struct AddFriendRequest: Codable {
 
 // MARK: - Favorites System
 
-/// Favorites response (Union type in TypeScript, protocol in Swift)
+/// Favorites response - simplified based on web app implementation
 protocol FavoritesResponse: Codable {}
 
 struct TrackFavoritesResponse: FavoritesResponse {
     let tracks: [UserTrackResponse]
-    let albums: [UserAlbumResponse]? = nil
-    let artists: [UserArtistResponse]? = nil
-    
-    enum CodingKeys: String, CodingKey {
-        case tracks
-    }
 }
 
 struct AlbumFavoritesResponse: FavoritesResponse {
-    let tracks: [UserTrackResponse]? = nil
     let albums: [UserAlbumResponse]
-    let artists: [UserArtistResponse]? = nil
-    
-    enum CodingKeys: String, CodingKey {
-        case albums
-    }
 }
 
 struct ArtistFavoritesResponse: FavoritesResponse {
-    let tracks: [UserTrackResponse]? = nil
-    let albums: [UserAlbumResponse]? = nil
     let artists: [UserArtistResponse]
-    
-    enum CodingKeys: String, CodingKey {
-        case artists
-    }
 }

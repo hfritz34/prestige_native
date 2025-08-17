@@ -190,7 +190,7 @@ class AddFavoritesViewModel: ObservableObject {
             do {
                 guard let userId = AuthManager.shared.user?.id else { return }
                 let type = item.type == "track" ? "track" : item.type == "album" ? "album" : "artist"
-                _ = try await apiClient.toggleFavorite(userId: userId, type: type, itemId: item.id)
+                try await apiClient.toggleFavorite(userId: userId, type: type, itemId: item.id)
             } catch {
                 await MainActor.run {
                     self.errorMessage = "Failed to add favorite: \(error.localizedDescription)"
@@ -205,7 +205,7 @@ class AddFavoritesViewModel: ObservableObject {
             do {
                 guard let userId = AuthManager.shared.user?.id else { return }
                 let type = item.type == "track" ? "track" : item.type == "album" ? "album" : "artist"
-                _ = try await apiClient.toggleFavorite(userId: userId, type: type, itemId: item.id)
+                try await apiClient.toggleFavorite(userId: userId, type: type, itemId: item.id)
             } catch {
                 await MainActor.run {
                     self.errorMessage = "Failed to remove favorite: \(error.localizedDescription)"

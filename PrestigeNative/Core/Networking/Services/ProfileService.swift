@@ -138,12 +138,11 @@ class ProfileService: ObservableObject {
         await MainActor.run { isLoading = true }
         
         do {
-            let favorites: [TrackResponse] = try await apiClient.get(
-                APIEndpoints.favoriteTracks(userId: userId),
-                responseType: [TrackResponse].self
-            )
+            let userFavorites = try await apiClient.getFavorites(userId: userId, type: "track")
+            let trackResponses = userFavorites.map { $0.track }
+            
             await MainActor.run {
-                self.favoriteTracks = Array(favorites.prefix(limit))
+                self.favoriteTracks = Array(trackResponses.prefix(limit))
                 self.isLoading = false
                 self.error = nil
             }

@@ -74,15 +74,16 @@ struct AuthenticationView: View {
                 print("❌ Failed to check user setup status: \(error)")
                 print("⚠️ Error details: \(error.localizedDescription)")
                 
-                // For timeout errors, assume user needs onboarding
+                // For network errors (timeout, no connection), default to main app
+                // Most users are likely already setup, so this is safer than forcing onboarding
                 if (error as NSError).code == NSURLErrorTimedOut {
-                    print("⚠️ Request timed out - defaulting to onboarding flow")
+                    print("⚠️ Request timed out - defaulting to main app (assume user is setup)")
                     await MainActor.run {
-                        authManager.userIsSetup = false  // Show onboarding on timeout
+                        authManager.userIsSetup = true  // Default to main app on network issues
                         userProfileLoaded = true
                     }
                 } else {
-                    // For other errors, default to main app
+                    // For other errors, also default to main app
                     await MainActor.run {
                         authManager.userIsSetup = true
                         userProfileLoaded = true

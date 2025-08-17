@@ -24,7 +24,7 @@ struct SettingsView: View {
                         Label("Account", systemImage: "person.circle")
                     }
                     
-                    NavigationLink(destination: FavoritesManagementView()) {
+                    NavigationLink(destination: FavoritesManagementView().environmentObject(authManager)) {
                         Label("Manage Favorites", systemImage: "heart.fill")
                     }
                 }

@@ -39,7 +39,7 @@ struct ProfileSetupView: View {
                 Spacer()
                 
                 // Continue button
-                NavigationLink(destination: AddFavoritesView()) {
+                NavigationLink(destination: AddFavoritesView().environmentObject(authManager)) {
                     HStack {
                         if isLoading {
                             ProgressView()

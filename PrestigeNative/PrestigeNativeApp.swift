@@ -9,9 +9,12 @@ import SwiftUI
 
 @main
 struct PrestigeNativeApp: App {
+    @StateObject private var authManager = AuthManager.shared
+    
     var body: some Scene {
         WindowGroup {
             AuthenticationView()
+                .environmentObject(authManager)
         }
     }
 }

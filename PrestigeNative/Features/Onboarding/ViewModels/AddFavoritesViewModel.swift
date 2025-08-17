@@ -114,7 +114,7 @@ class AddFavoritesViewModel: ObservableObject {
                     name: artist.name,
                     type: "artist",
                     imageUrl: artist.images?.first?.url,
-                    subtitle: "\(artist.followers?.total ?? 0) followers"
+                    subtitle: "Artist"
                 )
             } ?? []
         default:

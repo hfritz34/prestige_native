@@ -377,4 +377,49 @@ extension APIClient {
         let body = try JSONEncoder().encode(["isSetup": isSetup])
         return try await put(endpoint, body: body, responseType: UserResponse.self)
     }
+    
+    /// Get user ratings for a specific item type
+    func getUserRatings(itemType: String) async throws -> [RatedItem] {
+        let endpoint = APIEndpoints.userRatings(itemType: itemType)
+        let serverRatings = try await get(endpoint, responseType: [ServerRatingResponse].self)
+        
+        // Convert server ratings to RatedItem objects
+        var ratedItems: [RatedItem] = []
+        
+        for serverRating in serverRatings {
+            // Create rating object
+            let rating = Rating(
+                itemId: serverRating.itemId,
+                itemType: RatingItemType(rawValue: serverRating.itemType) ?? .track,
+                albumId: serverRating.albumId,
+                categoryId: serverRating.categoryId ?? 0,
+                category: nil, // We'll populate this separately if needed
+                position: serverRating.position ?? 0,
+                personalScore: serverRating.personalScore ?? 0.0,
+                isNewRating: serverRating.isNewRating
+            )
+            
+            // Get item details
+            do {
+                let itemData = try await getItemDetails(itemType: serverRating.itemType, itemId: serverRating.itemId)
+                let ratedItem = RatedItem(
+                    id: serverRating.itemId,
+                    rating: rating,
+                    itemData: itemData
+                )
+                ratedItems.append(ratedItem)
+            } catch {
+                print("Failed to get item details for rating: \(error)")
+                // Continue with next item instead of failing completely
+            }
+        }
+        
+        return ratedItems.sorted { $0.rating.personalScore > $1.rating.personalScore }
+    }
+    
+    /// Get item details for ratings
+    private func getItemDetails(itemType: String, itemId: String) async throws -> RatingItemData {
+        let endpoint = APIEndpoints.itemDetails(itemType: itemType, itemId: itemId)
+        return try await get(endpoint, responseType: RatingItemData.self)
+    }
 }

@@ -17,6 +17,10 @@ class ProfileViewModel: ObservableObject {
     @Published var topArtists: [UserArtistResponse] = []
     @Published var favoriteTracks: [TrackResponse] = []
     @Published var recentlyPlayed: [RecentlyPlayedResponse] = []
+    @Published var ratedTracks: [RatedItem] = []
+    @Published var ratedAlbums: [RatedItem] = []
+    @Published var ratedArtists: [RatedItem] = []
+    @Published var selectedRatingType: RatingItemType = .track
     @Published var isLoading = false
     @Published var error: APIError?
     @Published var selectedTimeRange: TimeRange = .allTime
@@ -92,11 +96,51 @@ class ProfileViewModel: ObservableObject {
         
         Task {
             await profileService.loadAllProfileData(userId: actualUserId)
+            await loadRatingsData()
         }
     }
     
     func refreshData() {
         loadProfileData()
+    }
+    
+    /// Load ratings data for all types
+    func loadRatingsData() async {
+        do {
+            print("🔵 ProfileViewModel: Loading ratings data...")
+            // Load ratings for all types concurrently
+            async let tracks = APIClient.shared.getUserRatings(itemType: "track")
+            async let albums = APIClient.shared.getUserRatings(itemType: "album") 
+            async let artists = APIClient.shared.getUserRatings(itemType: "artist")
+            
+            let (loadedTracks, loadedAlbums, loadedArtists) = try await (tracks, albums, artists)
+            
+            await MainActor.run {
+                self.ratedTracks = loadedTracks
+                self.ratedAlbums = loadedAlbums
+                self.ratedArtists = loadedArtists
+                print("✅ ProfileViewModel: Loaded \(loadedTracks.count) track ratings, \(loadedAlbums.count) album ratings, \(loadedArtists.count) artist ratings")
+            }
+        } catch {
+            await MainActor.run {
+                self.error = error as? APIError ?? .networkError(error)
+            }
+            print("❌ ProfileViewModel: Failed to load ratings data: \(error)")
+        }
+    }
+    
+    /// Get current ratings based on selected type
+    var currentRatings: [RatedItem] {
+        switch selectedRatingType {
+        case .track: return ratedTracks
+        case .album: return ratedAlbums
+        case .artist: return ratedArtists
+        }
+    }
+    
+    /// Change rating type selection
+    func changeRatingType(to type: RatingItemType) {
+        selectedRatingType = type
     }
     
     func changeTimeRange(_ range: TimeRange, userId: String? = nil) {

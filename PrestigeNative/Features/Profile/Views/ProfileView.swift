@@ -202,17 +202,17 @@ struct ProfileView: View {
                 // Type selector for Ratings section
                 Menu {
                     Button("Tracks") {
-                        // Future implementation: switch rating type
+                        viewModel.changeRatingType(to: .track)
                     }
                     Button("Albums") {
-                        // Future implementation: switch rating type
+                        viewModel.changeRatingType(to: .album)
                     }
                     Button("Artists") {
-                        // Future implementation: switch rating type
+                        viewModel.changeRatingType(to: .artist)
                     }
                 } label: {
                     HStack {
-                        Text("Tracks")
+                        Text(viewModel.selectedRatingType.displayName)
                             .foregroundColor(.white)
                         Image(systemName: "chevron.down")
                             .foregroundColor(.white)
@@ -226,11 +226,11 @@ struct ProfileView: View {
             }
             .padding(.horizontal)
             
-            // Ratings carousel (placeholder for now)
+            // Ratings carousel
             ScrollView(.horizontal, showsIndicators: false) {
                 HStack(alignment: .top, spacing: 12) {
-                    // Placeholder content for ratings
-                    ForEach(0..<3) { index in
+                    if viewModel.currentRatings.isEmpty {
+                        // Empty state
                         VStack {
                             RoundedRectangle(cornerRadius: 12)
                                 .fill(Color.gray.opacity(0.2))
@@ -243,8 +243,14 @@ struct ProfileView: View {
                                         Text("No ratings yet")
                                             .font(.caption)
                                             .foregroundColor(.secondary)
+                                            .multilineTextAlignment(.center)
                                     }
                                 )
+                        }
+                    } else {
+                        // Display rated items
+                        ForEach(Array(viewModel.currentRatings.prefix(10)), id: \.id) { ratedItem in
+                            RatedItemCard(ratedItem: ratedItem)
                         }
                     }
                 }

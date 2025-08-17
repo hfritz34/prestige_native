@@ -25,14 +25,14 @@ struct PrestigeGridCard: View {
                                 Image(item.prestigeLevel.imageName)
                                     .resizable()
                                     .aspectRatio(contentMode: .fill)
-                                    .opacity(0.15)
+                                    .opacity(0.35)
                             }
                             
                             // Color overlay for better contrast
                             LinearGradient(
                                 colors: [
-                                    Color(hex: item.prestigeLevel.color)?.opacity(0.2) ?? Color.gray.opacity(0.2),
-                                    Color(hex: item.prestigeLevel.color)?.opacity(0.05) ?? Color.gray.opacity(0.05)
+                                    Color(hex: item.prestigeLevel.color)?.opacity(0.3) ?? Color.gray.opacity(0.3),
+                                    Color(hex: item.prestigeLevel.color)?.opacity(0.1) ?? Color.gray.opacity(0.1)
                                 ],
                                 startPoint: .topLeading,
                                 endPoint: .bottomTrailing

@@ -18,7 +18,7 @@ struct PrestigeAlbumRow: View {
                 Image(album.prestigeLevel.imageName)
                     .resizable()
                     .aspectRatio(contentMode: .fill)
-                    .opacity(0.15)
+                    .opacity(0.35)
                     .clipped()
             }
             

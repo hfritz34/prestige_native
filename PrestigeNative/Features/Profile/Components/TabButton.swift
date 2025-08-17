@@ -42,8 +42,8 @@ struct TabButton: View {
 
 #Preview {
     HStack(spacing: 0) {
-        TabButton(title: "Tracks", icon: "music.note", isSelected: true) {}
-        TabButton(title: "Albums", icon: "square.stack", isSelected: false) {}
+        TabButton(title: "Albums", icon: "square.stack", isSelected: true) {}
+        TabButton(title: "Tracks", icon: "music.note", isSelected: false) {}
         TabButton(title: "Artists", icon: "music.mic", isSelected: false) {}
     }
 }

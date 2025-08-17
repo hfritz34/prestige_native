@@ -11,7 +11,7 @@ import SwiftUI
 struct AddFavoritesView: View {
     @EnvironmentObject var authManager: AuthManager
     @StateObject private var viewModel = AddFavoritesViewModel()
-    @State private var selectedTab = "tracks"
+    @State private var selectedTab = "albums"
     @State private var searchText = ""
     @State private var isCompleting = false
     @Environment(\.dismiss) var dismiss
@@ -20,15 +20,15 @@ struct AddFavoritesView: View {
         VStack(spacing: 0) {
             // Tab selector
             HStack(spacing: 0) {
-                TabButton(title: "Songs", icon: "music.note", isSelected: selectedTab == "tracks") {
-                    selectedTab = "tracks"
-                    viewModel.selectedType = .tracks
-                    viewModel.loadCurrentFavorites()
-                }
-                
                 TabButton(title: "Albums", icon: "square.stack", isSelected: selectedTab == "albums") {
                     selectedTab = "albums"
                     viewModel.selectedType = .albums
+                    viewModel.loadCurrentFavorites()
+                }
+                
+                TabButton(title: "Songs", icon: "music.note", isSelected: selectedTab == "tracks") {
+                    selectedTab = "tracks"
+                    viewModel.selectedType = .tracks
                     viewModel.loadCurrentFavorites()
                 }
                 

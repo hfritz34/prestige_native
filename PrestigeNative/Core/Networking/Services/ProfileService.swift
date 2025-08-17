@@ -165,19 +165,25 @@ class ProfileService: ObservableObject {
         await MainActor.run { isLoading = true }
         
         do {
-            // For now, API returns UserTrackResponse but we need albums
-            // This will need backend update to properly support albums
+            print("🔵 Fetching favorite albums for user: \(userId)")
+            let userFavorites = try await apiClient.getAlbumFavorites(userId: userId)
+            print("✅ Successfully fetched \(userFavorites.count) favorite albums")
+            let albumResponses = userFavorites.map { $0.album }
+            
             await MainActor.run {
-                self.favoriteAlbums = []
+                self.favoriteAlbums = Array(albumResponses.prefix(limit))
                 self.isLoading = false
                 self.error = nil
+                print("📱 Updated favoriteAlbums with \(self.favoriteAlbums.count) albums")
             }
         } catch let apiError as APIError {
+            print("❌ Favorite albums API error: \(apiError)")
             await MainActor.run {
                 self.error = apiError
                 self.isLoading = false
             }
         } catch {
+            print("❌ Favorite albums network error: \(error)")
             await MainActor.run {
                 self.error = .networkError(error)
                 self.isLoading = false
@@ -189,19 +195,25 @@ class ProfileService: ObservableObject {
         await MainActor.run { isLoading = true }
         
         do {
-            // For now, API returns UserTrackResponse but we need artists
-            // This will need backend update to properly support artists
+            print("🔵 Fetching favorite artists for user: \(userId)")
+            let userFavorites = try await apiClient.getArtistFavorites(userId: userId)
+            print("✅ Successfully fetched \(userFavorites.count) favorite artists")
+            let artistResponses = userFavorites.map { $0.artist }
+            
             await MainActor.run {
-                self.favoriteArtists = []
+                self.favoriteArtists = Array(artistResponses.prefix(limit))
                 self.isLoading = false
                 self.error = nil
+                print("📱 Updated favoriteArtists with \(self.favoriteArtists.count) artists")
             }
         } catch let apiError as APIError {
+            print("❌ Favorite artists API error: \(apiError)")
             await MainActor.run {
                 self.error = apiError
                 self.isLoading = false
             }
         } catch {
+            print("❌ Favorite artists network error: \(error)")
             await MainActor.run {
                 self.error = .networkError(error)
                 self.isLoading = false
@@ -274,6 +286,8 @@ class ProfileService: ObservableObject {
             group.addTask { await self.fetchTopArtists(userId: userId) }
             group.addTask { await self.fetchRecentlyPlayed(userId: userId, limit: 30) }
             group.addTask { await self.fetchFavoriteTracks(userId: userId) }
+            group.addTask { await self.fetchFavoriteAlbums(userId: userId) }
+            group.addTask { await self.fetchFavoriteArtists(userId: userId) }
             group.addTask { await self.fetchUserProfile(userId: userId) }
         }
         

@@ -121,11 +121,11 @@ struct HomeView: View {
     
     private var typeSelector: some View {
         Menu {
-            Button("Tracks") {
-                viewModel.selectedContentType = .tracks
-            }
             Button("Albums") {
                 viewModel.selectedContentType = .albums
+            }
+            Button("Tracks") {
+                viewModel.selectedContentType = .tracks
             }
             Button("Artists") {
                 viewModel.selectedContentType = .artists
@@ -148,19 +148,6 @@ struct HomeView: View {
     @ViewBuilder
     private var contentList: some View {
         switch viewModel.selectedContentType {
-        case .tracks:
-            if viewModel.topTracks.isEmpty {
-                EmptyStateView(
-                    icon: "music.note",
-                    title: "No Top Tracks",
-                    subtitle: "Start listening to build your prestige"
-                )
-            } else {
-                ForEach(Array(viewModel.topTracks.prefix(25).enumerated()), id: \.element.totalTime) { index, track in
-                    PrestigeTrackRow(track: track, rank: index + 1)
-                }
-            }
-            
         case .albums:
             if viewModel.topAlbums.isEmpty {
                 EmptyStateView(
@@ -171,6 +158,19 @@ struct HomeView: View {
             } else {
                 ForEach(Array(viewModel.topAlbums.prefix(25).enumerated()), id: \.element.album.id) { index, album in
                     PrestigeAlbumRow(album: album, rank: index + 1)
+                }
+            }
+            
+        case .tracks:
+            if viewModel.topTracks.isEmpty {
+                EmptyStateView(
+                    icon: "music.note",
+                    title: "No Top Tracks",
+                    subtitle: "Start listening to build your prestige"
+                )
+            } else {
+                ForEach(Array(viewModel.topTracks.prefix(25).enumerated()), id: \.element.totalTime) { index, track in
+                    PrestigeTrackRow(track: track, rank: index + 1)
                 }
             }
             
@@ -209,19 +209,6 @@ struct HomeView: View {
     @ViewBuilder
     private var prestigeGridContent: some View {
         switch viewModel.selectedContentType {
-        case .tracks:
-            ForEach(Array(viewModel.topTracks.enumerated()), id: \.element.totalTime) { index, track in
-                PrestigeGridCard(
-                    item: PrestigeDisplayItem.fromTrack(track),
-                    rank: index + 1
-                )
-                .onTapGesture {
-                    selectedPrestige = PrestigeSelection(
-                        item: PrestigeDisplayItem.fromTrack(track),
-                        rank: index + 1
-                    )
-                }
-            }
         case .albums:
             ForEach(Array(viewModel.topAlbums.enumerated()), id: \.element.album.id) { index, album in
                 PrestigeGridCard(
@@ -231,6 +218,19 @@ struct HomeView: View {
                 .onTapGesture {
                     selectedPrestige = PrestigeSelection(
                         item: PrestigeDisplayItem.fromAlbum(album),
+                        rank: index + 1
+                    )
+                }
+            }
+        case .tracks:
+            ForEach(Array(viewModel.topTracks.enumerated()), id: \.element.totalTime) { index, track in
+                PrestigeGridCard(
+                    item: PrestigeDisplayItem.fromTrack(track),
+                    rank: index + 1
+                )
+                .onTapGesture {
+                    selectedPrestige = PrestigeSelection(
+                        item: PrestigeDisplayItem.fromTrack(track),
                         rank: index + 1
                     )
                 }
@@ -254,17 +254,17 @@ struct HomeView: View {
     @ViewBuilder
     private var emptyStateView: some View {
         switch viewModel.selectedContentType {
+        case .albums:
+            EmptyStateView(
+                icon: "square.stack",
+                title: "No Albums Found",
+                subtitle: "Listen to albums to build your prestige"
+            )
         case .tracks:
             EmptyStateView(
                 icon: "music.note",
                 title: "No Top Tracks",
                 subtitle: "Start listening to build your prestige"
-            )
-        case .albums:
-            EmptyStateView(
-                icon: "square.stack",
-                title: "No Top Albums",
-                subtitle: "Listen to complete albums to build prestige"
             )
         case .artists:
             EmptyStateView(

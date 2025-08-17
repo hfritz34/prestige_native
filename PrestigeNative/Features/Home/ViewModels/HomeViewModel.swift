@@ -14,7 +14,7 @@ class HomeViewModel: ObservableObject {
     @Published var topTracks: [UserTrackResponse] = []
     @Published var topAlbums: [UserAlbumResponse] = []
     @Published var topArtists: [UserArtistResponse] = []
-    @Published var selectedContentType: ContentType = .tracks
+    @Published var selectedContentType: ContentType = .albums
     @Published var selectedTimeRange: PrestigeTimeRange = .allTime
     @Published var isLoading = false
     @Published var error: APIError?
@@ -93,8 +93,8 @@ class HomeViewModel: ObservableObject {
 // MARK: - Supporting Types
 
 enum ContentType: CaseIterable {
-    case tracks
     case albums
+    case tracks
     case artists
     
     var displayName: String {

@@ -24,7 +24,7 @@ class RatingViewModel: ObservableObject {
     @Published var searchResults: [RatingItemData] = []
     @Published var isSearching = false
     
-    @Published var selectedItemType: RatingItemType = .track
+    @Published var selectedItemType: RatingItemType = .album
     @Published var selectedCategory: RatingCategoryModel?
     @Published var currentRatingItem: RatingItemData?
     @Published var existingRating: Rating?

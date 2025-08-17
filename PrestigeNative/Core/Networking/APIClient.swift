@@ -437,59 +437,37 @@ extension APIClient {
         
         print("🔵 APIClient: Toggling favorite - type: \(type), itemId: \(itemId)")
         
-        do {
-            // Try to decode as UserTrackResponse array first
-            let result = try await patch(endpoint, body: EmptyBody(), responseType: [UserTrackResponse].self)
-            print("✅ Successfully toggled favorite, received \(result.count) items")
-            return result
-        } catch {
-            print("❌ Failed to decode as [UserTrackResponse]: \(error)")
-            
-            // If that fails, try alternative response formats that might be returned
-            do {
-                // Try as empty response (some APIs return 204 No Content)
-                struct SuccessResponse: Codable {
-                    let success: Bool?
-                    let message: String?
-                }
-                
-                let _ = try await patch(endpoint, body: EmptyBody(), responseType: SuccessResponse.self)
-                print("✅ Successfully toggled favorite (alternative response format)")
-                return []
-            } catch {
-                print("❌ Alternative format also failed: \(error)")
-                
-                // Last resort: make the call without expecting specific response format
-                // and just ensure it succeeds (for endpoints that return 200 with arbitrary JSON)
-                guard let url = APIEndpoints.fullURL(for: endpoint) else {
-                    throw APIError.invalidURL
-                }
-                
-                await MainActor.run { isLoading = true }
-                defer { Task { await MainActor.run { isLoading = false } } }
-                
-                let encoder = JSONEncoder()
-                let bodyData = try encoder.encode(EmptyBody())
-                let request = try await createAuthenticatedRequest(url: url, method: .PATCH, body: bodyData)
-                
-                let (data, response) = try await session.data(for: request)
-                
-                guard let httpResponse = response as? HTTPURLResponse else {
-                    throw APIError.invalidResponse
-                }
-                
-                print("🔵 Raw response status: \(httpResponse.statusCode)")
-                if let responseString = String(data: data, encoding: .utf8) {
-                    print("🔵 Raw response body: \(responseString)")
-                }
-                
-                if 200...299 ~= httpResponse.statusCode {
-                    print("✅ Successfully toggled favorite (raw success)")
-                    return []
-                } else {
-                    throw APIError.httpError(statusCode: httpResponse.statusCode, message: "Failed to toggle favorite")
-                }
-            }
+        // Make the API call without expecting specific response format
+        // The API returns different formats for different types
+        guard let url = APIEndpoints.fullURL(for: endpoint) else {
+            throw APIError.invalidURL
+        }
+        
+        await MainActor.run { isLoading = true }
+        defer { Task { await MainActor.run { isLoading = false } } }
+        
+        let encoder = JSONEncoder()
+        let bodyData = try encoder.encode(EmptyBody())
+        let request = try await createAuthenticatedRequest(url: url, method: .PATCH, body: bodyData)
+        
+        let (data, response) = try await session.data(for: request)
+        
+        guard let httpResponse = response as? HTTPURLResponse else {
+            throw APIError.invalidResponse
+        }
+        
+        print("🔵 Raw response status: \(httpResponse.statusCode)")
+        if let responseString = String(data: data, encoding: .utf8) {
+            print("🔵 Raw response body: \(responseString)")
+        }
+        
+        if 200...299 ~= httpResponse.statusCode {
+            print("✅ Successfully toggled favorite (raw success)")
+            // Return empty array since we can't decode the mixed response types
+            // The calling code should refresh the favorites list separately
+            return []
+        } else {
+            throw APIError.httpError(statusCode: httpResponse.statusCode, message: "Failed to toggle favorite")
         }
     }
     
@@ -497,7 +475,27 @@ extension APIClient {
     func getFavorites(userId: String, type: String) async throws -> [UserTrackResponse] {
         let pluralType = type + "s" // tracks, albums, artists
         let endpoint = "profiles/\(userId)/favorites/\(pluralType)"
-        return try await get(endpoint, responseType: [UserTrackResponse].self)
+        
+        // For tracks, use UserTrackResponse
+        if type == "track" {
+            return try await get(endpoint, responseType: [UserTrackResponse].self)
+        } else {
+            // For albums and artists, return empty array for now
+            // The backend needs to be updated to support proper album/artist favorites
+            return []
+        }
+    }
+    
+    /// Get album favorites
+    func getAlbumFavorites(userId: String) async throws -> [UserAlbumResponse] {
+        let endpoint = "profiles/\(userId)/favorites/albums"
+        return try await get(endpoint, responseType: [UserAlbumResponse].self)
+    }
+    
+    /// Get artist favorites  
+    func getArtistFavorites(userId: String) async throws -> [UserArtistResponse] {
+        let endpoint = "profiles/\(userId)/favorites/artists"
+        return try await get(endpoint, responseType: [UserArtistResponse].self)
     }
     
     /// Update user setup status

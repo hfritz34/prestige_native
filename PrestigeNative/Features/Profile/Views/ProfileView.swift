@@ -12,7 +12,7 @@ struct ProfileView: View {
     @StateObject private var viewModel = ProfileViewModel()
     @EnvironmentObject var authManager: AuthManager
     @State private var showingError = false
-    @State private var selectedTopType: ContentType = .tracks
+    @State private var selectedTopType: ContentType = .albums
     @State private var showingSettings = false
     @State private var selectedPrestige: PrestigeSelection?
     
@@ -69,6 +69,9 @@ struct ProfileView: View {
             } else {
                 viewModel.loadProfileData() // Fallback
             }
+        }
+        .refreshable {
+            viewModel.refreshData()
         }
         .alert("Error", isPresented: $showingError) {
             Button("OK") {
@@ -146,11 +149,11 @@ struct ProfileView: View {
                 
                 // Type selector for Top section
                 Menu {
-                    Button("Tracks") {
-                        selectedTopType = .tracks
-                    }
                     Button("Albums") {
                         selectedTopType = .albums
+                    }
+                    Button("Tracks") {
+                        selectedTopType = .tracks
                     }
                     Button("Artists") {
                         selectedTopType = .artists
@@ -192,11 +195,11 @@ struct ProfileView: View {
                 
                 // Type selector for Favorites section
                 Menu {
-                    Button("Songs") {
-                        viewModel.changeFavoriteType(to: .tracks)
-                    }
                     Button("Albums") {
                         viewModel.changeFavoriteType(to: .albums)
+                    }
+                    Button("Songs") {
+                        viewModel.changeFavoriteType(to: .tracks)
                     }
                     Button("Artists") {
                         viewModel.changeFavoriteType(to: .artists)
@@ -237,11 +240,11 @@ struct ProfileView: View {
                 
                 // Type selector for Ratings section
                 Menu {
-                    Button("Tracks") {
-                        viewModel.changeRatingType(to: .track)
-                    }
                     Button("Albums") {
                         viewModel.changeRatingType(to: .album)
+                    }
+                    Button("Tracks") {
+                        viewModel.changeRatingType(to: .track)
                     }
                     Button("Artists") {
                         viewModel.changeRatingType(to: .artist)
@@ -319,22 +322,22 @@ struct ProfileView: View {
                 .padding(.vertical, 50)
         } else {
             switch selectedTopType {
-            case .tracks:
-                ForEach(Array(viewModel.topTracks.prefix(5).enumerated()), id: \.element.totalTime) { index, track in
-                    TopItemCard(track: track)
-                        .onTapGesture {
-                            selectedPrestige = PrestigeSelection(
-                                item: PrestigeDisplayItem.fromTrack(track),
-                                rank: index + 1
-                            )
-                        }
-                }
             case .albums:
                 ForEach(Array(viewModel.topAlbums.prefix(5).enumerated()), id: \.element.album.id) { index, album in
                     TopItemCard(album: album)
                         .onTapGesture {
                             selectedPrestige = PrestigeSelection(
                                 item: PrestigeDisplayItem.fromAlbum(album),
+                                rank: index + 1
+                            )
+                        }
+                }
+            case .tracks:
+                ForEach(Array(viewModel.topTracks.prefix(5).enumerated()), id: \.element.totalTime) { index, track in
+                    TopItemCard(track: track)
+                        .onTapGesture {
+                            selectedPrestige = PrestigeSelection(
+                                item: PrestigeDisplayItem.fromTrack(track),
                                 rank: index + 1
                             )
                         }
@@ -356,6 +359,26 @@ struct ProfileView: View {
     @ViewBuilder
     private var favoritesCarouselContent: some View {
         switch viewModel.selectedFavoriteType {
+        case .albums:
+            if viewModel.favoriteAlbums.isEmpty {
+                favoriteEmptyState
+            } else {
+                ForEach(Array(viewModel.favoriteAlbums.prefix(5).enumerated()), id: \.element.id) { index, album in
+                    FavoriteAlbumCard(album: album)
+                        .onTapGesture {
+                            // Convert AlbumResponse to UserAlbumResponse for PrestigeDisplayItem
+                            let userAlbum = UserAlbumResponse(
+                                totalTime: 0, // Favorites don't have listening time
+                                album: album,
+                                userId: authManager.user?.id ?? ""
+                            )
+                            selectedPrestige = PrestigeSelection(
+                                item: PrestigeDisplayItem.fromAlbum(userAlbum),
+                                rank: index + 1
+                            )
+                        }
+                }
+            }
         case .tracks:
             if viewModel.favoriteTracks.isEmpty {
                 favoriteEmptyState
@@ -376,22 +399,24 @@ struct ProfileView: View {
                         }
                 }
             }
-        case .albums:
-            if viewModel.favoriteAlbums.isEmpty {
-                favoriteEmptyState
-            } else {
-                ForEach(viewModel.favoriteAlbums.prefix(5), id: \.id) { album in
-                    // TODO: Create FavoriteAlbumCard
-                    favoriteEmptyState
-                }
-            }
         case .artists:
             if viewModel.favoriteArtists.isEmpty {
                 favoriteEmptyState
             } else {
-                ForEach(viewModel.favoriteArtists.prefix(5), id: \.id) { artist in
-                    // TODO: Create FavoriteArtistCard
-                    favoriteEmptyState
+                ForEach(Array(viewModel.favoriteArtists.prefix(5).enumerated()), id: \.element.id) { index, artist in
+                    FavoriteArtistCard(artist: artist)
+                        .onTapGesture {
+                            // Convert ArtistResponse to UserArtistResponse for PrestigeDisplayItem
+                            let userArtist = UserArtistResponse(
+                                totalTime: 0, // Favorites don't have listening time
+                                artist: artist,
+                                userId: authManager.user?.id ?? ""
+                            )
+                            selectedPrestige = PrestigeSelection(
+                                item: PrestigeDisplayItem.fromArtist(userArtist),
+                                rank: index + 1
+                            )
+                        }
                 }
             }
         }

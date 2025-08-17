@@ -27,7 +27,7 @@ class AddFavoritesViewModel: ObservableObject {
     @Published var searchQuery = ""
     @Published var searchResults: [SpotifyItem] = []
     @Published var currentFavorites: [SpotifyItem] = []
-    @Published var selectedType: ContentType = .tracks
+    @Published var selectedType: ContentType = .albums
     @Published var isSearching = false
     @Published var showingError = false
     @Published var errorMessage = ""
@@ -156,19 +156,33 @@ class AddFavoritesViewModel: ObservableObject {
                         self.hasUnsavedChanges = false
                     }
                 case .albums:
-                    // For albums, we'll need to handle a different response type
-                    // For now, we'll use empty array and handle this when backend supports it
+                    let albumFavorites = try await APIClient.shared.getAlbumFavorites(userId: userId)
                     await MainActor.run {
-                        self.currentFavorites = []
-                        self.originalFavorites = []
+                        self.currentFavorites = albumFavorites.compactMap { userAlbum in
+                            SpotifyItem(
+                                id: userAlbum.album.id,
+                                name: userAlbum.album.name,
+                                type: "album",
+                                imageUrl: userAlbum.album.images.first?.url,
+                                subtitle: userAlbum.album.artists.first?.name
+                            )
+                        }
+                        self.originalFavorites = self.currentFavorites
                         self.hasUnsavedChanges = false
                     }
                 case .artists:
-                    // For artists, we'll need to handle a different response type
-                    // For now, we'll use empty array and handle this when backend supports it
+                    let artistFavorites = try await APIClient.shared.getArtistFavorites(userId: userId)
                     await MainActor.run {
-                        self.currentFavorites = []
-                        self.originalFavorites = []
+                        self.currentFavorites = artistFavorites.compactMap { userArtist in
+                            SpotifyItem(
+                                id: userArtist.artist.id,
+                                name: userArtist.artist.name,
+                                type: "artist",
+                                imageUrl: userArtist.artist.images.first?.url,
+                                subtitle: "Artist"
+                            )
+                        }
+                        self.originalFavorites = self.currentFavorites
                         self.hasUnsavedChanges = false
                     }
                 }
@@ -244,6 +258,9 @@ class AddFavoritesViewModel: ObservableObject {
                 self.isSaving = false
                 print("✅ Successfully saved all favorites")
             }
+            
+            // Refresh the current favorites from the server to ensure consistency
+            loadCurrentFavorites()
         } catch {
             await MainActor.run {
                 self.isSaving = false

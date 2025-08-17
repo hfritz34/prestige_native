@@ -62,8 +62,8 @@ struct Rating: Codable, Identifiable {
 // MARK: - Rating Item Type
 
 enum RatingItemType: String, Codable, CaseIterable {
-    case track = "track"
     case album = "album"
+    case track = "track"
     case artist = "artist"
     
     var displayName: String {

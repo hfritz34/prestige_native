@@ -18,12 +18,12 @@ class ProfileViewModel: ObservableObject {
     @Published var favoriteTracks: [TrackResponse] = []
     @Published var favoriteAlbums: [AlbumResponse] = []
     @Published var favoriteArtists: [ArtistResponse] = []
-    @Published var selectedFavoriteType: ContentType = .tracks
+    @Published var selectedFavoriteType: ContentType = .albums
     @Published var recentlyPlayed: [RecentlyPlayedResponse] = []
     @Published var ratedTracks: [RatedItem] = []
     @Published var ratedAlbums: [RatedItem] = []
     @Published var ratedArtists: [RatedItem] = []
-    @Published var selectedRatingType: RatingItemType = .track
+    @Published var selectedRatingType: RatingItemType = .album
     @Published var isLoading = false
     @Published var error: APIError?
     @Published var selectedTimeRange: TimeRange = .allTime

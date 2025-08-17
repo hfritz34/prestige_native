@@ -371,9 +371,10 @@ extension APIClient {
     /// Update user setup status
     func updateUserSetupStatus(_ isSetup: Bool) async throws -> UserResponse {
         guard let userId = authManager?.user?.id else {
-            throw APIError.unauthorized
+            throw APIError.authenticationError
         }
         let endpoint = "users/\(userId)/is-setup?isSetup=\(isSetup)"
-        return try await patch(endpoint, body: ["isSetup": isSetup], responseType: UserResponse.self)
+        let body = try JSONEncoder().encode(["isSetup": isSetup])
+        return try await put(endpoint, body: body, responseType: UserResponse.self)
     }
 }

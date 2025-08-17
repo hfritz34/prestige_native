@@ -415,17 +415,17 @@ struct FavoritesManagementView: View {
         VStack(spacing: 0) {
             // Tab selector
             HStack(spacing: 0) {
-                TabButton(title: "Songs", isSelected: selectedTab == "tracks") {
+                TabButton(title: "Songs", icon: "music.note", isSelected: selectedTab == "tracks") {
                     selectedTab = "tracks"
                     viewModel.selectedType = .tracks
                 }
                 
-                TabButton(title: "Albums", isSelected: selectedTab == "albums") {
+                TabButton(title: "Albums", icon: "square.stack", isSelected: selectedTab == "albums") {
                     selectedTab = "albums"
                     viewModel.selectedType = .albums
                 }
                 
-                TabButton(title: "Artists", isSelected: selectedTab == "artists") {
+                TabButton(title: "Artists", icon: "music.mic", isSelected: selectedTab == "artists") {
                     selectedTab = "artists"
                     viewModel.selectedType = .artists
                 }

@@ -16,6 +16,9 @@ class ProfileViewModel: ObservableObject {
     @Published var topAlbums: [UserAlbumResponse] = []
     @Published var topArtists: [UserArtistResponse] = []
     @Published var favoriteTracks: [TrackResponse] = []
+    @Published var favoriteAlbums: [AlbumResponse] = []
+    @Published var favoriteArtists: [ArtistResponse] = []
+    @Published var selectedFavoriteType: ContentType = .tracks
     @Published var recentlyPlayed: [RecentlyPlayedResponse] = []
     @Published var ratedTracks: [RatedItem] = []
     @Published var ratedAlbums: [RatedItem] = []
@@ -70,6 +73,14 @@ class ProfileViewModel: ObservableObject {
         
         profileService.$favoriteTracks
             .assign(to: \.favoriteTracks, on: self)
+            .store(in: &cancellables)
+        
+        profileService.$favoriteAlbums
+            .assign(to: \.favoriteAlbums, on: self)
+            .store(in: &cancellables)
+        
+        profileService.$favoriteArtists
+            .assign(to: \.favoriteArtists, on: self)
             .store(in: &cancellables)
         
         profileService.$recentlyPlayed
@@ -141,6 +152,26 @@ class ProfileViewModel: ObservableObject {
     /// Change rating type selection
     func changeRatingType(to type: RatingItemType) {
         selectedRatingType = type
+    }
+    
+    func changeFavoriteType(to type: ContentType) {
+        selectedFavoriteType = type
+        // Load favorites for the selected type
+        Task {
+            guard let userId = authManager.user?.id else { return }
+            await loadFavorites(userId: userId, type: type)
+        }
+    }
+    
+    private func loadFavorites(userId: String, type: ContentType) async {
+        switch type {
+        case .tracks:
+            await profileService.fetchFavoriteTracks(userId: userId)
+        case .albums:
+            await profileService.fetchFavoriteAlbums(userId: userId)
+        case .artists:
+            await profileService.fetchFavoriteArtists(userId: userId)
+        }
     }
     
     func changeTimeRange(_ range: TimeRange, userId: String? = nil) {

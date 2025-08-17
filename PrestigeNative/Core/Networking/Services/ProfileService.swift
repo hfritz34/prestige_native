@@ -17,6 +17,8 @@ class ProfileService: ObservableObject {
     @Published var topArtists: [UserArtistResponse] = []
     @Published var recentlyPlayed: [RecentlyPlayedResponse] = []
     @Published var favoriteTracks: [TrackResponse] = []
+    @Published var favoriteAlbums: [AlbumResponse] = []
+    @Published var favoriteArtists: [ArtistResponse] = []
     @Published var userProfile: UserResponse?
     
     @Published var isLoading = false
@@ -143,6 +145,54 @@ class ProfileService: ObservableObject {
             
             await MainActor.run {
                 self.favoriteTracks = Array(trackResponses.prefix(limit))
+                self.isLoading = false
+                self.error = nil
+            }
+        } catch let apiError as APIError {
+            await MainActor.run {
+                self.error = apiError
+                self.isLoading = false
+            }
+        } catch {
+            await MainActor.run {
+                self.error = .networkError(error)
+                self.isLoading = false
+            }
+        }
+    }
+    
+    func fetchFavoriteAlbums(userId: String, limit: Int = 10) async {
+        await MainActor.run { isLoading = true }
+        
+        do {
+            // For now, API returns UserTrackResponse but we need albums
+            // This will need backend update to properly support albums
+            await MainActor.run {
+                self.favoriteAlbums = []
+                self.isLoading = false
+                self.error = nil
+            }
+        } catch let apiError as APIError {
+            await MainActor.run {
+                self.error = apiError
+                self.isLoading = false
+            }
+        } catch {
+            await MainActor.run {
+                self.error = .networkError(error)
+                self.isLoading = false
+            }
+        }
+    }
+    
+    func fetchFavoriteArtists(userId: String, limit: Int = 10) async {
+        await MainActor.run { isLoading = true }
+        
+        do {
+            // For now, API returns UserTrackResponse but we need artists
+            // This will need backend update to properly support artists
+            await MainActor.run {
+                self.favoriteArtists = []
                 self.isLoading = false
                 self.error = nil
             }

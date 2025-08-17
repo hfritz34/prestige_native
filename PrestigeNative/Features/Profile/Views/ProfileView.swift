@@ -176,10 +176,39 @@ struct ProfileView: View {
     
     private var favoritesSection: some View {
         VStack(alignment: .leading, spacing: 16) {
-            Text("Favorites")
-                .font(.title2)
-                .fontWeight(.bold)
-                .padding(.horizontal)
+            HStack {
+                Text("Favorites")
+                    .font(.title2)
+                    .fontWeight(.bold)
+                
+                Spacer()
+                
+                // Type selector for Favorites section
+                Menu {
+                    Button("Songs") {
+                        viewModel.changeFavoriteType(to: .tracks)
+                    }
+                    Button("Albums") {
+                        viewModel.changeFavoriteType(to: .albums)
+                    }
+                    Button("Artists") {
+                        viewModel.changeFavoriteType(to: .artists)
+                    }
+                } label: {
+                    HStack {
+                        Text(viewModel.selectedFavoriteType.displayName)
+                            .foregroundColor(.white)
+                        Image(systemName: "chevron.down")
+                            .foregroundColor(.white)
+                            .font(.caption)
+                    }
+                    .padding(.horizontal, 12)
+                    .padding(.vertical, 6)
+                    .background(Color.red.opacity(0.8))
+                    .cornerRadius(6)
+                }
+            }
+            .padding(.horizontal)
             
             ScrollView(.horizontal, showsIndicators: false) {
                 HStack(alignment: .top, spacing: 12) {
@@ -295,23 +324,48 @@ struct ProfileView: View {
     
     @ViewBuilder
     private var favoritesCarouselContent: some View {
-        if viewModel.favoriteTracks.isEmpty {
-            VStack {
-                Image(systemName: "heart")
-                    .font(.largeTitle)
-                    .foregroundColor(.gray)
-                Text("No favorites yet")
-                    .font(.subheadline)
-                    .foregroundColor(.secondary)
+        switch viewModel.selectedFavoriteType {
+        case .tracks:
+            if viewModel.favoriteTracks.isEmpty {
+                favoriteEmptyState
+            } else {
+                ForEach(viewModel.favoriteTracks.prefix(5), id: \.id) { track in
+                    FavoriteItemCard(track: track)
+                }
             }
-            .frame(width: 120, height: 120)
-            .background(Color.gray.opacity(0.1))
-            .cornerRadius(12)
-        } else {
-            ForEach(viewModel.favoriteTracks.prefix(5), id: \.id) { track in
-                FavoriteItemCard(track: track)
+        case .albums:
+            if viewModel.favoriteAlbums.isEmpty {
+                favoriteEmptyState
+            } else {
+                ForEach(viewModel.favoriteAlbums.prefix(5), id: \.id) { album in
+                    // TODO: Create FavoriteAlbumCard
+                    favoriteEmptyState
+                }
+            }
+        case .artists:
+            if viewModel.favoriteArtists.isEmpty {
+                favoriteEmptyState
+            } else {
+                ForEach(viewModel.favoriteArtists.prefix(5), id: \.id) { artist in
+                    // TODO: Create FavoriteArtistCard
+                    favoriteEmptyState
+                }
             }
         }
+    }
+    
+    private var favoriteEmptyState: some View {
+        VStack {
+            Image(systemName: "heart")
+                .font(.largeTitle)
+                .foregroundColor(.gray)
+            Text("No favorites yet")
+                .font(.subheadline)
+                .foregroundColor(.secondary)
+        }
+        .frame(width: 120, height: 120)
+        .background(Color.gray.opacity(0.1))
+        .cornerRadius(12)
     }
     
     private var recentlyPlayedContent: some View {

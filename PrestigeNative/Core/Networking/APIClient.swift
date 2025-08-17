@@ -430,27 +430,13 @@ extension APIClient {
     }
     
     /// Toggle favorite item (add/remove)
-    func toggleFavorite(userId: String, type: String, itemId: String) async throws {
+    func toggleFavorite(userId: String, type: String, itemId: String) async throws -> [UserTrackResponse] {
         let pluralType = type + "s" // tracks, albums, artists
         let endpoint = "profiles/\(userId)/favorites/\(pluralType)/\(itemId)"
         struct EmptyBody: Codable {}
         
-        // The API returns empty response on success, not an array
-        let request = try await createAuthenticatedRequest(
-            url: APIEndpoints.fullURL(for: endpoint)!,
-            method: .PATCH,
-            body: try JSONEncoder().encode(EmptyBody())
-        )
-        
-        let (_, response) = try await session.data(for: request)
-        
-        guard let httpResponse = response as? HTTPURLResponse else {
-            throw APIError.invalidResponse
-        }
-        
-        if !(200...299 ~= httpResponse.statusCode) {
-            throw APIError.httpError(statusCode: httpResponse.statusCode, message: nil)
-        }
+        // The API returns the updated favorites list
+        return try await patch(endpoint, body: EmptyBody(), responseType: [UserTrackResponse].self)
     }
     
     /// Get favorites for a type

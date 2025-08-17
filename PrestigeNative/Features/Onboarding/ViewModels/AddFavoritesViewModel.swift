@@ -190,9 +190,19 @@ class AddFavoritesViewModel: ObservableObject {
             do {
                 guard let userId = AuthManager.shared.user?.id else { return }
                 let type = item.type == "track" ? "track" : item.type == "album" ? "album" : "artist"
-                try await apiClient.toggleFavorite(userId: userId, type: type, itemId: item.id)
+                let updatedFavorites = try await apiClient.toggleFavorite(userId: userId, type: type, itemId: item.id)
+                
+                // Update local favorites list with the response from server
+                await MainActor.run {
+                    print("✅ Successfully added favorite: \(item.name)")
+                    // Optionally update currentFavorites from the server response if needed
+                }
             } catch {
                 await MainActor.run {
+                    // Revert the optimistic update
+                    if let index = currentFavorites.firstIndex(where: { $0.id == item.id }) {
+                        currentFavorites.remove(at: index)
+                    }
                     self.errorMessage = "Failed to add favorite: \(error.localizedDescription)"
                     self.showingError = true
                 }
@@ -205,9 +215,16 @@ class AddFavoritesViewModel: ObservableObject {
             do {
                 guard let userId = AuthManager.shared.user?.id else { return }
                 let type = item.type == "track" ? "track" : item.type == "album" ? "album" : "artist"
-                try await apiClient.toggleFavorite(userId: userId, type: type, itemId: item.id)
+                let updatedFavorites = try await apiClient.toggleFavorite(userId: userId, type: type, itemId: item.id)
+                
+                await MainActor.run {
+                    print("✅ Successfully removed favorite: \(item.name)")
+                    // Optionally update currentFavorites from the server response if needed
+                }
             } catch {
                 await MainActor.run {
+                    // Revert the optimistic update
+                    currentFavorites.append(item)
                     self.errorMessage = "Failed to remove favorite: \(error.localizedDescription)"
                     self.showingError = true
                 }

@@ -513,6 +513,14 @@ struct FavoritesManagementView: View {
                                 .foregroundColor(.secondary)
                         }
                     }
+                    
+                    // Keyboard dismiss button
+                    Button {
+                        UIApplication.shared.sendAction(#selector(UIResponder.resignFirstResponder), to: nil, from: nil, for: nil)
+                    } label: {
+                        Image(systemName: "keyboard.chevron.compact.down")
+                            .foregroundColor(.secondary)
+                    }
                 }
                 .padding(12)
                 .background(Color.gray.opacity(0.1))

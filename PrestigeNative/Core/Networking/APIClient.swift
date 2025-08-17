@@ -352,7 +352,7 @@ extension APIClient {
     /// Search Spotify
     func searchSpotify(query: String, type: String) async throws -> SpotifySearchResponse {
         let encodedQuery = query.addingPercentEncoding(withAllowedCharacters: .urlQueryAllowed) ?? query
-        let endpoint = "spotify/search?query=\(encodedQuery)&type=\(type)"
+        let endpoint = "api/spotify/search?query=\(encodedQuery)&type=\(type)"
         return try await get(endpoint, responseType: SpotifySearchResponse.self)
     }
     

@@ -13,6 +13,11 @@ struct TimeFormatter {
     /// - Parameter milliseconds: Total listening time in milliseconds
     /// - Returns: Formatted string (e.g., "45m", "1h 25m", "24h 30m")
     static func formatListeningTime(_ milliseconds: Int) -> String {
+        // Guard against invalid values
+        guard milliseconds >= 0, !milliseconds.isMultiple(of: 0) || milliseconds == 0 else {
+            return "0m"
+        }
+        
         let seconds = milliseconds / 1000
         let totalMinutes = seconds / 60
         let hours = totalMinutes / 60

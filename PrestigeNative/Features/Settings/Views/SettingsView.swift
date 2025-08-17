@@ -34,6 +34,15 @@ struct SettingsView: View {
                     NavigationLink(destination: ImportDataView()) {
                         Label("Import Data", systemImage: "square.and.arrow.down")
                     }
+                    
+                    #if DEBUG
+                    Button {
+                        resetUserSetupStatus()
+                    } label: {
+                        Label("Reset Onboarding (Dev)", systemImage: "arrow.clockwise")
+                            .foregroundColor(.orange)
+                    }
+                    #endif
                 }
                 
                 // Information Section
@@ -90,6 +99,21 @@ struct SettingsView: View {
             Text("Are you sure you want to log out?")
         }
     }
+    
+    #if DEBUG
+    private func resetUserSetupStatus() {
+        Task {
+            do {
+                _ = try await APIClient.shared.updateUserSetupStatus(false)
+                await MainActor.run {
+                    authManager.userIsSetup = false
+                }
+            } catch {
+                print("Failed to reset user setup status: \(error)")
+            }
+        }
+    }
+    #endif
 }
 
 // MARK: - Placeholder Views

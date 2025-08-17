@@ -434,6 +434,8 @@ struct FavoritesManagementView: View {
     @StateObject private var viewModel = AddFavoritesViewModel()
     @State private var selectedTab = "tracks"
     @State private var searchText = ""
+    @State private var showingUnsavedAlert = false
+    @Environment(\.dismiss) private var dismiss
     
     var body: some View {
         VStack(spacing: 0) {
@@ -547,6 +549,34 @@ struct FavoritesManagementView: View {
         }
         .navigationTitle("Manage Favorites")
         .navigationBarTitleDisplayMode(.inline)
+        .navigationBarBackButtonHidden(viewModel.hasUnsavedChanges)
+        .toolbar {
+            ToolbarItem(placement: .navigationBarLeading) {
+                if viewModel.hasUnsavedChanges {
+                    Button("Cancel") {
+                        showingUnsavedAlert = true
+                    }
+                }
+            }
+            
+            ToolbarItem(placement: .navigationBarTrailing) {
+                Button {
+                    Task {
+                        await viewModel.saveFavorites()
+                    }
+                } label: {
+                    if viewModel.isSaving {
+                        ProgressView()
+                            .scaleEffect(0.8)
+                    } else {
+                        Text("Save")
+                            .fontWeight(viewModel.hasUnsavedChanges ? .semibold : .regular)
+                            .foregroundColor(viewModel.hasUnsavedChanges ? .blue : .secondary)
+                    }
+                }
+                .disabled(!viewModel.hasUnsavedChanges || viewModel.isSaving)
+            }
+        }
         .onAppear {
             viewModel.loadCurrentFavorites()
         }
@@ -554,6 +584,14 @@ struct FavoritesManagementView: View {
             Button("OK") { }
         } message: {
             Text(viewModel.errorMessage)
+        }
+        .alert("Unsaved Changes", isPresented: $showingUnsavedAlert) {
+            Button("Discard Changes", role: .destructive) {
+                dismiss()
+            }
+            Button("Cancel", role: .cancel) { }
+        } message: {
+            Text("You have unsaved changes. Are you sure you want to leave without saving?")
         }
     }
     

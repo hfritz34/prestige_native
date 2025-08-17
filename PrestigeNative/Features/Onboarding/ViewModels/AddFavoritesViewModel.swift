@@ -31,6 +31,10 @@ class AddFavoritesViewModel: ObservableObject {
     @Published var isSearching = false
     @Published var showingError = false
     @Published var errorMessage = ""
+    @Published var isSaving = false
+    @Published var hasUnsavedChanges = false
+    
+    private var originalFavorites: [SpotifyItem] = []
     
     private var searchCancellable: AnyCancellable?
     private let apiClient = APIClient.shared
@@ -148,23 +152,31 @@ class AddFavoritesViewModel: ObservableObject {
                                 subtitle: userTrack.track.artists.first?.name
                             )
                         }
+                        self.originalFavorites = self.currentFavorites
+                        self.hasUnsavedChanges = false
                     }
                 case .albums:
                     // For albums, we'll need to handle a different response type
                     // For now, we'll use empty array and handle this when backend supports it
                     await MainActor.run {
                         self.currentFavorites = []
+                        self.originalFavorites = []
+                        self.hasUnsavedChanges = false
                     }
                 case .artists:
                     // For artists, we'll need to handle a different response type
                     // For now, we'll use empty array and handle this when backend supports it
                     await MainActor.run {
                         self.currentFavorites = []
+                        self.originalFavorites = []
+                        self.hasUnsavedChanges = false
                     }
                 }
             } catch {
                 await MainActor.run {
                     self.currentFavorites = []
+                    self.originalFavorites = []
+                    self.hasUnsavedChanges = false
                 }
                 print("Failed to load favorites for \(selectedType): \(error)")
             }
@@ -174,60 +186,69 @@ class AddFavoritesViewModel: ObservableObject {
     func toggleFavorite(_ item: SpotifyItem) {
         if let index = currentFavorites.firstIndex(where: { $0.id == item.id }) {
             currentFavorites.remove(at: index)
-            removeFavoriteFromAPI(item)
         } else {
             currentFavorites.append(item)
-            addFavoriteToAPI(item)
         }
+        
+        // Check if current state differs from original
+        let currentIds = Set(currentFavorites.map { $0.id })
+        let originalIds = Set(originalFavorites.map { $0.id })
+        hasUnsavedChanges = currentIds != originalIds
     }
     
     func isFavorite(_ item: SpotifyItem) -> Bool {
         currentFavorites.contains(where: { $0.id == item.id })
     }
     
-    private func addFavoriteToAPI(_ item: SpotifyItem) {
-        Task {
-            do {
-                guard let userId = AuthManager.shared.user?.id else { return }
-                let type = item.type == "track" ? "track" : item.type == "album" ? "album" : "artist"
-                let updatedFavorites = try await apiClient.toggleFavorite(userId: userId, type: type, itemId: item.id)
-                
-                // Update local favorites list with the response from server
-                await MainActor.run {
-                    print("✅ Successfully added favorite: \(item.name)")
-                    // Optionally update currentFavorites from the server response if needed
-                }
-            } catch {
-                await MainActor.run {
-                    // Revert the optimistic update
-                    if let index = currentFavorites.firstIndex(where: { $0.id == item.id }) {
-                        currentFavorites.remove(at: index)
-                    }
-                    self.errorMessage = "Failed to add favorite: \(error.localizedDescription)"
-                    self.showingError = true
-                }
-            }
+    func saveFavorites() async {
+        await MainActor.run {
+            isSaving = true
+            errorMessage = ""
         }
-    }
-    
-    private func removeFavoriteFromAPI(_ item: SpotifyItem) {
-        Task {
-            do {
-                guard let userId = AuthManager.shared.user?.id else { return }
+        
+        guard let userId = AuthManager.shared.user?.id else {
+            await MainActor.run {
+                isSaving = false
+                errorMessage = "User not authenticated"
+                showingError = true
+            }
+            return
+        }
+        
+        // Calculate changes
+        let originalIds = Set(originalFavorites.map { $0.id })
+        let currentIds = Set(currentFavorites.map { $0.id })
+        
+        let itemsToAdd = currentFavorites.filter { !originalIds.contains($0.id) }
+        let itemsToRemove = originalFavorites.filter { !currentIds.contains($0.id) }
+        
+        do {
+            // Process removals
+            for item in itemsToRemove {
                 let type = item.type == "track" ? "track" : item.type == "album" ? "album" : "artist"
-                let updatedFavorites = try await apiClient.toggleFavorite(userId: userId, type: type, itemId: item.id)
-                
-                await MainActor.run {
-                    print("✅ Successfully removed favorite: \(item.name)")
-                    // Optionally update currentFavorites from the server response if needed
-                }
-            } catch {
-                await MainActor.run {
-                    // Revert the optimistic update
-                    currentFavorites.append(item)
-                    self.errorMessage = "Failed to remove favorite: \(error.localizedDescription)"
-                    self.showingError = true
-                }
+                _ = try await apiClient.toggleFavorite(userId: userId, type: type, itemId: item.id)
+                print("✅ Removed favorite: \(item.name)")
+            }
+            
+            // Process additions
+            for item in itemsToAdd {
+                let type = item.type == "track" ? "track" : item.type == "album" ? "album" : "artist"
+                _ = try await apiClient.toggleFavorite(userId: userId, type: type, itemId: item.id)
+                print("✅ Added favorite: \(item.name)")
+            }
+            
+            await MainActor.run {
+                // Update original state to match current state
+                self.originalFavorites = self.currentFavorites
+                self.hasUnsavedChanges = false
+                self.isSaving = false
+                print("✅ Successfully saved all favorites")
+            }
+        } catch {
+            await MainActor.run {
+                self.isSaving = false
+                self.errorMessage = "Failed to save favorites: \(error.localizedDescription)"
+                self.showingError = true
             }
         }
     }

@@ -13,10 +13,13 @@ import Auth0
 import JWTDecode
 
 class AuthManager: ObservableObject {
+    static let shared = AuthManager()
+    
     @Published var isAuthenticated = false
     @Published var isLoading = false
     @Published var user: AuthUser?
     @Published var error: AuthError?
+    @Published var userIsSetup = false
     
     private var credentials: Credentials?
     private let credentialsManager: CredentialsManager
@@ -26,7 +29,7 @@ class AuthManager: ObservableObject {
     private let auth0ClientId = "NZ5N1xnHOdgdVuXNPoBuNydMhg83Oe0p"
     private let auth0Audience = "https://prestige-auth0-resource"
     
-    init() {
+    private init() {
         // Initialize Auth0 CredentialsManager
         self.credentialsManager = CredentialsManager(authentication: Auth0.authentication(clientId: auth0ClientId, domain: auth0Domain))
         

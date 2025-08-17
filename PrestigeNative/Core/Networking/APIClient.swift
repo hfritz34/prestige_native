@@ -348,4 +348,32 @@ extension APIClient {
     func removeFriend(friendId: String) async throws {
         try await delete(APIEndpoints.removeFriend(friendId: friendId))
     }
+    
+    /// Search Spotify
+    func searchSpotify(query: String, type: String) async throws -> SpotifySearchResponse {
+        let encodedQuery = query.addingPercentEncoding(withAllowedCharacters: .urlQueryAllowed) ?? query
+        let endpoint = "spotify/search?query=\(encodedQuery)&type=\(type)"
+        return try await get(endpoint, responseType: SpotifySearchResponse.self)
+    }
+    
+    /// Add favorite item
+    func addFavorite(userId: String, type: String, itemId: String) async throws -> Data {
+        let endpoint = APIEndpoints.addFavorite(userId: userId, type: type, itemId: itemId)
+        return try await post(endpoint, body: Data(), responseType: Data.self)
+    }
+    
+    /// Remove favorite item
+    func removeFavorite(userId: String, type: String, itemId: String) async throws {
+        let endpoint = APIEndpoints.addFavorite(userId: userId, type: type, itemId: itemId)
+        try await delete(endpoint)
+    }
+    
+    /// Update user setup status
+    func updateUserSetupStatus(_ isSetup: Bool) async throws -> UserResponse {
+        guard let userId = authManager?.user?.id else {
+            throw APIError.unauthorized
+        }
+        let endpoint = "users/\(userId)/is-setup?isSetup=\(isSetup)"
+        return try await patch(endpoint, body: ["isSetup": isSetup], responseType: UserResponse.self)
+    }
 }

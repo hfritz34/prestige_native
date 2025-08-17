@@ -97,6 +97,62 @@ struct SearchResults: Codable {
     }
 }
 
+// MARK: - Spotify Search Models
+
+struct SpotifySearchResponse: Codable {
+    let tracks: SpotifyTracksSearch?
+    let albums: SpotifyAlbumsSearch?
+    let artists: SpotifyArtistsSearch?
+}
+
+struct SpotifyTracksSearch: Codable {
+    let items: [SpotifyTrackSearch]
+}
+
+struct SpotifyAlbumsSearch: Codable {
+    let items: [SpotifyAlbumSearch]
+}
+
+struct SpotifyArtistsSearch: Codable {
+    let items: [SpotifyArtistSearch]
+}
+
+struct SpotifyTrackSearch: Codable {
+    let id: String
+    let name: String
+    let album: SpotifyAlbumSearch?
+    let artists: [SpotifyArtistSimplified]?
+}
+
+struct SpotifyAlbumSearch: Codable {
+    let id: String
+    let name: String
+    let images: [SpotifyImage]?
+    let artists: [SpotifyArtistSimplified]?
+}
+
+struct SpotifyArtistSearch: Codable {
+    let id: String
+    let name: String
+    let images: [SpotifyImage]?
+    let followers: SpotifyFollowers?
+}
+
+struct SpotifyArtistSimplified: Codable {
+    let id: String
+    let name: String
+}
+
+struct SpotifyImage: Codable {
+    let url: String
+    let height: Int?
+    let width: Int?
+}
+
+struct SpotifyFollowers: Codable {
+    let total: Int
+}
+
 // MARK: - Error Handling
 
 /// API error response structure

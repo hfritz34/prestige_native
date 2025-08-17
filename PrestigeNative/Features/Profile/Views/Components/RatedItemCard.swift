@@ -55,15 +55,6 @@ struct RatedItemCard: View {
                         .lineLimit(1)
                 }
                 
-                // Category indicator
-                if let category = ratedItem.rating.category {
-                    Text(category.emoji)
-                        .font(.caption)
-                } else {
-                    // Fallback based on score
-                    Text(getEmojiForScore(ratedItem.rating.personalScore))
-                        .font(.caption)
-                }
             }
         }
         .frame(width: 120)
@@ -77,15 +68,6 @@ struct RatedItemCard: View {
         }
     }
     
-    private func getEmojiForScore(_ score: Double) -> String {
-        if score >= 8.0 {
-            return "😍"
-        } else if score >= 6.0 {
-            return "👍"
-        } else {
-            return "👎"
-        }
-    }
 }
 
 #Preview {

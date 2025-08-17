@@ -14,6 +14,7 @@ struct ProfileView: View {
     @State private var showingError = false
     @State private var selectedTopType: ContentType = .tracks
     @State private var showingSettings = false
+    @State private var selectedPrestige: PrestigeSelection?
     
     var body: some View {
         NavigationView {
@@ -54,6 +55,12 @@ struct ProfileView: View {
             .sheet(isPresented: $showingSettings) {
                 SettingsView()
                     .environmentObject(authManager)
+            }
+            .sheet(item: $selectedPrestige) { selection in
+                PrestigeDetailView(
+                    item: selection.item,
+                    rank: selection.rank
+                )
             }
         }
         .onAppear {
@@ -278,8 +285,14 @@ struct ProfileView: View {
                         }
                     } else {
                         // Display rated items
-                        ForEach(Array(viewModel.currentRatings.prefix(10)), id: \.id) { ratedItem in
+                        ForEach(Array(viewModel.currentRatings.prefix(10).enumerated()), id: \.element.id) { index, ratedItem in
                             RatedItemCard(ratedItem: ratedItem)
+                                .onTapGesture {
+                                    selectedPrestige = PrestigeSelection(
+                                        item: convertRatedItemToPrestigeDisplayItem(ratedItem),
+                                        rank: index + 1
+                                    )
+                                }
                         }
                     }
                 }
@@ -307,16 +320,34 @@ struct ProfileView: View {
         } else {
             switch selectedTopType {
             case .tracks:
-                ForEach(viewModel.topTracks.prefix(5), id: \.totalTime) { track in
+                ForEach(Array(viewModel.topTracks.prefix(5).enumerated()), id: \.element.totalTime) { index, track in
                     TopItemCard(track: track)
+                        .onTapGesture {
+                            selectedPrestige = PrestigeSelection(
+                                item: PrestigeDisplayItem.fromTrack(track),
+                                rank: index + 1
+                            )
+                        }
                 }
             case .albums:
-                ForEach(viewModel.topAlbums.prefix(5), id: \.album.id) { album in
+                ForEach(Array(viewModel.topAlbums.prefix(5).enumerated()), id: \.element.album.id) { index, album in
                     TopItemCard(album: album)
+                        .onTapGesture {
+                            selectedPrestige = PrestigeSelection(
+                                item: PrestigeDisplayItem.fromAlbum(album),
+                                rank: index + 1
+                            )
+                        }
                 }
             case .artists:
-                ForEach(viewModel.topArtists.prefix(5), id: \.artist.id) { artist in
+                ForEach(Array(viewModel.topArtists.prefix(5).enumerated()), id: \.element.artist.id) { index, artist in
                     TopItemCard(artist: artist)
+                        .onTapGesture {
+                            selectedPrestige = PrestigeSelection(
+                                item: PrestigeDisplayItem.fromArtist(artist),
+                                rank: index + 1
+                            )
+                        }
                 }
             }
         }
@@ -329,8 +360,20 @@ struct ProfileView: View {
             if viewModel.favoriteTracks.isEmpty {
                 favoriteEmptyState
             } else {
-                ForEach(viewModel.favoriteTracks.prefix(5), id: \.id) { track in
+                ForEach(Array(viewModel.favoriteTracks.prefix(5).enumerated()), id: \.element.id) { index, track in
                     FavoriteItemCard(track: track)
+                        .onTapGesture {
+                            // Convert TrackResponse to UserTrackResponse for PrestigeDisplayItem
+                            let userTrack = UserTrackResponse(
+                                totalTime: 0, // Favorites don't have listening time
+                                track: track,
+                                userId: authManager.user?.id ?? ""
+                            )
+                            selectedPrestige = PrestigeSelection(
+                                item: PrestigeDisplayItem.fromTrack(userTrack),
+                                rank: index + 1
+                            )
+                        }
                 }
             }
         case .albums:
@@ -381,9 +424,48 @@ struct ProfileView: View {
                 ForEach(Array(viewModel.recentlyPlayed.prefix(30).enumerated()), id: \.offset) { index, track in
                     RecentTrackRow(track: track)
                         .padding(.horizontal)
+                        .onTapGesture {
+                            selectedPrestige = PrestigeSelection(
+                                item: convertRecentTrackToPrestigeDisplayItem(track),
+                                rank: index + 1
+                            )
+                        }
                 }
             }
         }
+    }
+    
+    // MARK: - Helper Functions
+    
+    private func convertRatedItemToPrestigeDisplayItem(_ ratedItem: RatedItem) -> PrestigeDisplayItem {
+        let contentType: ContentType
+        switch ratedItem.itemData.itemType {
+        case .track: contentType = .tracks
+        case .album: contentType = .albums
+        case .artist: contentType = .artists
+        }
+        
+        return PrestigeDisplayItem(
+            name: ratedItem.itemData.name,
+            subtitle: ratedItem.itemData.artists?.joined(separator: ", ") ?? ratedItem.itemData.albumName ?? "Unknown",
+            imageUrl: ratedItem.itemData.imageUrl ?? "",
+            totalTimeMilliseconds: 0, // Rated items don't have listening time
+            prestigeLevel: .none, // Rated items don't have prestige levels
+            spotifyId: ratedItem.itemData.id,
+            contentType: contentType
+        )
+    }
+    
+    private func convertRecentTrackToPrestigeDisplayItem(_ track: RecentlyPlayedResponse) -> PrestigeDisplayItem {
+        return PrestigeDisplayItem(
+            name: track.trackName,
+            subtitle: track.artistName,
+            imageUrl: track.imageUrl,
+            totalTimeMilliseconds: 0, // Recent tracks don't have total listening time
+            prestigeLevel: .none, // Recent tracks don't have prestige levels
+            spotifyId: track.id,
+            contentType: .tracks
+        )
     }
     
 }

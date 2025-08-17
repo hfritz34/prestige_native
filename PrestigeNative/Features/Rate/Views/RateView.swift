@@ -531,5 +531,5 @@ extension RatingItemType {
 
 #Preview {
     RateView()
-        .environmentObject(AuthManager())
+        .environmentObject(AuthManager.shared)
 }

@@ -40,7 +40,7 @@ class ProfileViewModel: ObservableObject {
         topTracks.map { $0.prestigeLevel }.max { $0.order < $1.order } ?? .none
     }
     
-    init(profileService: ProfileService = ProfileService(), authManager: AuthManager = AuthManager()) {
+    init(profileService: ProfileService = ProfileService(), authManager: AuthManager = AuthManager.shared) {
         self.profileService = profileService
         self.authManager = authManager
         setupBindings()

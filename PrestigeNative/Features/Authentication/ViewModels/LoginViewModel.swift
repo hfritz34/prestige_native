@@ -18,7 +18,7 @@ class LoginViewModel: ObservableObject {
     private let authManager: AuthManager
     private var cancellables = Set<AnyCancellable>()
     
-    init(authManager: AuthManager = AuthManager()) {
+    init(authManager: AuthManager = AuthManager.shared) {
         self.authManager = authManager
         setupBindings()
     }

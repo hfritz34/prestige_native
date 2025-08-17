@@ -9,25 +9,72 @@
 import SwiftUI
 
 struct AuthenticationView: View {
-    @StateObject private var authManager = AuthManager()
+    @StateObject private var authManager = AuthManager.shared
+    @State private var userProfileLoaded = false
     
     var body: some View {
         Group {
             if authManager.isAuthenticated {
-                // Main app content will go here
-                MainTabView()
-                    .environmentObject(authManager)
-                    .onAppear {
-                        // Inject AuthManager into APIClient when user is authenticated
-                        APIClient.shared.setAuthManager(authManager)
-                        print("✅ Auth: Injected AuthManager into APIClient")
+                if !userProfileLoaded {
+                    // Loading view while checking user setup status
+                    VStack {
+                        ProgressView()
+                            .scaleEffect(1.5)
+                        Text("Loading...")
+                            .padding(.top)
                     }
+                    .onAppear {
+                        checkUserSetupStatus()
+                    }
+                } else if !authManager.userIsSetup {
+                    // User needs to complete onboarding
+                    NavigationView {
+                        ProfileSetupView()
+                            .environmentObject(authManager)
+                    }
+                } else {
+                    // Main app content
+                    MainTabView()
+                        .environmentObject(authManager)
+                        .onAppear {
+                            // Inject AuthManager into APIClient when user is authenticated
+                            APIClient.shared.setAuthManager(authManager)
+                            print("✅ Auth: Injected AuthManager into APIClient")
+                        }
+                }
             } else {
                 LoginView()
                     .environmentObject(authManager)
             }
         }
         .animation(.easeInOut(duration: 0.3), value: authManager.isAuthenticated)
+        .animation(.easeInOut(duration: 0.3), value: authManager.userIsSetup)
+    }
+    
+    private func checkUserSetupStatus() {
+        Task {
+            do {
+                guard let userId = authManager.user?.id else { 
+                    await MainActor.run {
+                        userProfileLoaded = true
+                    }
+                    return 
+                }
+                
+                let userProfile = try await APIClient.shared.getUserProfile(userId: userId)
+                await MainActor.run {
+                    authManager.userIsSetup = userProfile.isSetup
+                    userProfileLoaded = true
+                }
+            } catch {
+                print("Failed to check user setup status: \(error)")
+                // Default to showing main app on error
+                await MainActor.run {
+                    authManager.userIsSetup = true
+                    userProfileLoaded = true
+                }
+            }
+        }
     }
 }
 

@@ -233,6 +233,8 @@ enum CacheCategory {
     case userProfile
     case searchResults
     case spotifyData
+    case friends
+    case friendProfiles
     
     var name: String {
         switch self {
@@ -242,6 +244,8 @@ enum CacheCategory {
         case .userProfile: return "User Profile"
         case .searchResults: return "Search Results"
         case .spotifyData: return "Spotify Data"
+        case .friends: return "Friends List"
+        case .friendProfiles: return "Friend Profiles"
         }
     }
     
@@ -253,6 +257,8 @@ enum CacheCategory {
         case .userProfile: return "profile"
         case .searchResults: return "search"
         case .spotifyData: return "spotify"
+        case .friends: return "friends"
+        case .friendProfiles: return "friend_profile"
         }
     }
     
@@ -264,6 +270,8 @@ enum CacheCategory {
         case .userProfile: return 60 * 60       // 1 hour
         case .searchResults: return 15 * 60     // 15 minutes
         case .spotifyData: return 15 * 60       // 15 minutes
+        case .friends: return 30 * 60           // 30 minutes
+        case .friendProfiles: return 60 * 60    // 1 hour
         }
     }
 }

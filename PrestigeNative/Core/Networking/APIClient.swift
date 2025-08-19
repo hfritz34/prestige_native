@@ -377,14 +377,36 @@ extension APIClient {
         }
     }
     
-    /// Get user friends
-    func getFriends(userId: String) async throws -> [FriendResponse] {
-        return try await get(APIEndpoints.friends(userId: userId), responseType: [FriendResponse].self)
+    // MARK: - Enhanced Friends API with Caching
+    
+    /// Get user friends with Redis caching
+    func getFriends(userId: String, forceRefresh: Bool = false) async throws -> [FriendResponse] {
+        return try await getCached(
+            APIEndpoints.friends(userId: userId),
+            responseType: [FriendResponse].self,
+            category: .friends,
+            forceRefresh: forceRefresh
+        )
+    }
+    
+    /// Get detailed friend profile
+    func getFriendProfile(userId: String, friendId: String, forceRefresh: Bool = false) async throws -> FriendResponse {
+        return try await getCached(
+            APIEndpoints.friendProfile(userId: userId, friendId: friendId),
+            responseType: FriendResponse.self,
+            category: .friendProfiles,
+            forceRefresh: forceRefresh
+        )
     }
     
     /// Search users
     func searchUsers(query: String) async throws -> [UserResponse] {
-        return try await get(APIEndpoints.searchUsers(query: query), responseType: [UserResponse].self)
+        // Search results are dynamic, use short TTL cache
+        return try await getCached(
+            APIEndpoints.searchUsers(query: query),
+            responseType: [UserResponse].self,
+            category: .searchResults
+        )
     }
     
     /// Update user nickname
@@ -396,16 +418,100 @@ extension APIClient {
         return try await patch(APIEndpoints.updateNickname(userId: userId), body: request, responseType: UserResponse.self)
     }
     
-    /// Add friend
+    /// Add friend with cache invalidation
     func addFriend(friendId: String) async throws -> FriendResponse {
-        let request = AddFriendRequest(friendId: friendId)
-        return try await post(APIEndpoints.addFriend, body: request, responseType: FriendResponse.self)
+        guard let userId = authManager?.user?.id else {
+            throw APIError.authenticationError
+        }
+        
+        // Use new web app endpoint
+        let friendResponse = try await post(
+            APIEndpoints.addFriendship(userId: userId, friendId: friendId),
+            body: EmptyBody(),
+            responseType: FriendResponse.self
+        )
+        
+        // Invalidate friends cache
+        await ResponseCacheService.shared.invalidateWithRedis(
+            category: .friends,
+            keyPattern: userId
+        )
+        
+        return friendResponse
     }
     
-    /// Remove friend
+    /// Remove friend with cache invalidation
     func removeFriend(friendId: String) async throws {
-        try await delete(APIEndpoints.removeFriend(friendId: friendId))
+        guard let userId = authManager?.user?.id else {
+            throw APIError.authenticationError
+        }
+        
+        try await delete(APIEndpoints.removeFriendship(userId: userId, friendId: friendId))
+        
+        // Invalidate friends cache
+        await ResponseCacheService.shared.invalidateWithRedis(
+            category: .friends,
+            keyPattern: userId
+        )
+        await ResponseCacheService.shared.invalidateWithRedis(
+            category: .friendProfiles,
+            keyPattern: friendId
+        )
     }
+    
+    // MARK: - Social Discovery
+    
+    /// Get friends who listened to a specific track
+    func getFriendsWithTrack(userId: String, trackId: String) async throws -> [FriendResponse] {
+        return try await get(
+            APIEndpoints.friendsWithTrack(userId: userId, trackId: trackId),
+            responseType: [FriendResponse].self
+        )
+    }
+    
+    /// Get friends who listened to a specific album
+    func getFriendsWithAlbum(userId: String, albumId: String) async throws -> [FriendResponse] {
+        return try await get(
+            APIEndpoints.friendsWithAlbum(userId: userId, albumId: albumId),
+            responseType: [FriendResponse].self
+        )
+    }
+    
+    /// Get friends who listened to a specific artist
+    func getFriendsWithArtist(userId: String, artistId: String) async throws -> [FriendResponse] {
+        return try await get(
+            APIEndpoints.friendsWithArtist(userId: userId, artistId: artistId),
+            responseType: [FriendResponse].self
+        )
+    }
+    
+    /// Get friend's listening time for a track
+    func getFriendTrackTime(friendId: String, trackId: String) async throws -> FriendListeningData {
+        return try await get(
+            APIEndpoints.friendTrackTime(friendId: friendId, trackId: trackId),
+            responseType: FriendListeningData.self
+        )
+    }
+    
+    /// Get friend's listening time for an album
+    func getFriendAlbumTime(friendId: String, albumId: String) async throws -> FriendListeningData {
+        return try await get(
+            APIEndpoints.friendAlbumTime(friendId: friendId, albumId: albumId),
+            responseType: FriendListeningData.self
+        )
+    }
+    
+    /// Get friend's listening time for an artist
+    func getFriendArtistTime(friendId: String, artistId: String) async throws -> FriendListeningData {
+        return try await get(
+            APIEndpoints.friendArtistTime(friendId: friendId, artistId: artistId),
+            responseType: FriendListeningData.self
+        )
+    }
+    
+    // MARK: - Helper Models
+    
+    private struct EmptyBody: Codable {}
     
     /// Search Spotify
     func searchSpotify(query: String, type: String) async throws -> SpotifySearchResponse {

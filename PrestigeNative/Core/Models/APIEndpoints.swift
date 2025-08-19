@@ -35,11 +35,53 @@ enum APIEndpoints {
     static func favoriteArtists(userId: String) -> String { "profiles/\(userId)/favorites/artists" }
     static func addFavorite(userId: String, type: String, itemId: String) -> String { "profiles/\(userId)/favorites/\(type)/\(itemId)" }
     
-    // MARK: - Friends
-    static func friends(userId: String) -> String { "friend/\(userId)" }
+    // MARK: - Friends (Enhanced endpoints matching web app)
+    static func friends(userId: String) -> String {
+        return "friendships/\(userId)/friends"
+    }
+    
+    static func addFriendship(userId: String, friendId: String) -> String {
+        return "friendships/\(userId)/friends/\(friendId)"
+    }
+    
+    static func removeFriendship(userId: String, friendId: String) -> String {
+        return "friendships/\(userId)/friends/\(friendId)"
+    }
+    
+    static func friendProfile(userId: String, friendId: String) -> String {
+        return "friendships/\(userId)/friends/\(friendId)"
+    }
+    
+    // Social discovery endpoints
+    static func friendsWithTrack(userId: String, trackId: String) -> String {
+        return "friendships/\(userId)/friends/listened-to-track/\(trackId)"
+    }
+    
+    static func friendsWithAlbum(userId: String, albumId: String) -> String {
+        return "friendships/\(userId)/friends/listened-to-album/\(albumId)"
+    }
+    
+    static func friendsWithArtist(userId: String, artistId: String) -> String {
+        return "friendships/\(userId)/friends/listened-to-artist/\(artistId)"
+    }
+    
+    // Friend listening data
+    static func friendTrackTime(friendId: String, trackId: String) -> String {
+        return "friendships/friend/\(friendId)/track/\(trackId)"
+    }
+    
+    static func friendAlbumTime(friendId: String, albumId: String) -> String {
+        return "friendships/friend/\(friendId)/album/\(albumId)"
+    }
+    
+    static func friendArtistTime(friendId: String, artistId: String) -> String {
+        return "friendships/friend/\(friendId)/artist/\(artistId)"
+    }
+    
+    // Legacy endpoints (keeping for backward compatibility)
     static let addFriend = "friend/add"
     static func removeFriend(friendId: String) -> String { "friend/\(friendId)" }
-    static func searchUsers(query: String) -> String { "friend/search?query=\(query)" }
+    static func searchUsers(query: String) -> String { "users/search?query=\(query)" }
     
     // MARK: - Spotify Integration
     static let spotifySearch = "spotify/search"

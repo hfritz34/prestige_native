@@ -23,7 +23,7 @@ struct ExternalUrls: Codable {
 }
 
 /// Basic track information from Spotify
-struct TrackResponse: Codable {
+struct TrackResponse: Codable, Identifiable {
     let id: String
     let name: String
     let duration_ms: Int
@@ -43,7 +43,7 @@ struct TrackResponse: Codable {
 }
 
 /// Basic album information from Spotify
-struct AlbumResponse: Codable {
+struct AlbumResponse: Codable, Identifiable {
     let id: String
     let name: String
     let images: [ImageResponse]
@@ -55,7 +55,7 @@ struct AlbumResponse: Codable {
 }
 
 /// Basic artist information from Spotify
-struct ArtistResponse: Codable {
+struct ArtistResponse: Codable, Identifiable {
     let id: String
     let name: String
     let images: [ImageResponse]

@@ -2,8 +2,8 @@
 //  HomeViewModel.swift
 //  Home Screen ViewModel
 //
-//  Manages prestige data for home screen with type switching.
-//  Integrates with ProfileService for data fetching.
+//  Manages prestige data for home screen with unified loading
+//  and content type switching.
 //
 
 import Foundation
@@ -14,78 +14,109 @@ class HomeViewModel: ObservableObject {
     @Published var topTracks: [UserTrackResponse] = []
     @Published var topAlbums: [UserAlbumResponse] = []
     @Published var topArtists: [UserArtistResponse] = []
-    @Published var selectedContentType: ContentType = .albums
+    @Published var selectedContentType: ContentType = .tracks
     @Published var selectedTimeRange: PrestigeTimeRange = .allTime
-    @Published var isLoading = false
+    @Published var loadingState: LoadingState = .idle
+    @Published var loadingProgress: Double = 0.0
+    @Published var loadingMessage: String = ""
     @Published var error: APIError?
     
-    private let profileService: ProfileService
+    private let loadingCoordinator: LoadingCoordinator
     private var cancellables = Set<AnyCancellable>()
     private var currentUserId: String?
+    @Published var hasInitiallyLoaded = false
 
-    init(profileService: ProfileService = ProfileService()) {
-        self.profileService = profileService
+    init(loadingCoordinator: LoadingCoordinator = LoadingCoordinator()) {
+        self.loadingCoordinator = loadingCoordinator
         setupBindings()
     }
     
     private func setupBindings() {
-        // Bind to ProfileService published properties
-        profileService.$topTracks
-            .assign(to: \.topTracks, on: self)
+        // Bind to LoadingCoordinator state
+        loadingCoordinator.$loadingState
+            .assign(to: \.loadingState, on: self)
             .store(in: &cancellables)
         
-        profileService.$topAlbums
-            .assign(to: \.topAlbums, on: self)
+        loadingCoordinator.$loadingProgress
+            .assign(to: \.loadingProgress, on: self)
             .store(in: &cancellables)
         
-        profileService.$topArtists
-            .assign(to: \.topArtists, on: self)
+        loadingCoordinator.$loadingMessage
+            .assign(to: \.loadingMessage, on: self)
             .store(in: &cancellables)
         
-        profileService.$isLoading
-            .assign(to: \.isLoading, on: self)
+        // Update data when content bundle changes
+        loadingCoordinator.$contentBundle
+            .compactMap { $0 }
+            .sink { [weak self] bundle in
+                self?.updateContent(from: bundle)
+            }
             .store(in: &cancellables)
         
-        profileService.$error
-            .assign(to: \.error, on: self)
-            .store(in: &cancellables)
-        
-        // Listen for content type changes and load appropriate data
-        $selectedContentType
+        // Listen for time range changes
+        $selectedTimeRange
             .dropFirst() // Ignore initial value
-            .sink { [weak self] type in
+            .sink { [weak self] _ in
                 guard let self = self, let userId = self.currentUserId else { return }
                 Task {
-                    await self.loadDataForType(type, userId: userId)
+                    await self.loadAllData(for: userId, forceRefresh: false)
                 }
             }
             .store(in: &cancellables)
     }
     
+    var isLoading: Bool {
+        loadingState.isLoading
+    }
+    
+    var hasError: Bool {
+        loadingState.hasError
+    }
+    
     func loadHomeData(for userId: String) {
         self.currentUserId = userId
         Task {
-            await loadDataForType(selectedContentType, userId: userId)
+            await loadAllData(for: userId, forceRefresh: !hasInitiallyLoaded)
+            hasInitiallyLoaded = true
         }
     }
     
-    private func loadDataForType(_ type: ContentType, userId: String) async {
-        print("🔵 HomeViewModel: Loading \(type.displayName) for user: \(userId)")
+    private func loadAllData(for userId: String, forceRefresh: Bool) async {
+        // Load all content types at once
+        await loadingCoordinator.loadAllContent(
+            for: userId,
+            timeRange: selectedTimeRange,
+            forceRefresh: forceRefresh
+        )
         
-        switch type {
-        case .tracks:
-            await profileService.fetchTopTracks(userId: userId, limit: 60)
-        case .albums:
-            await profileService.fetchTopAlbums(userId: userId, limit: 60)
-        case .artists:
-            await profileService.fetchTopArtists(userId: userId, limit: 60)
+        // Preload images for current content type
+        await loadingCoordinator.preloadImages(for: selectedContentType, limit: 20)
+    }
+    
+    private func updateContent(from bundle: PrestigeContentBundle) {
+        self.topTracks = bundle.tracks
+        self.topAlbums = bundle.albums
+        self.topArtists = bundle.artists
+        
+        // Extract error if loading failed
+        if case .error(let apiError) = loadingState {
+            self.error = apiError
+        } else {
+            self.error = nil
         }
     }
 
     func refreshData() {
         guard let userId = currentUserId else { return }
         Task {
-            await loadDataForType(selectedContentType, userId: userId)
+            await loadAllData(for: userId, forceRefresh: true)
+        }
+    }
+    
+    func retryLoading() {
+        guard let userId = currentUserId else { return }
+        Task {
+            await loadAllData(for: userId, forceRefresh: true)
         }
     }
 }

@@ -19,6 +19,7 @@ struct HomeView: View {
     @EnvironmentObject var authManager: AuthManager
     @State private var showingError = false
     @State private var selectedPrestige: PrestigeSelection?
+    @State private var showContentButtons = false
     
     var body: some View {
         NavigationView {
@@ -31,29 +32,44 @@ struct HomeView: View {
                     .padding(.top, 20)
                     .padding(.bottom, 16)
                 
-                // Selectors
-                HStack(spacing: 12) {
-                    timeRangeSelector
-                    typeSelector
-                }
-                .padding(.horizontal)
+                // Content Type Buttons
+                contentTypeButtons
+                    .padding(.horizontal)
+                    .opacity(showContentButtons ? 1 : 0)
+                    .animation(.easeInOut(duration: 0.3), value: showContentButtons)
+                
+                // Time Filter
+                timeFilterSelector
+                    .padding(.horizontal)
+                    .padding(.top, 8)
+                    .opacity(showContentButtons ? 1 : 0)
+                    .animation(.easeInOut(duration: 0.3).delay(0.1), value: showContentButtons)
                 
                 // Content
-                ScrollView {
-                    VStack(spacing: 24) {
-                        if viewModel.isLoading {
-                            ProgressView()
-                                .padding(.vertical, 50)
-                        } else {
-                            // Prestige Grid
-                            if hasContent {
+                ZStack {
+                    ScrollView {
+                        VStack(spacing: 24) {
+                            if viewModel.loadingState == .loaded && hasContent {
                                 prestigeGridSection
-                            } else {
+                                    .transition(.opacity.combined(with: .scale(scale: 0.95)))
+                            } else if viewModel.loadingState == .loaded && !hasContent {
                                 emptyStateView
+                            } else if viewModel.isLoading {
+                                SkeletonGridView()
+                                    .transition(.opacity)
                             }
                         }
+                        .padding(.vertical, 20)
                     }
-                    .padding(.vertical, 20)
+                    
+                    // Unified loading overlay
+                    if viewModel.isLoading && !viewModel.hasInitiallyLoaded {
+                        UnifiedLoadingView(
+                            progress: viewModel.loadingProgress,
+                            message: viewModel.loadingMessage
+                        )
+                        .transition(.opacity)
+                    }
                 }
                 .refreshable {
                     viewModel.refreshData()
@@ -64,6 +80,13 @@ struct HomeView: View {
         .onAppear {
             if let userId = authManager.user?.id, !userId.isEmpty {
                 viewModel.loadHomeData(for: userId)
+                
+                // Show content buttons after a delay
+                DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
+                    withAnimation {
+                        showContentButtons = true
+                    }
+                }
             }
         }
         .alert("Error", isPresented: $showingError) {
@@ -97,53 +120,66 @@ struct HomeView: View {
     
     // MARK: - View Components
     
-    private var timeRangeSelector: some View {
+    private var contentTypeButtons: some View {
+        HStack(spacing: 12) {
+            ForEach(ContentType.allCases, id: \.self) { type in
+                Button(action: {
+                    withAnimation(.easeInOut(duration: 0.2)) {
+                        viewModel.selectedContentType = type
+                    }
+                }) {
+                    Text(type.displayName)
+                        .font(.subheadline)
+                        .fontWeight(.medium)
+                        .foregroundColor(viewModel.selectedContentType == type ? .white : .gray)
+                        .padding(.horizontal, 20)
+                        .padding(.vertical, 10)
+                        .background(
+                            viewModel.selectedContentType == type
+                                ? Color.purple
+                                : Color.gray.opacity(0.2)
+                        )
+                        .cornerRadius(20)
+                }
+            }
+        }
+    }
+    
+    private var timeFilterSelector: some View {
         Menu {
             ForEach(PrestigeTimeRange.allCases, id: \.self) { range in
-                Button(range.displayName) {
-                    viewModel.selectedTimeRange = range
+                Button(action: {
+                    withAnimation {
+                        viewModel.selectedTimeRange = range
+                    }
+                }) {
+                    HStack {
+                        Text(range.displayName)
+                        if viewModel.selectedTimeRange == range {
+                            Image(systemName: "checkmark")
+                        }
+                    }
                 }
             }
         } label: {
             HStack {
+                Image(systemName: "line.3.horizontal.decrease.circle")
+                    .font(.subheadline)
                 Text(viewModel.selectedTimeRange.displayName)
-                    .foregroundColor(.white)
+                    .font(.subheadline)
                 Image(systemName: "chevron.down")
-                    .foregroundColor(.white)
-                    .font(.caption)
+                    .font(.caption2)
             }
-            .padding(.horizontal, 16)
+            .foregroundColor(.primary)
+            .padding(.horizontal, 12)
             .padding(.vertical, 8)
-            .background(Color.blue.opacity(0.8))
+            .background(Color.gray.opacity(0.15))
             .cornerRadius(8)
+            .overlay(
+                RoundedRectangle(cornerRadius: 8)
+                    .stroke(Color.gray.opacity(0.3), lineWidth: 1)
+            )
         }
-    }
-    
-    private var typeSelector: some View {
-        Menu {
-            Button("Albums") {
-                viewModel.selectedContentType = .albums
-            }
-            Button("Tracks") {
-                viewModel.selectedContentType = .tracks
-            }
-            Button("Artists") {
-                viewModel.selectedContentType = .artists
-            }
-        } label: {
-            HStack {
-                Text(viewModel.selectedContentType.displayName)
-                    .foregroundColor(.white)
-                Image(systemName: "chevron.down")
-                    .foregroundColor(.white)
-                    .font(.caption)
-            }
-            .padding(.horizontal, 16)
-            .padding(.vertical, 8)
-            .background(Color.gray.opacity(0.8))
-            .cornerRadius(8)
-        }
-    }
     
     @ViewBuilder
     private var contentList: some View {

@@ -105,6 +105,9 @@ struct PrestigeDisplayItem {
     let prestigeLevel: PrestigeLevel
     let spotifyId: String
     let contentType: ContentType
+    let albumPosition: Int?
+    let rating: Double?
+    let isPinned: Bool
     
     // Convenience initializers for different item types
     static func fromTrack(_ track: UserTrackResponse) -> PrestigeDisplayItem {
@@ -115,7 +118,10 @@ struct PrestigeDisplayItem {
             totalTimeMilliseconds: track.totalTime * 1000, // Convert seconds to milliseconds
             prestigeLevel: track.prestigeLevel,
             spotifyId: track.track.id,
-            contentType: .tracks
+            contentType: .tracks,
+            albumPosition: track.albumPosition,
+            rating: track.rating,
+            isPinned: track.isPinned ?? false
         )
     }
     
@@ -127,7 +133,10 @@ struct PrestigeDisplayItem {
             totalTimeMilliseconds: album.totalTime * 1000, // Convert seconds to milliseconds
             prestigeLevel: album.prestigeLevel,
             spotifyId: album.album.id,
-            contentType: .albums
+            contentType: .albums,
+            albumPosition: nil,
+            rating: album.rating,
+            isPinned: album.isPinned ?? false
         )
     }
     
@@ -139,7 +148,10 @@ struct PrestigeDisplayItem {
             totalTimeMilliseconds: artist.totalTime * 1000, // Convert seconds to milliseconds
             prestigeLevel: artist.prestigeLevel,
             spotifyId: artist.artist.id,
-            contentType: .artists
+            contentType: .artists,
+            albumPosition: nil,
+            rating: artist.rating,
+            isPinned: artist.isPinned ?? false
         )
     }
 }
@@ -154,7 +166,10 @@ struct PrestigeDisplayItem {
                 totalTimeMilliseconds: 7200000, // 2 hours in milliseconds
                 prestigeLevel: .gold,
                 spotifyId: "sample-track-id",
-                contentType: .tracks
+                contentType: .tracks,
+                albumPosition: 1,
+                rating: 8.5,
+                isPinned: false
             ),
             rank: 1
         )

@@ -49,7 +49,7 @@ struct PrestigeGridCard: View {
                     )
                 
                 VStack(spacing: 8) {
-                    // Rank badge
+                    // Rank badge and rating/position
                     HStack {
                         Text("\(rank)")
                             .font(.caption)
@@ -57,19 +57,60 @@ struct PrestigeGridCard: View {
                             .foregroundColor(.white)
                             .frame(width: 20, height: 20)
                             .background(Circle().fill(Color.black.opacity(0.7)))
+                        
                         Spacer()
+                        
+                        // Show album position for tracks, rating for albums/artists
+                        if item.contentType == .tracks, let position = item.albumPosition {
+                            HStack(spacing: 2) {
+                                Text("🏆")
+                                    .font(.caption2)
+                                Text("#\(position)")
+                                    .font(.caption)
+                                    .fontWeight(.bold)
+                            }
+                            .foregroundColor(.yellow)
+                            .padding(.horizontal, 6)
+                            .padding(.vertical, 2)
+                            .background(Color.black.opacity(0.7))
+                            .cornerRadius(4)
+                        } else if item.contentType != .tracks, let rating = item.rating {
+                            HStack(spacing: 2) {
+                                Image(systemName: rating >= 7 ? "star.fill" : rating >= 4 ? "hand.thumbsup.fill" : "hand.thumbsdown.fill")
+                                    .font(.caption2)
+                                Text(String(format: "%.1f", rating))
+                                    .font(.caption)
+                                    .fontWeight(.semibold)
+                            }
+                            .foregroundColor(rating >= 7 ? .green : rating >= 4 ? .yellow : .red)
+                            .padding(.horizontal, 6)
+                            .padding(.vertical, 2)
+                            .background(Color.black.opacity(0.7))
+                            .cornerRadius(4)
+                        }
                     }
                     
-                    // Album artwork
-                    CachedAsyncImage(
-                        url: item.imageUrl,
-                        placeholder: Image(systemName: getIconForType()),
-                        contentMode: .fill,
-                        maxWidth: 80,
-                        maxHeight: 80
-                    )
-                    .clipShape(RoundedRectangle(cornerRadius: 8))
-                    .shadow(color: .black.opacity(0.2), radius: 2, x: 0, y: 1)
+                    // Album artwork with pin indicator
+                    ZStack(alignment: .topTrailing) {
+                        CachedAsyncImage(
+                            url: item.imageUrl,
+                            placeholder: Image(systemName: getIconForType()),
+                            contentMode: .fill,
+                            maxWidth: 80,
+                            maxHeight: 80
+                        )
+                        .clipShape(RoundedRectangle(cornerRadius: 8))
+                        .shadow(color: .black.opacity(0.2), radius: 2, x: 0, y: 1)
+                        
+                        // Pin indicator
+                        if item.isPinned {
+                            Text("📌")
+                                .font(.caption2)
+                                .padding(2)
+                                .background(Circle().fill(Color.white.opacity(0.9)))
+                                .offset(x: 4, y: -4)
+                        }
+                    }
                     
                     // Prestige badge
                     PrestigeBadge(tier: item.prestigeLevel)

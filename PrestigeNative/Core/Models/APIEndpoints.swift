@@ -87,6 +87,17 @@ enum APIEndpoints {
     static let spotifySearch = "spotify/search"
     static let spotifyRecentlyPlayed = "spotify/recently-played"
     
+    // MARK: - Pinned Items
+    static func pinnedItems(userId: String) -> String { "prestige/\(userId)/pinned" }
+    static func pinTrack(userId: String, trackId: String) -> String { "prestige/\(userId)/tracks/\(trackId)/pin" }
+    static func pinAlbum(userId: String, albumId: String) -> String { "prestige/\(userId)/albums/\(albumId)/pin" }
+    static func pinArtist(userId: String, artistId: String) -> String { "prestige/\(userId)/artists/\(artistId)/pin" }
+    
+    // MARK: - Recently Updated
+    static func recentlyUpdated(userId: String, since: String) -> String { 
+        "library/\(userId)/recently-updated?since=\(since)" 
+    }
+    
     // MARK: - Rating System
     static let ratingCategories = "api/rating/categories"
     static func rateItem(itemType: String, itemId: String) -> String { "api/rating/rate/\(itemType)/\(itemId)" }

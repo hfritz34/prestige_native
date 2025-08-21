@@ -202,6 +202,10 @@ struct UserTrackResponse: Codable, Identifiable {
     let totalTime: Int          // Total listening time in seconds (from API)
     let track: TrackResponse    // Track information
     let userId: String          // User ID
+    let albumPosition: Int?     // Ranking within album (1 = best track)
+    let totalTracksInAlbum: Int? // Total tracks in the album
+    let isPinned: Bool?         // Whether track is pinned
+    let rating: Double?         // User's rating score (1-10)
     
     var id: String { track.id }
     
@@ -215,8 +219,16 @@ struct UserTrackResponse: Codable, Identifiable {
     var totalTimeMinutes: Int { totalTime / 60 }
     var totalTimeHours: Double { Double(totalTime) / 3600.0 }
     
+    // Album rank display
+    var albumRankDisplay: String? {
+        guard let position = albumPosition, let total = totalTracksInAlbum else { return nil }
+        return "#\(position) of \(total)"
+    }
+    
     enum CodingKeys: String, CodingKey {
         case totalTime, track, userId
+        case albumPosition, totalTracksInAlbum
+        case isPinned, rating
     }
 }
 
@@ -225,6 +237,8 @@ struct UserAlbumResponse: Codable, Identifiable {
     let totalTime: Int          // Total listening time in seconds (from API)
     let album: AlbumResponse    // Album information
     let userId: String          // User ID
+    let isPinned: Bool?         // Whether album is pinned
+    let rating: Double?         // User's rating score (1-10)
     
     var id: String { album.id }
     
@@ -240,6 +254,7 @@ struct UserAlbumResponse: Codable, Identifiable {
     
     enum CodingKeys: String, CodingKey {
         case totalTime, album, userId
+        case isPinned, rating
     }
 }
 
@@ -248,6 +263,8 @@ struct UserArtistResponse: Codable, Identifiable {
     let totalTime: Int          // Total listening time in seconds (from API)
     let artist: ArtistResponse  // Artist information
     let userId: String          // User ID
+    let isPinned: Bool?         // Whether artist is pinned
+    let rating: Double?         // User's rating score (1-10)
     
     var id: String { artist.id }
     
@@ -263,5 +280,6 @@ struct UserArtistResponse: Codable, Identifiable {
     
     enum CodingKeys: String, CodingKey {
         case totalTime, artist, userId
+        case isPinned, rating
     }
 }

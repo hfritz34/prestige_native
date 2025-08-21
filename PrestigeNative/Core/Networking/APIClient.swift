@@ -206,6 +206,51 @@ class APIClient: ObservableObject {
         }
     }
     
+    /// Perform POST request without expecting a response
+    func postWithoutResponse<U: Encodable>(
+        _ endpoint: String,
+        body: U
+    ) async throws {
+        guard let url = APIEndpoints.fullURL(for: endpoint) else {
+            throw APIError.invalidURL
+        }
+        
+        await MainActor.run { isLoading = true }
+        defer { Task { await MainActor.run { isLoading = false } } }
+        
+        let encoder = JSONEncoder()
+        encoder.dateEncodingStrategy = .iso8601
+        let bodyData = try encoder.encode(body)
+        
+        let request = try await createAuthenticatedRequest(url: url, method: .POST, body: bodyData)
+        
+        do {
+            let (data, response) = try await session.data(for: request)
+            
+            guard let httpResponse = response as? HTTPURLResponse else {
+                throw APIError.invalidResponse
+            }
+            
+            // Log response for debugging
+            print("🔵 APIClient: Response status: \(httpResponse.statusCode)")
+            
+            // Handle successful responses (200-299)
+            guard 200...299 ~= httpResponse.statusCode else {
+                let errorMessage = try? JSONDecoder().decode(APIErrorResponse.self, from: data)
+                throw APIError.httpError(statusCode: httpResponse.statusCode, message: errorMessage?.message)
+            }
+            
+            await MainActor.run { lastError = nil }
+        } catch let error as APIError {
+            await MainActor.run { lastError = error }
+            throw error
+        } catch {
+            let apiError = APIError.networkError(error)
+            await MainActor.run { lastError = apiError }
+            throw apiError
+        }
+    }
+    
     /// Perform PUT request
     func put<T: Decodable, U: Encodable>(
         _ endpoint: String,
@@ -631,6 +676,7 @@ extension APIClient {
                 category: nil, // We'll populate this separately if needed
                 position: serverRating.position ?? 0,
                 personalScore: serverRating.personalScore ?? 0.0,
+                rankWithinAlbum: serverRating.rankWithinAlbum,
                 isNewRating: serverRating.isNewRating
             )
             

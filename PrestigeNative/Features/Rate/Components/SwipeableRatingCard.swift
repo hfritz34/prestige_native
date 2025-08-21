@@ -271,6 +271,7 @@ struct SwipeableRatingCard: View {
                         ),
                         position: index,
                         personalScore: 8.5,
+                        rankWithinAlbum: nil,
                         isNewRating: false
                     ),
                     showRating: true,

@@ -45,26 +45,44 @@ struct TopTrackRow: View {
             
             Spacer()
             
-            // Prestige Badge and Stats
-            VStack(alignment: .trailing, spacing: 2) {
-                // Prestige Badge
-                HStack(spacing: 4) {
-                    if track.prestigeLevel != .none {
-                        Image(track.prestigeLevel.imageName)
-                            .resizable()
-                            .frame(width: 16, height: 16)
+            // Album Rank and Stats
+            VStack(alignment: .trailing, spacing: 4) {
+                // Album Ranking (if available)
+                if let albumRankDisplay = track.albumRankDisplay {
+                    HStack(spacing: 4) {
+                        Text("🏆")
+                            .font(.caption2)
+                        Text(albumRankDisplay)
+                            .font(.caption2)
+                            .fontWeight(.medium)
+                            .padding(.horizontal, 6)
+                            .padding(.vertical, 2)
+                            .background(
+                                Capsule()
+                                    .fill(Color.purple.opacity(0.2))
+                            )
+                            .foregroundColor(.purple)
                     }
-                    
-                    Text(track.prestigeLevel.displayName)
-                        .font(.caption2)
-                        .fontWeight(.medium)
-                        .padding(.horizontal, 6)
-                        .padding(.vertical, 2)
-                        .background(
-                            Capsule()
-                                .fill(Color.purple.opacity(0.2))
-                        )
-                        .foregroundColor(.purple)
+                } else {
+                    // Fallback to prestige badge if no album ranking
+                    HStack(spacing: 4) {
+                        if track.prestigeLevel != .none {
+                            Image(track.prestigeLevel.imageName)
+                                .resizable()
+                                .frame(width: 16, height: 16)
+                        }
+                        
+                        Text(track.prestigeLevel.displayName)
+                            .font(.caption2)
+                            .fontWeight(.medium)
+                            .padding(.horizontal, 6)
+                            .padding(.vertical, 2)
+                            .background(
+                                Capsule()
+                                    .fill(Color.purple.opacity(0.2))
+                            )
+                            .foregroundColor(.purple)
+                    }
                 }
                 
                 // Listening Time

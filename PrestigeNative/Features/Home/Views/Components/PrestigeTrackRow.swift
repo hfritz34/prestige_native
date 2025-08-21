@@ -65,8 +65,27 @@ struct PrestigeTrackRow: View {
                 
                 Spacer()
                 
-                // Prestige badge
-                PrestigeBadge(tier: track.prestigeLevel)
+                // Album Ranking or Prestige badge
+                VStack(alignment: .trailing, spacing: 4) {
+                    if let albumRankDisplay = track.albumRankDisplay {
+                        HStack(spacing: 4) {
+                            Text("🏆")
+                                .font(.caption)
+                            Text(albumRankDisplay)
+                                .font(.caption)
+                                .fontWeight(.bold)
+                                .foregroundColor(.purple)
+                        }
+                        .padding(.horizontal, 8)
+                        .padding(.vertical, 4)
+                        .background(
+                            Capsule()
+                                .fill(Color.purple.opacity(0.2))
+                        )
+                    } else {
+                        PrestigeBadge(tier: track.prestigeLevel)
+                    }
+                }
             }
             .padding(.horizontal, 16)
             .padding(.vertical, 8)

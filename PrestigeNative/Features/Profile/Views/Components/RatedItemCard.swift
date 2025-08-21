@@ -79,6 +79,7 @@ struct RatedItemCard: View {
         category: nil,
         position: 1,
         personalScore: 8.5,
+        rankWithinAlbum: nil,
         isNewRating: false
     )
     

@@ -227,6 +227,7 @@ private extension ServerRatingResponse {
             category: nil,
             position: position,
             personalScore: score,
+            rankWithinAlbum: rankWithinAlbum,
             isNewRating: isNewRating
         )
     }
@@ -240,6 +241,7 @@ private extension ServerRatingResponse {
             category: nil,
             position: position ?? 0,
             personalScore: personalScore ?? 0,
+            rankWithinAlbum: rankWithinAlbum,
             isNewRating: isNewRating
         )
     }

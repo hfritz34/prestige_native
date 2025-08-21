@@ -234,12 +234,15 @@ class LoadingCoordinator: ObservableObject {
     private func fetchPinnedContent(userId: String) async throws -> PrestigeContentBundle {
         updateProgress(0.2, message: "Fetching pinned items...")
         
-        // Fetch pinned items (will implement actual endpoint later)
-        // For now, return empty bundle
+        // Get pinned items response from API
+        let pinnedResponse = try await apiClient.get("prestige/\(userId)/pinned", responseType: PinnedItemsResponse.self)
+        
+        updateProgress(0.9, message: "Organizing pinned content...")
+        
         return PrestigeContentBundle(
-            tracks: [],
-            albums: [],
-            artists: [],
+            tracks: pinnedResponse.tracks,
+            albums: pinnedResponse.albums,
+            artists: pinnedResponse.artists,
             pinnedItems: nil,
             recentlyUpdated: nil
         )
@@ -247,7 +250,32 @@ class LoadingCoordinator: ObservableObject {
     
     private func fetchTracks(userId: String) async throws -> [UserTrackResponse] {
         updateProgress(0.3, message: "Loading tracks...")
-        return try await apiClient.getUserTracks(userId: userId)
+        let tracks = try await apiClient.getUserTracks(userId: userId)
+        
+        updateProgress(0.4, message: "Loading track rankings...")
+        return try await enhanceTracksWithRankings(tracks: tracks)
+    }
+    
+    private func enhanceTracksWithRankings(tracks: [UserTrackResponse]) async throws -> [UserTrackResponse] {
+        // Fetch track ratings to get album rankings
+        let trackRatings = try await RatingService.shared.fetchUserRatings(itemType: .track)
+        
+        // Create a lookup dictionary for quick access
+        let ratingLookup = Dictionary(uniqueKeysWithValues: trackRatings.map { ($0.itemId, $0) })
+        
+        // Enhance tracks with album ranking information
+        return tracks.map { track in
+            let rating = ratingLookup[track.track.id]
+            return UserTrackResponse(
+                totalTime: track.totalTime,
+                track: track.track,
+                userId: track.userId,
+                albumPosition: rating?.rankWithinAlbum,
+                totalTracksInAlbum: nil, // Will need separate logic to get total tracks
+                isPinned: track.isPinned,
+                rating: rating?.personalScore
+            )
+        }
     }
     
     private func fetchAlbums(userId: String) async throws -> [UserAlbumResponse] {

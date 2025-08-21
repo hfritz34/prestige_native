@@ -47,6 +47,7 @@ struct Rating: Codable, Identifiable {
     let category: RatingCategoryModel?
     let position: Int
     let personalScore: Double
+    let rankWithinAlbum: Int?
     let isNewRating: Bool
     
     // Computed ID for Identifiable conformance
@@ -142,6 +143,7 @@ struct ServerRatingResponse: Codable {
     let categoryId: Int?
     let personalScore: Double?
     let position: Int?
+    let rankWithinAlbum: Int?
     let albumId: String?
     let isNewRating: Bool
 }

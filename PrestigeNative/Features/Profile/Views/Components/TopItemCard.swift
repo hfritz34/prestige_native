@@ -43,6 +43,10 @@ struct TopItemCard: View {
             }
             .frame(width: 120, height: 120)
             .clipShape(RoundedRectangle(cornerRadius: 8))
+            .overlay(
+                RoundedRectangle(cornerRadius: 8)
+                    .stroke(Color.gray.opacity(0.2), lineWidth: 0.5)
+            )
             
             // Title and subtitle
             VStack(alignment: .leading, spacing: 2) {

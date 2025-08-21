@@ -111,8 +111,42 @@ class ProfileViewModel: ObservableObject {
         }
     }
     
+    /// Load all profile data synchronously and wait for completion
+    @MainActor
+    func loadProfileDataSynchronously(userId: String) async {
+        print("🔵 ProfileViewModel: Loading profile data synchronously for user: \(userId)")
+        
+        // Set loading state
+        isLoading = true
+        error = nil
+        
+        do {
+            // Load all data concurrently and wait for completion
+            async let profileTask = profileService.loadAllProfileData(userId: userId)
+            async let ratingsTask = loadRatingsData()
+            
+            // Wait for both to complete
+            let _ = try await (profileTask, ratingsTask)
+            
+            print("✅ ProfileViewModel: Synchronous loading completed successfully")
+        } catch {
+            print("❌ ProfileViewModel: Synchronous loading failed: \(error)")
+            self.error = error as? APIError ?? .networkError(error)
+        }
+        
+        // Always set loading to false when done
+        isLoading = false
+    }
+    
     func refreshData() {
         loadProfileData()
+    }
+    
+    /// Refresh data synchronously for pull-to-refresh
+    @MainActor
+    func refreshDataSynchronously() async {
+        guard let userId = authManager.user?.id else { return }
+        await loadProfileDataSynchronously(userId: userId)
     }
     
     /// Load ratings data for all types

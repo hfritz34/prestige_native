@@ -54,55 +54,35 @@ class PinService: ObservableObject {
     // MARK: - API Methods
     
     private func pinItem(itemId: String, itemType: ContentType) async throws {
-        let endpoint = "pin"
-        let body = PinRequest(
-            itemId: itemId,
-            itemType: itemType.pinApiValue
-        )
+        guard let userId = AuthManager.shared.user?.id else {
+            throw PinServiceError.noUserId
+        }
         
-        let _: EmptyResponse = try await apiClient.request(
-            endpoint: endpoint,
-            method: .POST,
-            body: body
-        )
+        let endpoint = "prestige/\(userId)/\(itemType.pinApiValue)s/\(itemId)/pin"
+        try await apiClient.postWithoutResponse(endpoint, body: EmptyRequest())
     }
     
     private func unpinItem(itemId: String, itemType: ContentType) async throws {
-        let endpoint = "pin"
-        let body = UnpinRequest(
-            itemId: itemId,
-            itemType: itemType.pinApiValue
-        )
+        guard let userId = AuthManager.shared.user?.id else {
+            throw PinServiceError.noUserId
+        }
         
-        let _: EmptyResponse = try await apiClient.request(
-            endpoint: endpoint,
-            method: .DELETE,
-            body: body
-        )
+        let endpoint = "prestige/\(userId)/\(itemType.pinApiValue)s/\(itemId)/pin"
+        try await apiClient.postWithoutResponse(endpoint, body: EmptyRequest())
     }
     
     func loadPinnedItems() async {
         do {
-            // Load pinned tracks
-            let pinnedTracksResponse: PinnedItemsResponse = try await apiClient.request(
-                endpoint: "pin/tracks",
-                method: .GET
-            )
-            pinnedTracks = Set(pinnedTracksResponse.items.map { $0.itemId })
+            guard let userId = AuthManager.shared.user?.id else {
+                print("No user ID available for loading pinned items")
+                return
+            }
             
-            // Load pinned albums
-            let pinnedAlbumsResponse: PinnedItemsResponse = try await apiClient.request(
-                endpoint: "pin/albums",
-                method: .GET
-            )
-            pinnedAlbums = Set(pinnedAlbumsResponse.items.map { $0.itemId })
+            let pinnedItemsResponse = try await apiClient.get("prestige/\(userId)/pinned", responseType: PinnedItemsResponse.self)
             
-            // Load pinned artists
-            let pinnedArtistsResponse: PinnedItemsResponse = try await apiClient.request(
-                endpoint: "pin/artists",
-                method: .GET
-            )
-            pinnedArtists = Set(pinnedArtistsResponse.items.map { $0.itemId })
+            pinnedTracks = Set(pinnedItemsResponse.tracks.map { $0.track.id })
+            pinnedAlbums = Set(pinnedItemsResponse.albums.map { $0.album.id })
+            pinnedArtists = Set(pinnedItemsResponse.artists.map { $0.artist.id })
             
         } catch {
             print("Error loading pinned items: \(error)")
@@ -136,17 +116,14 @@ class PinService: ObservableObject {
 
 // MARK: - API Models
 
-struct PinRequest: Codable {
-    let itemId: String
-    let itemType: String
-}
-
-struct UnpinRequest: Codable {
-    let itemId: String
-    let itemType: String
-}
+struct EmptyRequest: Codable {}
 
 struct EmptyResponse: Codable {}
+
+enum PinServiceError: Error {
+    case noUserId
+}
+
 
 // MARK: - ContentType Extension
 

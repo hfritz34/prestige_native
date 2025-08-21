@@ -43,7 +43,7 @@ struct HomeView: View {
                 // Time Filter
                 timeFilterSelector
                     .padding(.horizontal)
-                    .padding(.top, 8)
+                    .padding(.top, 20)
                     .opacity(showContentButtons ? 1 : 0)
                     .animation(.easeInOut(duration: 0.3).delay(0.1), value: showContentButtons)
                 
@@ -267,15 +267,8 @@ struct HomeView: View {
         case .albums:
             ForEach(Array(viewModel.topAlbums.enumerated()), id: \.element.album.id) { index, album in
                 PrestigeGridCard(
-                    item: PrestigeDisplayItem.fromAlbum(album).withPinState(
-                        pinService.isItemPinned(itemId: album.album.id, itemType: .albums)
-                    ),
-                    rank: index + 1,
-                    onPinToggle: {
-                        Task {
-                            await pinService.togglePin(itemId: album.album.id, itemType: .albums)
-                        }
-                    }
+                    item: PrestigeDisplayItem.fromAlbum(album),
+                    rank: index + 1
                 )
                 .onTapGesture {
                     selectedPrestige = PrestigeSelection(
@@ -287,15 +280,8 @@ struct HomeView: View {
         case .tracks:
             ForEach(Array(viewModel.topTracks.enumerated()), id: \.element.totalTime) { index, track in
                 PrestigeGridCard(
-                    item: PrestigeDisplayItem.fromTrack(track).withPinState(
-                        pinService.isItemPinned(itemId: track.track.id, itemType: .tracks)
-                    ),
-                    rank: index + 1,
-                    onPinToggle: {
-                        Task {
-                            await pinService.togglePin(itemId: track.track.id, itemType: .tracks)
-                        }
-                    }
+                    item: PrestigeDisplayItem.fromTrack(track),
+                    rank: index + 1
                 )
                 .onTapGesture {
                     selectedPrestige = PrestigeSelection(
@@ -307,15 +293,8 @@ struct HomeView: View {
         case .artists:
             ForEach(Array(viewModel.topArtists.enumerated()), id: \.element.artist.id) { index, artist in
                 PrestigeGridCard(
-                    item: PrestigeDisplayItem.fromArtist(artist).withPinState(
-                        pinService.isItemPinned(itemId: artist.artist.id, itemType: .artists)
-                    ),
-                    rank: index + 1,
-                    onPinToggle: {
-                        Task {
-                            await pinService.togglePin(itemId: artist.artist.id, itemType: .artists)
-                        }
-                    }
+                    item: PrestigeDisplayItem.fromArtist(artist),
+                    rank: index + 1
                 )
                 .onTapGesture {
                     selectedPrestige = PrestigeSelection(

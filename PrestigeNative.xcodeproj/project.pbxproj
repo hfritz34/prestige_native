@@ -8,8 +8,6 @@
 
 /* Begin PBXBuildFile section */
 		84E834952E275BF100F81402 /* PRESTIGE_APPLICATION_OVERVIEW.txt in Resources */ = {isa = PBXBuildFile; fileRef = 84E834912E275BF100F81402 /* PRESTIGE_APPLICATION_OVERVIEW.txt */; };
-		84E834962E275BF100F81402 /* PRESTIGE_FILE_STRUCTURE_GUIDE.md in Resources */ = {isa = PBXBuildFile; fileRef = 84E834922E275BF100F81402 /* PRESTIGE_FILE_STRUCTURE_GUIDE.md */; };
-		84E834972E275BF100F81402 /* PRESTIGE_IOS_MIGRATION_GUIDE.md in Resources */ = {isa = PBXBuildFile; fileRef = 84E834932E275BF100F81402 /* PRESTIGE_IOS_MIGRATION_GUIDE.md */; };
 		84E8356A2E28A3FC00F81402 /* Auth0 in Frameworks */ = {isa = PBXBuildFile; productRef = 84E835692E28A3FC00F81402 /* Auth0 */; };
 /* End PBXBuildFile section */
 
@@ -35,8 +33,6 @@
 		84AAB8C82DA4067B007ADD39 /* PrestigeNativeTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = PrestigeNativeTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 		84AAB8D22DA4067B007ADD39 /* PrestigeNativeUITests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = PrestigeNativeUITests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 		84E834912E275BF100F81402 /* PRESTIGE_APPLICATION_OVERVIEW.txt */ = {isa = PBXFileReference; lastKnownFileType = text; path = PRESTIGE_APPLICATION_OVERVIEW.txt; sourceTree = "<group>"; };
-		84E834922E275BF100F81402 /* PRESTIGE_FILE_STRUCTURE_GUIDE.md */ = {isa = PBXFileReference; lastKnownFileType = net.daringfireball.markdown; path = PRESTIGE_FILE_STRUCTURE_GUIDE.md; sourceTree = "<group>"; };
-		84E834932E275BF100F81402 /* PRESTIGE_IOS_MIGRATION_GUIDE.md */ = {isa = PBXFileReference; lastKnownFileType = net.daringfireball.markdown; path = PRESTIGE_IOS_MIGRATION_GUIDE.md; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFileSystemSynchronizedBuildFileExceptionSet section */
@@ -104,8 +100,6 @@
 				84AAB8D52DA4067B007ADD39 /* PrestigeNativeUITests */,
 				84AAB8BB2DA4067A007ADD39 /* Products */,
 				84E834912E275BF100F81402 /* PRESTIGE_APPLICATION_OVERVIEW.txt */,
-				84E834922E275BF100F81402 /* PRESTIGE_FILE_STRUCTURE_GUIDE.md */,
-				84E834932E275BF100F81402 /* PRESTIGE_IOS_MIGRATION_GUIDE.md */,
 				84E835682E28A3FC00F81402 /* Frameworks */,
 			);
 			sourceTree = "<group>";
@@ -252,8 +246,6 @@
 			buildActionMask = 2147483647;
 			files = (
 				84E834952E275BF100F81402 /* PRESTIGE_APPLICATION_OVERVIEW.txt in Resources */,
-				84E834962E275BF100F81402 /* PRESTIGE_FILE_STRUCTURE_GUIDE.md in Resources */,
-				84E834972E275BF100F81402 /* PRESTIGE_IOS_MIGRATION_GUIDE.md in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};

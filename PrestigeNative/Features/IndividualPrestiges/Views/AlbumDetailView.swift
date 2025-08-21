@@ -99,39 +99,35 @@ struct AlbumDetailView: View {
     }
     
     private var albumProgressSection: some View {
-        VStack(spacing: 12) {
-            HStack {
-                Text("Album Progress")
-                    .font(.headline)
-                Spacer()
-                
-                if isCompleteAlbum {
-                    HStack(spacing: 4) {
-                        Text("⭐")
-                        Text("Complete!")
-                            .font(.subheadline)
-                            .foregroundColor(.green)
-                            .fontWeight(.medium)
-                    }
-                }
-            }
-            
-            // Progress indicator
+        VStack(spacing: 16) {
+            // Progress Stats
             let ratedCount = albumTracks.filter { $0.isRated }.count
             let totalCount = albumTracks.count
             
             if totalCount > 0 {
-                VStack(spacing: 8) {
+                VStack(spacing: 12) {
                     HStack {
-                        Text("\(ratedCount) of \(totalCount) tracks rated")
-                            .font(.subheadline)
-                            .foregroundColor(.secondary)
+                        Text("Album Tracks")
+                            .font(.headline)
+                            .fontWeight(.bold)
+                        
                         Spacer()
-                        Text("\(Int(Double(ratedCount) / Double(totalCount) * 100))%")
-                            .font(.subheadline)
-                            .fontWeight(.medium)
+                        
+                        HStack(spacing: 4) {
+                            Text("\(ratedCount) of \(totalCount) tracks rated")
+                                .font(.subheadline)
+                                .foregroundColor(.secondary)
+                            
+                            if isCompleteAlbum {
+                                Text("⭐ Complete!")
+                                    .font(.subheadline)
+                                    .foregroundColor(.yellow)
+                                    .fontWeight(.medium)
+                            }
+                        }
                     }
                     
+                    // Progress bar
                     ProgressView(value: Double(ratedCount), total: Double(totalCount))
                         .progressViewStyle(LinearProgressViewStyle(tint: .purple))
                         .scaleEffect(y: 2)
@@ -203,34 +199,36 @@ struct AlbumDetailView: View {
     }
     
     private var actionButtonsSection: some View {
-        VStack(spacing: 12) {
+        HStack(spacing: 12) {
+            // Pin button
+            Button(action: {
+                Task {
+                    let _ = await PinService.shared.togglePin(itemId: album.album.id, itemType: .albums)
+                }
+            }) {
+                HStack {
+                    Text("📌")
+                    Text(PinService.shared.isItemPinned(itemId: album.album.id, itemType: .albums) ? "Pinned" : "Pin")
+                }
+                .frame(maxWidth: .infinity)
+                .padding()
+                .background(PinService.shared.isItemPinned(itemId: album.album.id, itemType: .albums) ? Color.yellow.opacity(0.3) : Color(UIColor.secondarySystemBackground))
+                .foregroundColor(.primary)
+                .cornerRadius(12)
+            }
+            
             // Play/Open on Spotify
             Button(action: {
                 // TODO: Open album on Spotify
             }) {
                 HStack {
                     Image(systemName: "play.fill")
-                    Text("Play Album on Spotify")
+                    Text("Play on Spotify")
                 }
                 .frame(maxWidth: .infinity)
                 .padding()
                 .background(Color.green)
                 .foregroundColor(.white)
-                .cornerRadius(12)
-            }
-            
-            // Share button
-            Button(action: {
-                // TODO: Share album
-            }) {
-                HStack {
-                    Image(systemName: "square.and.arrow.up")
-                    Text("Share Album")
-                }
-                .frame(maxWidth: .infinity)
-                .padding()
-                .background(Color(UIColor.secondarySystemBackground))
-                .foregroundColor(.primary)
                 .cornerRadius(12)
             }
         }
@@ -250,14 +248,32 @@ struct AlbumDetailView: View {
         
         Task {
             do {
-                // Get album tracks from Spotify API
-                let tracks: [AlbumTrackItem] = try await APIClient.shared.request(
-                    endpoint: "spotify/album/\(album.album.id)/tracks",
-                    method: .GET
+                guard let userId = AuthManager.shared.user?.id else {
+                    print("No user ID available for loading album tracks")
+                    await MainActor.run {
+                        isLoadingTracks = false
+                    }
+                    return
+                }
+                
+                // Get album tracks with rankings from prestige API
+                let tracksResponse = try await APIClient.shared.get(
+                    "prestige/\(userId)/albums/\(album.album.id)/tracks", 
+                    responseType: AlbumTracksWithRankingsResponse.self
                 )
                 
                 await MainActor.run {
-                    albumTracks = tracks
+                    albumTracks = tracksResponse.tracks.map { track in
+                        AlbumTrackItem(
+                            id: track.trackId,
+                            name: track.trackName,
+                            artists: track.artists.map { $0.name },
+                            albumRanking: track.albumRanking,
+                            isRated: track.hasUserRating,
+                            isPinned: track.isPinned,
+                            isFavorite: track.isFavorite
+                        )
+                    }
                     isLoadingTracks = false
                 }
             } catch {
@@ -271,9 +287,39 @@ struct AlbumDetailView: View {
     }
 }
 
+// MARK: - Album Track Response Models
+
+struct AlbumTracksWithRankingsResponse: Codable {
+    let albumId: String
+    let totalTracks: Int
+    let ratedTracks: Int
+    let allTracksRated: Bool
+    let tracks: [AlbumTrackResponse]
+}
+
+struct AlbumTrackResponse: Codable {
+    let trackId: String
+    let trackName: String
+    let artists: [ArtistInfo]
+    let durationMs: Int
+    let trackNumber: Int
+    let userListeningTime: Int
+    let userRating: Double?
+    let hasUserRating: Bool
+    let albumRanking: Int?
+    let isPinned: Bool
+    let isFavorite: Bool
+    let isFromDatabase: Bool
+    
+    struct ArtistInfo: Codable {
+        let id: String
+        let name: String
+    }
+}
+
 // MARK: - Album Track Item Model
 
-struct AlbumTrackItem: Identifiable {
+struct AlbumTrackItem: Identifiable, Codable {
     let id: String
     let name: String
     let artists: [String]
@@ -288,26 +334,27 @@ struct AlbumTrackItem: Identifiable {
 struct AlbumTrackRow: View {
     let track: AlbumTrackItem
     let trackNumber: Int
+    @StateObject private var pinService = PinService.shared
     
     var body: some View {
         HStack(spacing: 12) {
-            // Album ranking (bold)
+            // Album ranking (bold purple number)
             Group {
                 if let ranking = track.albumRanking {
                     Text("\(ranking)")
                         .font(.subheadline)
                         .fontWeight(.bold)
                         .foregroundColor(.purple)
-                        .frame(width: 24, alignment: .center)
+                        .frame(width: 32, alignment: .center)
                 } else {
                     Text("—")
                         .font(.subheadline)
                         .foregroundColor(.secondary)
-                        .frame(width: 24, alignment: .center)
+                        .frame(width: 32, alignment: .center)
                 }
             }
             
-            // Track number
+            // Track number (small gray)
             Text("\(trackNumber)")
                 .font(.caption)
                 .foregroundColor(.secondary)
@@ -315,26 +362,10 @@ struct AlbumTrackRow: View {
             
             // Track info
             VStack(alignment: .leading, spacing: 2) {
-                HStack {
-                    Text(track.name)
-                        .font(.subheadline)
-                        .fontWeight(.medium)
-                        .lineLimit(1)
-                    
-                    Spacer()
-                    
-                    // Status indicators
-                    HStack(spacing: 4) {
-                        if track.isPinned {
-                            Text("📌")
-                                .font(.caption)
-                        }
-                        if track.isFavorite {
-                            Text("❤️")
-                                .font(.caption)
-                        }
-                    }
-                }
+                Text(track.name)
+                    .font(.subheadline)
+                    .fontWeight(track.isRated ? .semibold : .medium)
+                    .lineLimit(1)
                 
                 Text(track.artists.joined(separator: ", "))
                     .font(.caption)
@@ -343,16 +374,26 @@ struct AlbumTrackRow: View {
             }
             
             Spacer()
+            
+            // Status indicators on the right
+            HStack(spacing: 8) {
+                if track.isFavorite {
+                    Text("❤️")
+                        .font(.caption)
+                }
+            }
         }
-        .padding(.vertical, 8)
+        .padding(.vertical, 10)
         .padding(.horizontal, 12)
         .background(
             track.isRated 
                 ? Color(UIColor.secondarySystemBackground)
-                : Color(UIColor.systemBackground).opacity(0.5)
+                : Color(UIColor.tertiarySystemBackground).opacity(0.7)
         )
         .cornerRadius(8)
-        .opacity(track.isRated ? 1.0 : 0.6)
+        .onTapGesture {
+            // TODO: Navigate to track detail page
+        }
     }
 }
 

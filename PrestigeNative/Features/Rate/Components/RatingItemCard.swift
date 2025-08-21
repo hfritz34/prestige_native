@@ -346,6 +346,7 @@ extension View {
                 ),
                 position: 0,
                 personalScore: 9.5,
+                rankWithinAlbum: nil,
                 isNewRating: false
             )
         )
@@ -367,6 +368,7 @@ extension View {
                 category: nil,
                 position: 5,
                 personalScore: 5.2,
+                rankWithinAlbum: nil,
                 isNewRating: false
             ),
             showPosition: true

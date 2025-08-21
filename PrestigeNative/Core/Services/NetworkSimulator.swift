@@ -76,6 +76,18 @@ class NetworkSimulator {
             try await Task.sleep(nanoseconds: UInt64(delay * 1_000_000_000))
         }
     }
+    
+    /// Simulate network request with delay and potential failures
+    func simulateRequest<T>(_ operation: @escaping () async throws -> T) async throws -> T {
+        try await simulateDelay()
+        
+        // Simulate random failures for slow connections
+        if currentSpeed == .verySlow && Double.random(in: 0...1) < 0.2 {
+            throw NetworkError.timeout
+        }
+        
+        return try await operation()
+    }
 }
 
 enum NetworkError: Error, LocalizedError {
@@ -117,6 +129,22 @@ extension View {
                         .foregroundColor(NetworkSimulator.shared.isEnabled ? .red : .primary)
                 }
             }
+        }
+    }
+}
+
+extension APIClient {
+    /// Modified get method that respects network simulation
+    func simulatedGet<T: Codable>(_ endpoint: String, responseType: T.Type) async throws -> T {
+        return try await NetworkSimulator.shared.simulateRequest {
+            return try await self.get(endpoint, responseType: responseType)
+        }
+    }
+    
+    /// Modified post method that respects network simulation
+    func simulatedPost<T: Codable, U: Codable>(_ endpoint: String, body: U, responseType: T.Type) async throws -> T {
+        return try await NetworkSimulator.shared.simulateRequest {
+            return try await self.post(endpoint, body: body, responseType: responseType)
         }
     }
 }

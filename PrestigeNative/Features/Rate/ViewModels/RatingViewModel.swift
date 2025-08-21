@@ -281,6 +281,7 @@ class RatingViewModel: ObservableObject {
                     category: nil,
                     position: pos,
                     personalScore: score,
+                    rankWithinAlbum: server.rankWithinAlbum,
                     isNewRating: false
                 )
                 existingRating = existing

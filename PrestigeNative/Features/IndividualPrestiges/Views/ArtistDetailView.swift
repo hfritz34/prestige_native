@@ -1,9 +1,9 @@
 //
 //  ArtistDetailView.swift
-//  Artist Detail View with Rated Albums
+//  Individual Artist Detail View with Album List
 //
-//  Shows artist information with rated albums section showing
-//  album rankings and listening stats
+//  Shows artist information with expandable album list, pin functionality,
+//  and prestige level similar to Prestige.web artist pages.
 //
 
 import SwiftUI

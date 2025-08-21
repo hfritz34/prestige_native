@@ -16,63 +16,74 @@ struct ProfileView: View {
     @State private var selectedTopType: ContentType = .albums
     @State private var showingSettings = false
     @State private var selectedPrestige: PrestigeSelection?
+    @State private var hasInitiallyLoaded = false
     
     var body: some View {
-        NavigationView {
-            ScrollView {
-                VStack(spacing: 24) {
-                    // Profile Header
-                    profileHeaderSection
-                    
-                    // Top Section
-                    topSection
-                    
-                    // Favorites Section
-                    favoritesSection
-                    
-                    // Ratings Section
-                    ratingsSection
-                    
-                    // Recently Played Section
-                    recentlyPlayedSection
+        ZStack {
+            NavigationView {
+                ScrollView {
+                    VStack(spacing: 24) {
+                        // Profile Header
+                        profileHeaderSection
+                        
+                        // Top Section
+                        topSection
+                        
+                        // Favorites Section
+                        favoritesSection
+                        
+                        // Ratings Section
+                        ratingsSection
+                        
+                        // Recently Played Section
+                        recentlyPlayedSection
+                    }
+                    .padding(.vertical)
                 }
-                .padding(.vertical)
-            }
-            .navigationTitle("Profile")
-            .navigationBarTitleDisplayMode(.large)
-            .toolbar {
-                ToolbarItem(placement: .navigationBarTrailing) {
-                    Button {
-                        showingSettings = true
-                    } label: {
-                        Image(systemName: "gearshape.fill")
-                            .foregroundColor(.primary)
+                .navigationTitle("Profile")
+                .navigationBarTitleDisplayMode(.large)
+                .toolbar {
+                    ToolbarItem(placement: .navigationBarTrailing) {
+                        Button {
+                            showingSettings = true
+                        } label: {
+                            Image(systemName: "gearshape.fill")
+                                .foregroundColor(.primary)
+                        }
                     }
                 }
+                .refreshable {
+                    await viewModel.refreshDataSynchronously()
+                }
+                .sheet(isPresented: $showingSettings) {
+                    SettingsView()
+                        .environmentObject(authManager)
+                }
+                .sheet(item: $selectedPrestige) { selection in
+                    PrestigeDetailView(
+                        item: selection.item,
+                        rank: selection.rank
+                    )
+                }
             }
-            .refreshable {
-                viewModel.refreshData()
-            }
-            .sheet(isPresented: $showingSettings) {
-                SettingsView()
-                    .environmentObject(authManager)
-            }
-            .sheet(item: $selectedPrestige) { selection in
-                PrestigeDetailView(
-                    item: selection.item,
-                    rank: selection.rank
-                )
+            .opacity(hasInitiallyLoaded ? 1 : 0)
+            .animation(.easeInOut(duration: 0.3), value: hasInitiallyLoaded)
+            
+            // Full-screen loading overlay
+            if viewModel.isLoading && !hasInitiallyLoaded {
+                BeatVisualizerLoadingView(message: "Loading your profile...")
+                    .transition(.opacity.combined(with: .scale(scale: 0.95)))
             }
         }
         .onAppear {
             if let userId = authManager.user?.id {
-                viewModel.loadProfileData(userId: userId)
-            } else {
-                viewModel.loadProfileData() // Fallback
+                Task {
+                    await viewModel.loadProfileDataSynchronously(userId: userId)
+                    withAnimation(.easeInOut(duration: 0.5)) {
+                        hasInitiallyLoaded = true
+                    }
+                }
             }
-        }
-        .refreshable {
-            viewModel.refreshData()
         }
         .preloadAlbumImages(viewModel.topAlbums)
         .preloadTrackImages(viewModel.topTracks)
@@ -184,6 +195,7 @@ struct ProfileView: View {
                     topCarouselContent
                 }
                 .padding(.horizontal)
+                .padding(.top, 8)
             }
         }
     }
@@ -229,6 +241,7 @@ struct ProfileView: View {
                     favoritesCarouselContent
                 }
                 .padding(.horizontal)
+                .padding(.top, 8)
             }
         }
     }
@@ -304,6 +317,7 @@ struct ProfileView: View {
                     }
                 }
                 .padding(.horizontal)
+                .padding(.top, 8)
             }
         }
     }

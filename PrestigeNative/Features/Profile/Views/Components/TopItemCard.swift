@@ -42,7 +42,6 @@ struct TopItemCard: View {
                     .fill(Color.gray.opacity(0.3))
             }
             .frame(width: 120, height: 120)
-            .clipped()
             .clipShape(RoundedRectangle(cornerRadius: 8))
             
             // Title and subtitle

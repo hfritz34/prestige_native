@@ -11,6 +11,7 @@ import SwiftUI
 struct ProfileView: View {
     @StateObject private var viewModel = ProfileViewModel()
     @EnvironmentObject var authManager: AuthManager
+    @StateObject private var imagePreloader = ImagePreloader.shared
     @State private var showingError = false
     @State private var selectedTopType: ContentType = .albums
     @State private var showingSettings = false
@@ -73,6 +74,9 @@ struct ProfileView: View {
         .refreshable {
             viewModel.refreshData()
         }
+        .preloadAlbumImages(viewModel.topAlbums)
+        .preloadTrackImages(viewModel.topTracks)
+        .preloadArtistImages(viewModel.topArtists)
         .alert("Error", isPresented: $showingError) {
             Button("OK") {
                 viewModel.error = nil
@@ -318,7 +322,8 @@ struct ProfileView: View {
     @ViewBuilder
     private var topCarouselContent: some View {
         if viewModel.isLoading {
-            CompactBeatVisualizer(isPlaying: true)
+            ProgressView()
+                .scaleEffect(1.2)
                 .padding(.vertical, 30)
         } else {
             switch selectedTopType {

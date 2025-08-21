@@ -92,6 +92,14 @@ class LoadingCoordinator: ObservableObject {
         timeRange: PrestigeTimeRange,
         forceRefresh: Bool = false
     ) async {
+        // Apply network simulation if enabled (for testing)
+        do {
+            try await NetworkSimulator.shared.simulateDelay()
+        } catch {
+            self.loadingState = .error(APIError.networkError(error))
+            return
+        }
+        
         // Check cache if not forcing refresh
         if !forceRefresh, let cached = getCachedContent(for: timeRange) {
             self.contentBundle = cached

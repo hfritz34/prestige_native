@@ -10,6 +10,13 @@ import SwiftUI
 struct PrestigeGridCard: View {
     let item: PrestigeDisplayItem
     let rank: Int
+    let onPinToggle: (() -> Void)?
+    
+    init(item: PrestigeDisplayItem, rank: Int, onPinToggle: (() -> Void)? = nil) {
+        self.item = item
+        self.rank = rank
+        self.onPinToggle = onPinToggle
+    }
     
     var body: some View {
         VStack(spacing: 8) {
@@ -102,14 +109,18 @@ struct PrestigeGridCard: View {
                         .clipShape(RoundedRectangle(cornerRadius: 8))
                         .shadow(color: .black.opacity(0.2), radius: 2, x: 0, y: 1)
                         
-                        // Pin indicator
-                        if item.isPinned {
-                            Text("📌")
-                                .font(.caption2)
-                                .padding(2)
-                                .background(Circle().fill(Color.white.opacity(0.9)))
-                                .offset(x: 4, y: -4)
+                        // Pin toggle button
+                        Button(action: {
+                            onPinToggle?()
+                        }) {
+                            Image(systemName: item.isPinned ? "pin.fill" : "pin")
+                                .font(.caption)
+                                .foregroundColor(item.isPinned ? .yellow : .white)
+                                .frame(width: 20, height: 20)
+                                .background(Circle().fill(Color.black.opacity(0.7)))
                         }
+                        .offset(x: 4, y: -4)
+                        .opacity(onPinToggle != nil ? 1 : 0)
                     }
                     
                     // Prestige badge

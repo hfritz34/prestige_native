@@ -17,6 +17,8 @@ struct PrestigeSelection: Identifiable {
 struct HomeView: View {
     @StateObject private var viewModel = HomeViewModel()
     @EnvironmentObject var authManager: AuthManager
+    @StateObject private var pinService = PinService.shared
+    @StateObject private var imagePreloader = ImagePreloader.shared
     @State private var showingError = false
     @State private var selectedPrestige: PrestigeSelection?
     @State private var showContentButtons = false
@@ -71,12 +73,21 @@ struct HomeView: View {
                 .refreshable {
                     viewModel.refreshData()
                 }
+                .preloadAlbumImages(viewModel.topAlbums)
+                .preloadTrackImages(viewModel.topTracks)
+                .preloadArtistImages(viewModel.topArtists)
             }
             .navigationBarHidden(true)
         }
+        .networkSpeedControls()
         .onAppear {
             if let userId = authManager.user?.id, !userId.isEmpty {
                 viewModel.loadHomeData(for: userId)
+                
+                // Load pinned items
+                Task {
+                    await pinService.loadPinnedItems()
+                }
                 
                 // Show content buttons after a delay
                 DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
@@ -95,6 +106,16 @@ struct HomeView: View {
         }
         .onChange(of: viewModel.error) { _, error in
             showingError = error != nil
+        }
+        .onChange(of: viewModel.selectedContentType) { _, _ in
+            // Preload images when content type changes
+            Task {
+                await MainActor.run {
+                    imagePreloader.preloadAlbumImages(viewModel.topAlbums)
+                    imagePreloader.preloadTrackImages(viewModel.topTracks)
+                    imagePreloader.preloadArtistImages(viewModel.topArtists)
+                }
+            }
         }
         .sheet(item: $selectedPrestige) { selection in
             PrestigeDetailView(
@@ -246,8 +267,15 @@ struct HomeView: View {
         case .albums:
             ForEach(Array(viewModel.topAlbums.enumerated()), id: \.element.album.id) { index, album in
                 PrestigeGridCard(
-                    item: PrestigeDisplayItem.fromAlbum(album),
-                    rank: index + 1
+                    item: PrestigeDisplayItem.fromAlbum(album).withPinState(
+                        pinService.isItemPinned(itemId: album.album.id, itemType: .albums)
+                    ),
+                    rank: index + 1,
+                    onPinToggle: {
+                        Task {
+                            await pinService.togglePin(itemId: album.album.id, itemType: .albums)
+                        }
+                    }
                 )
                 .onTapGesture {
                     selectedPrestige = PrestigeSelection(
@@ -259,8 +287,15 @@ struct HomeView: View {
         case .tracks:
             ForEach(Array(viewModel.topTracks.enumerated()), id: \.element.totalTime) { index, track in
                 PrestigeGridCard(
-                    item: PrestigeDisplayItem.fromTrack(track),
-                    rank: index + 1
+                    item: PrestigeDisplayItem.fromTrack(track).withPinState(
+                        pinService.isItemPinned(itemId: track.track.id, itemType: .tracks)
+                    ),
+                    rank: index + 1,
+                    onPinToggle: {
+                        Task {
+                            await pinService.togglePin(itemId: track.track.id, itemType: .tracks)
+                        }
+                    }
                 )
                 .onTapGesture {
                     selectedPrestige = PrestigeSelection(
@@ -272,8 +307,15 @@ struct HomeView: View {
         case .artists:
             ForEach(Array(viewModel.topArtists.enumerated()), id: \.element.artist.id) { index, artist in
                 PrestigeGridCard(
-                    item: PrestigeDisplayItem.fromArtist(artist),
-                    rank: index + 1
+                    item: PrestigeDisplayItem.fromArtist(artist).withPinState(
+                        pinService.isItemPinned(itemId: artist.artist.id, itemType: .artists)
+                    ),
+                    rank: index + 1,
+                    onPinToggle: {
+                        Task {
+                            await pinService.togglePin(itemId: artist.artist.id, itemType: .artists)
+                        }
+                    }
                 )
                 .onTapGesture {
                     selectedPrestige = PrestigeSelection(

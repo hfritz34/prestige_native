@@ -32,55 +32,19 @@ struct CachedAsyncImage: View {
     }
     
     var body: some View {
-        Group {
-            // TODO: Replace with KFImage when Kingfisher is added
-            // For now, use enhanced AsyncImage with better caching
-            AsyncImage(url: URL(string: url ?? "")) { phase in
-                switch phase {
-                case .empty:
-                    LoadingPlaceholder()
-                        .frame(
-                            maxWidth: maxWidth,
-                            maxHeight: maxHeight
-                        )
-                        
-                case .success(let image):
-                    image
-                        .resizable()
-                        .aspectRatio(contentMode: contentMode)
-                        .frame(
-                            maxWidth: maxWidth,
-                            maxHeight: maxHeight
-                        )
-                        .transition(.opacity.animation(.easeInOut(duration: 0.3)))
-                        
-                case .failure(_):
-                    ErrorPlaceholder(placeholder: placeholder)
-                        .frame(
-                            maxWidth: maxWidth,
-                            maxHeight: maxHeight
-                        )
-                        
-                @unknown default:
-                    placeholder
-                        .foregroundColor(.gray.opacity(0.3))
-                        .frame(
-                            maxWidth: maxWidth,
-                            maxHeight: maxHeight
-                        )
-                }
-            }
-        }
+        EnhancedAsyncImageView(
+            url: url,
+            placeholder: placeholder,
+            contentMode: contentMode,
+            maxWidth: maxWidth,
+            maxHeight: maxHeight
+        )
     }
 }
 
-// MARK: - Kingfisher Implementation (Commented for now)
+// MARK: - Enhanced AsyncImage Implementation
 
-/*
-// Uncomment this when Kingfisher is added to the project
-import Kingfisher
-
-struct CachedAsyncImageKF: View {
+struct EnhancedAsyncImageView: View {
     let url: String?
     let placeholder: Image
     let contentMode: ContentMode
@@ -88,26 +52,49 @@ struct CachedAsyncImageKF: View {
     let maxHeight: CGFloat?
     
     var body: some View {
-        KFImage(URL(string: url ?? ""))
-            .placeholder {
+        AsyncImage(url: URL(string: url ?? "")) { phase in
+            switch phase {
+            case .empty:
                 LoadingPlaceholder()
-                    .frame(maxWidth: maxWidth, maxHeight: maxHeight)
+                    .frame(
+                        maxWidth: maxWidth,
+                        maxHeight: maxHeight
+                    )
+                    
+            case .success(let image):
+                image
+                    .resizable()
+                    .aspectRatio(contentMode: contentMode)
+                    .frame(
+                        maxWidth: maxWidth,
+                        maxHeight: maxHeight
+                    )
+                    .transition(.opacity.animation(.easeInOut(duration: 0.3)))
+                    
+            case .failure(_):
+                ErrorPlaceholder(placeholder: placeholder)
+                    .frame(
+                        maxWidth: maxWidth,
+                        maxHeight: maxHeight
+                    )
+                    
+            @unknown default:
+                placeholder
+                    .foregroundColor(.gray.opacity(0.3))
+                    .frame(
+                        maxWidth: maxWidth,
+                        maxHeight: maxHeight
+                    )
             }
-            .retry(maxCount: 3)
-            .cacheOriginalImage()
-            .fade(duration: 0.25)
-            .resizable()
-            .aspectRatio(contentMode: contentMode)
-            .frame(maxWidth: maxWidth, maxHeight: maxHeight)
-            .onSuccess { result in
-                print("📸 Cached image: \(result.cacheType)")
-            }
-            .onFailure { error in
-                print("❌ Image load failed: \(error)")
-            }
+        }
     }
 }
-*/
+
+// MARK: - Future: Kingfisher Integration
+// When ready for production, consider adding Kingfisher for advanced image caching:
+// 1. Add Kingfisher package via Xcode Package Manager
+// 2. Replace EnhancedAsyncImageView with KFImage
+// 3. Configure cache limits and policies
 
 // MARK: - Placeholder Components
 
@@ -231,26 +218,3 @@ class ImageCacheManager: ObservableObject {
     }
 }
 
-// MARK: - Kingfisher Configuration (For when it's added)
-
-/*
-extension View {
-    func setupKingfisher() -> some View {
-        self.onAppear {
-            // Configure Kingfisher cache
-            let cache = ImageCache.default
-            cache.memoryStorage.config.totalCostLimit = 100 * 1024 * 1024 // 100MB
-            cache.memoryStorage.config.countLimit = 1000
-            cache.diskStorage.config.sizeLimit = 500 * 1024 * 1024 // 500MB
-            cache.diskStorage.config.expiration = .days(7)
-            
-            // Configure downloader
-            let downloader = ImageDownloader.default
-            downloader.downloadTimeout = 30.0
-            downloader.sessionConfiguration.requestCachePolicy = .returnCacheDataElseLoad
-            
-            print("📸 Kingfisher configured: 100MB memory, 500MB disk, 7-day expiration")
-        }
-    }
-}
-*/

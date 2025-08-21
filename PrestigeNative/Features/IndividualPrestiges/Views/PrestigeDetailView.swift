@@ -17,6 +17,7 @@ struct PrestigeDetailView: View {
     @State private var showComparisonView = false
     @State private var isPlaying = false
     @StateObject private var ratingViewModel = RatingViewModel()
+    @StateObject private var pinService = PinService.shared
     
     var body: some View {
         NavigationView {
@@ -57,8 +58,9 @@ struct PrestigeDetailView: View {
         .onAppear {
             Task {
                 await loadItemRating()
+                await pinService.loadPinnedItems()
             }
-            isPinned = item.isPinned
+            isPinned = pinService.isItemPinned(itemId: item.spotifyId, itemType: item.contentType)
         }
     }
     
@@ -445,13 +447,15 @@ struct PrestigeDetailView: View {
     // MARK: - Action Methods
     
     private func togglePin() {
-        withAnimation(.spring(response: 0.3, dampingFraction: 0.8)) {
-            isPinned.toggle()
-        }
-        
-        // TODO: Call API to persist pin state
         Task {
-            // await pinService.togglePin(item: item)
+            let newPinState = await pinService.togglePin(
+                itemId: item.spotifyId,
+                itemType: item.contentType
+            )
+            
+            withAnimation(.spring(response: 0.3, dampingFraction: 0.8)) {
+                isPinned = newPinState
+            }
         }
     }
     

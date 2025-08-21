@@ -154,6 +154,22 @@ struct PrestigeDisplayItem {
             isPinned: artist.isPinned ?? false
         )
     }
+    
+    // Method to create a copy with updated pin state
+    func withPinState(_ isPinned: Bool) -> PrestigeDisplayItem {
+        return PrestigeDisplayItem(
+            name: self.name,
+            subtitle: self.subtitle,
+            imageUrl: self.imageUrl,
+            totalTimeMilliseconds: self.totalTimeMilliseconds,
+            prestigeLevel: self.prestigeLevel,
+            spotifyId: self.spotifyId,
+            contentType: self.contentType,
+            albumPosition: self.albumPosition,
+            rating: self.rating,
+            isPinned: isPinned
+        )
+    }
 }
 
 #Preview {

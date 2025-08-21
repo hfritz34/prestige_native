@@ -13,6 +13,9 @@ struct PrestigeDetailView: View {
     let rank: Int
     @Environment(\.dismiss) private var dismiss
     @State private var showingShareSheet = false
+    @State private var isPinned: Bool = false
+    @State private var showComparisonView = false
+    @State private var isPlaying = false
     @StateObject private var ratingViewModel = RatingViewModel()
     
     var body: some View {
@@ -55,6 +58,7 @@ struct PrestigeDetailView: View {
             Task {
                 await loadItemRating()
             }
+            isPinned = item.isPinned
         }
     }
     
@@ -82,10 +86,29 @@ struct PrestigeDetailView: View {
             
             // Title and subtitle
             VStack(spacing: 8) {
-                Text(item.name)
-                    .font(.title2)
-                    .fontWeight(.bold)
-                    .multilineTextAlignment(.center)
+                HStack(spacing: 8) {
+                    Text(item.name)
+                        .font(.title2)
+                        .fontWeight(.bold)
+                        .multilineTextAlignment(.center)
+                    
+                    // Now playing indicator
+                    if isPlaying && item.contentType == .tracks {
+                        HStack(spacing: 4) {
+                            Text("🎵")
+                                .font(.footnote)
+                            Text("Now Playing")
+                                .font(.caption)
+                                .fontWeight(.medium)
+                        }
+                        .foregroundColor(.blue)
+                        .padding(.horizontal, 8)
+                        .padding(.vertical, 4)
+                        .background(Color.blue.opacity(0.1))
+                        .cornerRadius(6)
+                        .transition(.scale.combined(with: .opacity))
+                    }
+                }
                 
                 Text(item.subtitle)
                     .font(.subheadline)
@@ -139,37 +162,45 @@ struct PrestigeDetailView: View {
             
             LazyVGrid(columns: [
                 GridItem(.flexible()),
+                GridItem(.flexible()),
                 GridItem(.flexible())
             ], spacing: 16) {
                 StatCard(
-                    title: "Total Time",
+                    title: "Minutes",
                     value: TimeFormatter.formatListeningTime(item.totalTimeMilliseconds),
                     icon: "clock.fill",
                     color: .blue
                 )
                 
                 StatCard(
-                    title: "Prestige Tier",
+                    title: "Prestige Level",
                     value: item.prestigeLevel.displayName,
                     icon: "star.fill",
                     color: Color(hex: item.prestigeLevel.color) ?? .blue
                 )
                 
-                if item.contentType == .tracks {
+                if item.contentType == .tracks, let position = item.albumPosition {
+                    StatCard(
+                        title: "Album Rank",
+                        value: "🏆 #\(position)",
+                        icon: "number.square.fill",
+                        color: .yellow
+                    )
+                } else if item.contentType == .tracks {
+                    StatCard(
+                        title: "Album Rank",
+                        value: "...",
+                        icon: "number.square.fill",
+                        color: .gray
+                    )
+                } else {
                     StatCard(
                         title: "Play Count",
-                        value: "\(Int(item.totalTimeMilliseconds / 1000 / 60 / 3))", // Rough estimate (3 min per play)
+                        value: "\(Int(item.totalTimeMilliseconds / 1000 / 60 / 3))",
                         icon: "play.fill",
                         color: .green
                     )
                 }
-                
-                StatCard(
-                    title: "First Played",
-                    value: "2 months ago", // Placeholder
-                    icon: "calendar",
-                    color: .orange
-                )
             }
         }
     }
@@ -268,12 +299,72 @@ struct PrestigeDetailView: View {
     }
     
     private var actionButtons: some View {
-        VStack(spacing: 12) {
+        VStack(spacing: 16) {
+            // Three action buttons for tracks
+            if item.contentType == .tracks {
+                HStack(spacing: 12) {
+                    // Pin button
+                    Button(action: {
+                        togglePin()
+                    }) {
+                        VStack(spacing: 4) {
+                            Image(systemName: isPinned ? "pin.fill" : "pin")
+                                .font(.title3)
+                            Text(isPinned ? "Pinned" : "Pin")
+                                .font(.caption)
+                        }
+                        .frame(maxWidth: .infinity)
+                        .padding(.vertical, 12)
+                        .background(isPinned ? Color.yellow : Color(UIColor.secondarySystemBackground))
+                        .foregroundColor(isPinned ? .black : .primary)
+                        .cornerRadius(10)
+                    }
+                    
+                    // Compare with friends
+                    Button(action: {
+                        showComparisonView = true
+                    }) {
+                        VStack(spacing: 4) {
+                            Image(systemName: "person.2.fill")
+                                .font(.title3)
+                            Text("Compare")
+                                .font(.caption)
+                        }
+                        .frame(maxWidth: .infinity)
+                        .padding(.vertical, 12)
+                        .background(Color.blue)
+                        .foregroundColor(.white)
+                        .cornerRadius(10)
+                    }
+                    
+                    // View album
+                    Button(action: {
+                        // Navigate to album
+                    }) {
+                        VStack(spacing: 4) {
+                            Image(systemName: "square.stack")
+                                .font(.title3)
+                            Text("Album")
+                                .font(.caption)
+                        }
+                        .frame(maxWidth: .infinity)
+                        .padding(.vertical, 12)
+                        .background(Color.green)
+                        .foregroundColor(.white)
+                        .cornerRadius(10)
+                    }
+                }
+            }
+            
+            // Play/Open on Spotify
             Button(action: {
                 SpotifyPlaybackService.shared.playContent(
                     spotifyId: item.spotifyId,
                     type: item.contentType
                 )
+                withAnimation {
+                    isPlaying = true
+                }
             }) {
                 HStack {
                     Image(systemName: item.contentType == .tracks ? "play.fill" : "arrow.up.right.square")
@@ -286,6 +377,7 @@ struct PrestigeDetailView: View {
                 .cornerRadius(12)
             }
             
+            // Share button
             Button(action: {
                 showingShareSheet = true
             }) {
@@ -347,6 +439,19 @@ struct PrestigeDetailView: View {
         case .tracks: return "Track"
         case .albums: return "Album"
         case .artists: return "Artist"
+        }
+    }
+    
+    // MARK: - Action Methods
+    
+    private func togglePin() {
+        withAnimation(.spring(response: 0.3, dampingFraction: 0.8)) {
+            isPinned.toggle()
+        }
+        
+        // TODO: Call API to persist pin state
+        Task {
+            // await pinService.togglePin(item: item)
         }
     }
     
@@ -472,7 +577,10 @@ extension ContentType {
             totalTimeMilliseconds: 180000,
             prestigeLevel: .gold,
             spotifyId: "4u7EnebtmKWzUH433cf5Qv",
-            contentType: .tracks
+            contentType: .tracks,
+            albumPosition: 2,
+            rating: 8.5,
+            isPinned: false
         ),
         rank: 1
     )

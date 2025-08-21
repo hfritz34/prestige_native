@@ -207,6 +207,18 @@ struct UserTrackResponse: Codable, Identifiable {
     let isPinned: Bool?         // Whether track is pinned
     let rating: Double?         // User's rating score (1-10)
     
+    init(totalTime: Int, track: TrackResponse, userId: String, 
+         albumPosition: Int? = nil, totalTracksInAlbum: Int? = nil, 
+         isPinned: Bool? = nil, rating: Double? = nil) {
+        self.totalTime = totalTime
+        self.track = track
+        self.userId = userId
+        self.albumPosition = albumPosition
+        self.totalTracksInAlbum = totalTracksInAlbum
+        self.isPinned = isPinned
+        self.rating = rating
+    }
+    
     var id: String { track.id }
     
     // Computed property for prestige level (calculated on frontend)
@@ -240,6 +252,15 @@ struct UserAlbumResponse: Codable, Identifiable {
     let isPinned: Bool?         // Whether album is pinned
     let rating: Double?         // User's rating score (1-10)
     
+    init(totalTime: Int, album: AlbumResponse, userId: String, 
+         isPinned: Bool? = nil, rating: Double? = nil) {
+        self.totalTime = totalTime
+        self.album = album
+        self.userId = userId
+        self.isPinned = isPinned
+        self.rating = rating
+    }
+    
     var id: String { album.id }
     
     // Computed property for prestige level (calculated on frontend)
@@ -265,6 +286,15 @@ struct UserArtistResponse: Codable, Identifiable {
     let userId: String          // User ID
     let isPinned: Bool?         // Whether artist is pinned
     let rating: Double?         // User's rating score (1-10)
+    
+    init(totalTime: Int, artist: ArtistResponse, userId: String, 
+         isPinned: Bool? = nil, rating: Double? = nil) {
+        self.totalTime = totalTime
+        self.artist = artist
+        self.userId = userId
+        self.isPinned = isPinned
+        self.rating = rating
+    }
     
     var id: String { artist.id }
     

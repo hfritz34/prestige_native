@@ -318,8 +318,8 @@ struct ProfileView: View {
     @ViewBuilder
     private var topCarouselContent: some View {
         if viewModel.isLoading {
-            ProgressView()
-                .padding(.vertical, 50)
+            CompactBeatVisualizer(isPlaying: true)
+                .padding(.vertical, 30)
         } else {
             switch selectedTopType {
             case .albums:
@@ -477,7 +477,10 @@ struct ProfileView: View {
             totalTimeMilliseconds: 0, // Rated items don't have listening time
             prestigeLevel: .none, // Rated items don't have prestige levels
             spotifyId: ratedItem.itemData.id,
-            contentType: contentType
+            contentType: contentType,
+            albumPosition: nil,
+            rating: ratedItem.rating.personalScore,
+            isPinned: false
         )
     }
     
@@ -489,7 +492,10 @@ struct ProfileView: View {
             totalTimeMilliseconds: 0, // Recent tracks don't have total listening time
             prestigeLevel: .none, // Recent tracks don't have prestige levels
             spotifyId: track.id,
-            contentType: .tracks
+            contentType: .tracks,
+            albumPosition: nil,
+            rating: nil,
+            isPinned: false
         )
     }
     

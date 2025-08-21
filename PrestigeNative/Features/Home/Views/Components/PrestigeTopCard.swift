@@ -182,7 +182,10 @@ struct PrestigeDisplayItem {
                 totalTimeMilliseconds: 3600000, // 1 hour in milliseconds
                 prestigeLevel: .silver,
                 spotifyId: "another-track-id",
-                contentType: .tracks
+                contentType: .tracks,
+                albumPosition: 3,
+                rating: 6.5,
+                isPinned: true
             ),
             rank: 2
         )

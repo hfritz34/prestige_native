@@ -62,13 +62,10 @@ struct HomeView: View {
                         .padding(.vertical, 20)
                     }
                     
-                    // Unified loading overlay
+                    // Beat visualizer loading overlay
                     if viewModel.isLoading && !viewModel.hasInitiallyLoaded {
-                        UnifiedLoadingView(
-                            progress: viewModel.loadingProgress,
-                            message: viewModel.loadingMessage
-                        )
-                        .transition(.opacity)
+                        BeatVisualizerLoadingView(message: viewModel.loadingMessage)
+                            .transition(.opacity.combined(with: .scale(scale: 0.95)))
                     }
                 }
                 .refreshable {
@@ -180,6 +177,7 @@ struct HomeView: View {
                     .stroke(Color.gray.opacity(0.3), lineWidth: 1)
             )
         }
+    }
     
     @ViewBuilder
     private var contentList: some View {

@@ -63,7 +63,6 @@ struct RecentlyUpdatedResponse: Codable {
 
 // MARK: - Loading Coordinator
 
-@MainActor
 class LoadingCoordinator: ObservableObject {
     @Published var loadingState: LoadingState = .idle
     @Published var contentBundle: PrestigeContentBundle?
@@ -87,6 +86,7 @@ class LoadingCoordinator: ObservableObject {
     // MARK: - Public Methods
     
     /// Load all content for a given time range
+    @MainActor
     func loadAllContent(
         for userId: String,
         timeRange: PrestigeTimeRange,
@@ -266,7 +266,7 @@ class LoadingCoordinator: ObservableObject {
     }
     
     private func updateProgress(_ progress: Double, message: String) {
-        Task { @MainActor in
+        DispatchQueue.main.async {
             self.loadingProgress = progress
             self.loadingMessage = message
             self.loadingState = .loading(progress: progress)
@@ -295,10 +295,3 @@ class LoadingCoordinator: ObservableObject {
     }
 }
 
-// MARK: - Time Range Extension
-
-extension PrestigeTimeRange {
-    static let allTime = PrestigeTimeRange.allTime
-    static let recentlyUpdated = PrestigeTimeRange.recentlyPlayed  // Map to existing case
-    static let pinned = PrestigeTimeRange.lastMonth  // Temporary mapping
-}

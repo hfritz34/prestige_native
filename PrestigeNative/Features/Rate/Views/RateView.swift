@@ -321,13 +321,8 @@ struct RateView: View {
     private var searchResultsView: some View {
         VStack(spacing: 16) {
             if viewModel.isSearching {
-                HStack {
-                    ProgressView()
-                        .scaleEffect(0.8)
-                    Text("Searching...")
-                        .font(.subheadline)
-                        .foregroundColor(.secondary)
-                }
+                CompactBeatVisualizer(isPlaying: true)
+                    .padding(.vertical, 16)
                 .padding()
             } else if viewModel.searchResults.isEmpty {
                 EmptyStateView(
@@ -460,7 +455,9 @@ private func loadMoreButton(_ action: @escaping () -> Void) -> some View {
     Button(action: action) {
         HStack {
             Spacer()
-            ProgressView().padding(.trailing, 8)
+            CompactBeatVisualizer(isPlaying: true)
+                .frame(width: 40)
+                .padding(.trailing, 8)
             Text("Load more")
                 .font(.subheadline)
                 .foregroundColor(.secondary)

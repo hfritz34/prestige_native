@@ -56,7 +56,7 @@ class HomeViewModel: ObservableObject {
         // Listen for time range changes
         $selectedTimeRange
             .dropFirst() // Ignore initial value
-            .sink { [weak self] _ in
+            .sink { [weak self] (timeRange: PrestigeTimeRange) in
                 guard let self = self, let userId = self.currentUserId else { return }
                 Task {
                     await self.loadAllData(for: userId, forceRefresh: false)
@@ -139,14 +139,14 @@ enum ContentType: CaseIterable {
 
 enum PrestigeTimeRange: CaseIterable {
     case allTime
-    case recentlyPlayed
-    case lastMonth
+    case recentlyUpdated
+    case pinned
     
     var displayName: String {
         switch self {
         case .allTime: return "All Time"
-        case .recentlyPlayed: return "Recently Played"
-        case .lastMonth: return "Last Month"
+        case .recentlyUpdated: return "Recently Updated"
+        case .pinned: return "Pinned Items"
         }
     }
 }

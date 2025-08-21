@@ -154,9 +154,9 @@ struct UnifiedLoadingView: View {
     }
 }
 
-// MARK: - Shimmer Effect Modifier
+// MARK: - Skeleton Shimmer Effect
 
-struct ShimmerModifier: ViewModifier {
+struct SkeletonShimmerModifier: ViewModifier {
     @Binding var isAnimating: Bool
     
     func body(content: Content) -> some View {
@@ -191,7 +191,7 @@ struct ShimmerModifier: ViewModifier {
 
 extension View {
     func shimmer(isAnimating: Binding<Bool>) -> some View {
-        modifier(ShimmerModifier(isAnimating: isAnimating))
+        modifier(SkeletonShimmerModifier(isAnimating: isAnimating))
     }
 }
 

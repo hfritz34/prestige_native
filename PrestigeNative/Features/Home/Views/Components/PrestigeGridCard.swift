@@ -164,7 +164,10 @@ struct PrestigeGridCard: View {
                     totalTimeMilliseconds: (index + 1) * 120000,
                     prestigeLevel: [.bronze, .silver, .gold, .diamond][index % 4],
                     spotifyId: "sample-track-\(index + 1)",
-                    contentType: .tracks
+                    contentType: .tracks,
+                    albumPosition: index + 1,
+                    rating: Double(7 + index % 3),
+                    isPinned: index % 3 == 0
                 ),
                 rank: index + 1
             )

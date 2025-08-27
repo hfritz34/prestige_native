@@ -204,12 +204,13 @@ struct UserTrackResponse: Codable, Identifiable {
     let userId: String          // User ID
     let albumPosition: Int?     // Ranking within album (1 = best track)
     let totalTracksInAlbum: Int? // Total tracks in the album
-    let isPinned: Bool?         // Whether track is pinned
+    let isPinned: Bool          // Whether track is pinned (required field)
     let rating: Double?         // User's rating score (1-10)
+    let rankWithinAlbum: Int?   // Ranking position within the album
     
     init(totalTime: Int, track: TrackResponse, userId: String, 
          albumPosition: Int? = nil, totalTracksInAlbum: Int? = nil, 
-         isPinned: Bool? = nil, rating: Double? = nil) {
+         isPinned: Bool = false, rating: Double? = nil, rankWithinAlbum: Int? = nil) {
         self.totalTime = totalTime
         self.track = track
         self.userId = userId
@@ -217,6 +218,7 @@ struct UserTrackResponse: Codable, Identifiable {
         self.totalTracksInAlbum = totalTracksInAlbum
         self.isPinned = isPinned
         self.rating = rating
+        self.rankWithinAlbum = rankWithinAlbum
     }
     
     var id: String { track.id }
@@ -240,7 +242,7 @@ struct UserTrackResponse: Codable, Identifiable {
     enum CodingKeys: String, CodingKey {
         case totalTime, track, userId
         case albumPosition, totalTracksInAlbum
-        case isPinned, rating
+        case isPinned, rating, rankWithinAlbum
     }
 }
 
@@ -249,11 +251,11 @@ struct UserAlbumResponse: Codable, Identifiable {
     let totalTime: Int          // Total listening time in seconds (from API)
     let album: AlbumResponse    // Album information
     let userId: String          // User ID
-    let isPinned: Bool?         // Whether album is pinned
+    let isPinned: Bool          // Whether album is pinned (required field)
     let rating: Double?         // User's rating score (1-10)
     
     init(totalTime: Int, album: AlbumResponse, userId: String, 
-         isPinned: Bool? = nil, rating: Double? = nil) {
+         isPinned: Bool = false, rating: Double? = nil) {
         self.totalTime = totalTime
         self.album = album
         self.userId = userId
@@ -284,11 +286,11 @@ struct UserArtistResponse: Codable, Identifiable {
     let totalTime: Int          // Total listening time in seconds (from API)
     let artist: ArtistResponse  // Artist information
     let userId: String          // User ID
-    let isPinned: Bool?         // Whether artist is pinned
+    let isPinned: Bool          // Whether artist is pinned (required field)
     let rating: Double?         // User's rating score (1-10)
     
     init(totalTime: Int, artist: ArtistResponse, userId: String, 
-         isPinned: Bool? = nil, rating: Double? = nil) {
+         isPinned: Bool = false, rating: Double? = nil) {
         self.totalTime = totalTime
         self.artist = artist
         self.userId = userId
@@ -312,4 +314,56 @@ struct UserArtistResponse: Codable, Identifiable {
         case totalTime, artist, userId
         case isPinned, rating
     }
+}
+
+// MARK: - New API Response Models for Album/Artist Rankings
+
+/// Response for album tracks with ranking information
+struct AlbumTracksWithRankingsResponse: Codable {
+    let albumId: String
+    let totalTracks: Int
+    let ratedTracks: Int
+    let allTracksRated: Bool
+    let tracks: [AlbumTrackWithRanking]
+}
+
+/// Individual track with ranking within an album
+struct AlbumTrackWithRanking: Codable, Identifiable {
+    let trackId: String
+    let trackName: String
+    let artists: [ArtistInfo]
+    let albumRanking: Int?
+    let trackNumber: Int
+    let hasUserRating: Bool
+    let isPinned: Bool
+    let isFavorite: Bool
+    
+    var id: String { trackId }
+    
+    struct ArtistInfo: Codable {
+        let id: String
+        let name: String
+    }
+}
+
+/// Response for artist albums with user activity and ratings
+struct ArtistAlbumsWithRankingsResponse: Codable {
+    let artistId: String
+    let totalAlbums: Int
+    let ratedAlbums: Int
+    let albums: [ArtistAlbumWithRating]
+}
+
+/// Individual album with rating information for an artist
+struct ArtistAlbumWithRating: Codable, Identifiable {
+    let albumId: String
+    let albumName: String
+    let artistName: String
+    let albumImage: String?
+    let albumRatingScore: Double?
+    let totalListeningTime: Int
+    let releaseDate: String?
+    let trackCount: Int
+    
+    var id: String { albumId }
 }

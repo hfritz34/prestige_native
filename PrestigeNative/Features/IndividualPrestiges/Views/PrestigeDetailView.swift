@@ -19,6 +19,16 @@ struct PrestigeDetailView: View {
     @StateObject private var ratingViewModel = RatingViewModel()
     @StateObject private var pinService = PinService.shared
     
+    // Album tracks data
+    @State private var albumTracksResponse: AlbumTracksWithRankingsResponse?
+    @State private var isLoadingAlbumTracks = false
+    @State private var showAllTracks = false
+    
+    // Artist albums data
+    @State private var artistAlbumsResponse: ArtistAlbumsWithRankingsResponse?
+    @State private var isLoadingArtistAlbums = false
+    @State private var showAllAlbums = false
+    
     var body: some View {
         NavigationView {
             ScrollView {
@@ -31,6 +41,16 @@ struct PrestigeDetailView: View {
                     
                     // Statistics
                     statisticsSection
+                    
+                    // Album tracks section (only for albums)
+                    if item.contentType == .albums {
+                        albumTracksSection
+                    }
+                    
+                    // Artist albums section (only for artists)
+                    if item.contentType == .artists {
+                        artistAlbumsSection
+                    }
                     
                     // Rating Section
                     ratingSection
@@ -521,6 +541,294 @@ struct PrestigeDetailView: View {
             return "\(mins)m"
         }
     }
+    
+    // MARK: - Album Tracks Section
+    
+    private var albumTracksSection: some View {
+        VStack(spacing: 16) {
+            HStack {
+                Text("Album Tracks")
+                    .font(.headline)
+                    .fontWeight(.bold)
+                
+                Spacer()
+                
+                if albumTracksResponse != nil {
+                    Button(showAllTracks ? "Hide Tracks" : "Show All Tracks") {
+                        withAnimation(.easeInOut(duration: 0.3)) {
+                            showAllTracks.toggle()
+                        }
+                    }
+                    .font(.subheadline)
+                    .foregroundColor(.blue)
+                }
+            }
+            
+            if isLoadingAlbumTracks {
+                MusicWaveLoader()
+                    .padding(.vertical, 20)
+            } else if let tracksResponse = albumTracksResponse, showAllTracks {
+                LazyVStack(spacing: 8) {
+                    ForEach(tracksResponse.tracks.indices, id: \.self) { index in
+                        let track = tracksResponse.tracks[index]
+                        HStack(spacing: 12) {
+                            // Album ranking
+                            if let ranking = track.albumRanking {
+                                Text("🏆 #\(ranking)")
+                                    .font(.caption)
+                                    .fontWeight(.bold)
+                                    .foregroundColor(.purple)
+                                    .frame(width: 40, alignment: .leading)
+                            } else {
+                                Text("\(track.trackNumber)")
+                                    .font(.caption)
+                                    .foregroundColor(.secondary)
+                                    .frame(width: 40, alignment: .center)
+                            }
+                            
+                            // Track info
+                            VStack(alignment: .leading, spacing: 2) {
+                                Text(track.trackName)
+                                    .font(.subheadline)
+                                    .fontWeight(track.hasUserRating ? .semibold : .medium)
+                                    .lineLimit(1)
+                                
+                                Text(track.artists.map { $0.name }.joined(separator: ", "))
+                                    .font(.caption)
+                                    .foregroundColor(.secondary)
+                                    .lineLimit(1)
+                            }
+                            
+                            Spacer()
+                            
+                            // Status indicators
+                            HStack(spacing: 4) {
+                                if track.isPinned {
+                                    Text("📌")
+                                        .font(.caption)
+                                }
+                                if track.isFavorite {
+                                    Text("❤️")
+                                        .font(.caption)
+                                }
+                            }
+                        }
+                        .padding(.vertical, 8)
+                        .padding(.horizontal, 12)
+                        .background(
+                            track.hasUserRating 
+                                ? Color(UIColor.secondarySystemBackground)
+                                : Color(UIColor.tertiarySystemBackground).opacity(0.7)
+                        )
+                        .cornerRadius(8)
+                    }
+                }
+                .padding()
+                .background(Color(UIColor.tertiarySystemBackground))
+                .cornerRadius(12)
+            } else if albumTracksResponse == nil {
+                Button("Show All Tracks") {
+                    loadAlbumTracks()
+                    withAnimation(.easeInOut(duration: 0.3)) {
+                        showAllTracks = true
+                    }
+                }
+                .font(.subheadline)
+                .foregroundColor(.blue)
+                .padding(.vertical, 20)
+            }
+        }
+    }
+    
+    // MARK: - Artist Albums Section
+    
+    private var artistAlbumsSection: some View {
+        VStack(spacing: 16) {
+            HStack {
+                Text("Rated Albums")
+                    .font(.headline)
+                    .fontWeight(.bold)
+                
+                Spacer()
+                
+                if artistAlbumsResponse != nil {
+                    Button(showAllAlbums ? "Hide Albums" : "Show Albums") {
+                        withAnimation(.easeInOut(duration: 0.3)) {
+                            showAllAlbums.toggle()
+                        }
+                    }
+                    .font(.subheadline)
+                    .foregroundColor(.blue)
+                }
+            }
+            
+            if isLoadingArtistAlbums {
+                MusicWaveLoader()
+                    .padding(.vertical, 20)
+            } else if let albumsResponse = artistAlbumsResponse, !albumsResponse.albums.isEmpty, showAllAlbums {
+                LazyVStack(spacing: 8) {
+                    ForEach(Array(albumsResponse.albums.enumerated()), id: \.element.id) { index, album in
+                        HStack(spacing: 12) {
+                            // Album rank
+                            Text("#\(index + 1)")
+                                .font(.caption)
+                                .fontWeight(.bold)
+                                .foregroundColor(.purple)
+                                .frame(width: 24, alignment: .center)
+                            
+                            // Album artwork
+                            AsyncImage(url: URL(string: album.albumImage ?? "")) { image in
+                                image
+                                    .resizable()
+                                    .aspectRatio(contentMode: .fill)
+                            } placeholder: {
+                                RoundedRectangle(cornerRadius: 4)
+                                    .fill(Color.gray.opacity(0.3))
+                                    .overlay(
+                                        Image(systemName: "square.stack")
+                                            .foregroundColor(.gray)
+                                            .font(.caption)
+                                    )
+                            }
+                            .frame(width: 40, height: 40)
+                            .clipShape(RoundedRectangle(cornerRadius: 4))
+                            
+                            // Album info
+                            VStack(alignment: .leading, spacing: 2) {
+                                Text(album.albumName)
+                                    .font(.subheadline)
+                                    .fontWeight(.medium)
+                                    .lineLimit(1)
+                                
+                                HStack(spacing: 8) {
+                                    if let releaseDate = album.releaseDate, !releaseDate.isEmpty {
+                                        Text(String(releaseDate.prefix(4)))
+                                            .font(.caption)
+                                            .foregroundColor(.secondary)
+                                        
+                                        Text("•")
+                                            .font(.caption)
+                                            .foregroundColor(.secondary)
+                                    }
+                                    
+                                    Text("\(album.trackCount) tracks")
+                                        .font(.caption)
+                                        .foregroundColor(.secondary)
+                                }
+                            }
+                            
+                            Spacer()
+                            
+                            // Rating
+                            if let rating = album.albumRatingScore {
+                                RatingBadge(score: rating, size: .small)
+                            }
+                        }
+                        .padding(.vertical, 8)
+                        .padding(.horizontal, 12)
+                        .background(Color(UIColor.secondarySystemBackground))
+                        .cornerRadius(8)
+                    }
+                }
+                .padding()
+                .background(Color(UIColor.tertiarySystemBackground))
+                .cornerRadius(12)
+            } else if let albumsResponse = artistAlbumsResponse, albumsResponse.albums.isEmpty {
+                VStack(spacing: 12) {
+                    Image(systemName: "square.stack")
+                        .font(.largeTitle)
+                        .foregroundColor(.gray)
+                    Text("No Rated Albums")
+                        .font(.subheadline)
+                        .foregroundColor(.secondary)
+                    Text("Rate albums by this artist to see them here")
+                        .font(.caption)
+                        .foregroundColor(.secondary)
+                        .multilineTextAlignment(.center)
+                }
+                .padding(.vertical, 30)
+                .frame(maxWidth: .infinity)
+                .background(Color(UIColor.tertiarySystemBackground))
+                .cornerRadius(12)
+            } else if artistAlbumsResponse == nil {
+                Button("Show Rated Albums") {
+                    loadArtistAlbums()
+                    withAnimation(.easeInOut(duration: 0.3)) {
+                        showAllAlbums = true
+                    }
+                }
+                .font(.subheadline)
+                .foregroundColor(.blue)
+                .padding(.vertical, 20)
+            }
+        }
+    }
+    
+    // MARK: - Data Loading Methods
+    
+    private func loadAlbumTracks() {
+        isLoadingAlbumTracks = true
+        
+        Task {
+            do {
+                guard let userId = AuthManager.shared.user?.id else {
+                    print("No user ID available for loading album tracks")
+                    await MainActor.run {
+                        isLoadingAlbumTracks = false
+                    }
+                    return
+                }
+                
+                let tracksResponse = try await APIClient.shared.getAlbumTracksWithRankings(
+                    userId: userId,
+                    albumId: item.spotifyId
+                )
+                
+                await MainActor.run {
+                    albumTracksResponse = tracksResponse
+                    isLoadingAlbumTracks = false
+                }
+            } catch {
+                await MainActor.run {
+                    print("Error loading album tracks: \(error)")
+                    albumTracksResponse = nil
+                    isLoadingAlbumTracks = false
+                }
+            }
+        }
+    }
+    
+    private func loadArtistAlbums() {
+        isLoadingArtistAlbums = true
+        
+        Task {
+            do {
+                guard let userId = AuthManager.shared.user?.id else {
+                    print("No user ID available for loading artist albums")
+                    await MainActor.run {
+                        isLoadingArtistAlbums = false
+                    }
+                    return
+                }
+                
+                let albumsResponse = try await APIClient.shared.getArtistAlbumsWithUserActivity(
+                    userId: userId,
+                    artistId: item.spotifyId
+                )
+                
+                await MainActor.run {
+                    artistAlbumsResponse = albumsResponse
+                    isLoadingArtistAlbums = false
+                }
+            } catch {
+                await MainActor.run {
+                    print("Error loading artist albums: \(error)")
+                    artistAlbumsResponse = nil
+                    isLoadingArtistAlbums = false
+                }
+            }
+        }
+    }
 }
 
 // MARK: - Supporting Views
@@ -558,8 +866,6 @@ struct PrestigeProgressBar: View {
 }
 
 // MARK: - Extensions
-
-// Note: Type detection now handled by explicit contentType property
 
 extension ContentType {
     var iconName: String {

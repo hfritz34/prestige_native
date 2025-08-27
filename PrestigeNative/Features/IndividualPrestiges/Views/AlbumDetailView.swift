@@ -13,8 +13,9 @@ struct AlbumDetailView: View {
     let rank: Int
     
     @State private var showAllTracks = false
-    @State private var albumTracks: [AlbumTrackItem] = []
+    @State private var albumTracksResponse: AlbumTracksWithRankingsResponse?
     @State private var isLoadingTracks = false
+    @StateObject private var pinService = PinService.shared
     @Environment(\.dismiss) private var dismiss
     
     var body: some View {
@@ -75,7 +76,7 @@ struct AlbumDetailView: View {
                         .multilineTextAlignment(.center)
                     
                     // Pin indicator
-                    if album.isPinned == true {
+                    if album.isPinned {
                         Text("📌")
                             .font(.title3)
                     }
@@ -101,10 +102,7 @@ struct AlbumDetailView: View {
     private var albumProgressSection: some View {
         VStack(spacing: 16) {
             // Progress Stats
-            let ratedCount = albumTracks.filter { $0.isRated }.count
-            let totalCount = albumTracks.count
-            
-            if totalCount > 0 {
+            if let tracksResponse = albumTracksResponse {
                 VStack(spacing: 12) {
                     HStack {
                         Text("Album Tracks")
@@ -114,11 +112,11 @@ struct AlbumDetailView: View {
                         Spacer()
                         
                         HStack(spacing: 4) {
-                            Text("\(ratedCount) of \(totalCount) tracks rated")
+                            Text("\(tracksResponse.ratedTracks) of \(tracksResponse.totalTracks) tracks rated")
                                 .font(.subheadline)
                                 .foregroundColor(.secondary)
                             
-                            if isCompleteAlbum {
+                            if tracksResponse.allTracksRated {
                                 Text("⭐ Complete!")
                                     .font(.subheadline)
                                     .foregroundColor(.yellow)
@@ -128,7 +126,7 @@ struct AlbumDetailView: View {
                     }
                     
                     // Progress bar
-                    ProgressView(value: Double(ratedCount), total: Double(totalCount))
+                    ProgressView(value: Double(tracksResponse.ratedTracks), total: Double(tracksResponse.totalTracks))
                         .progressViewStyle(LinearProgressViewStyle(tint: .purple))
                         .scaleEffect(y: 2)
                 }
@@ -145,6 +143,11 @@ struct AlbumDetailView: View {
             Button(action: {
                 withAnimation(.easeInOut(duration: 0.3)) {
                     showAllTracks.toggle()
+                }
+                
+                // Load tracks if showing and not already loaded
+                if showAllTracks && albumTracksResponse == nil && !isLoadingTracks {
+                    loadAlbumTracks()
                 }
             }) {
                 HStack {
@@ -175,25 +178,25 @@ struct AlbumDetailView: View {
     private var trackListContent: some View {
         VStack(spacing: 8) {
             if isLoadingTracks {
-                CompactBeatVisualizer(isPlaying: true)
+                MusicWaveLoader()
                     .padding(.vertical, 20)
-            } else if albumTracks.isEmpty {
-                Text("No track data available")
-                    .font(.subheadline)
-                    .foregroundColor(.secondary)
-                    .padding(.vertical, 20)
-            } else {
+            } else if let tracksResponse = albumTracksResponse, !tracksResponse.tracks.isEmpty {
                 LazyVStack(spacing: 4) {
-                    ForEach(albumTracks.indices, id: \.self) { index in
+                    ForEach(tracksResponse.tracks.indices, id: \.self) { index in
                         AlbumTrackRow(
-                            track: albumTracks[index],
-                            trackNumber: index + 1
+                            track: tracksResponse.tracks[index],
+                            trackNumber: tracksResponse.tracks[index].trackNumber
                         )
                     }
                 }
                 .padding()
                 .background(Color(UIColor.tertiarySystemBackground))
                 .cornerRadius(12)
+            } else {
+                Text("No track data available")
+                    .font(.subheadline)
+                    .foregroundColor(.secondary)
+                    .padding(.vertical, 20)
             }
         }
     }
@@ -203,16 +206,16 @@ struct AlbumDetailView: View {
             // Pin button
             Button(action: {
                 Task {
-                    let _ = await PinService.shared.togglePin(itemId: album.album.id, itemType: .albums)
+                    let _ = await pinService.togglePin(itemId: album.album.id, itemType: .albums)
                 }
             }) {
                 HStack {
                     Text("📌")
-                    Text(PinService.shared.isItemPinned(itemId: album.album.id, itemType: .albums) ? "Pinned" : "Pin")
+                    Text(pinService.isItemPinned(itemId: album.album.id, itemType: .albums) ? "Pinned" : "Pin")
                 }
                 .frame(maxWidth: .infinity)
                 .padding()
-                .background(PinService.shared.isItemPinned(itemId: album.album.id, itemType: .albums) ? Color.yellow.opacity(0.3) : Color(UIColor.secondarySystemBackground))
+                .background(pinService.isItemPinned(itemId: album.album.id, itemType: .albums) ? Color.yellow.opacity(0.3) : Color(UIColor.secondarySystemBackground))
                 .foregroundColor(.primary)
                 .cornerRadius(12)
             }
@@ -237,8 +240,7 @@ struct AlbumDetailView: View {
     // MARK: - Computed Properties
     
     private var isCompleteAlbum: Bool {
-        let ratedCount = albumTracks.filter { $0.isRated }.count
-        return ratedCount == albumTracks.count && albumTracks.count > 0
+        return albumTracksResponse?.allTracksRated ?? false
     }
     
     // MARK: - Data Loading
@@ -257,29 +259,19 @@ struct AlbumDetailView: View {
                 }
                 
                 // Get album tracks with rankings from prestige API
-                let tracksResponse = try await APIClient.shared.get(
-                    "prestige/\(userId)/albums/\(album.album.id)/tracks", 
-                    responseType: AlbumTracksWithRankingsResponse.self
+                let tracksResponse = try await APIClient.shared.getAlbumTracksWithRankings(
+                    userId: userId,
+                    albumId: album.album.id
                 )
                 
                 await MainActor.run {
-                    albumTracks = tracksResponse.tracks.map { track in
-                        AlbumTrackItem(
-                            id: track.trackId,
-                            name: track.trackName,
-                            artists: track.artists.map { $0.name },
-                            albumRanking: track.albumRanking,
-                            isRated: track.hasUserRating,
-                            isPinned: track.isPinned,
-                            isFavorite: track.isFavorite
-                        )
-                    }
+                    albumTracksResponse = tracksResponse
                     isLoadingTracks = false
                 }
             } catch {
                 await MainActor.run {
                     print("Error loading album tracks: \(error)")
-                    albumTracks = []
+                    albumTracksResponse = nil
                     isLoadingTracks = false
                 }
             }
@@ -287,52 +279,11 @@ struct AlbumDetailView: View {
     }
 }
 
-// MARK: - Album Track Response Models
-
-struct AlbumTracksWithRankingsResponse: Codable {
-    let albumId: String
-    let totalTracks: Int
-    let ratedTracks: Int
-    let allTracksRated: Bool
-    let tracks: [AlbumTrackResponse]
-}
-
-struct AlbumTrackResponse: Codable {
-    let trackId: String
-    let trackName: String
-    let artists: [ArtistInfo]
-    let durationMs: Int
-    let trackNumber: Int
-    let userListeningTime: Int
-    let userRating: Double?
-    let hasUserRating: Bool
-    let albumRanking: Int?
-    let isPinned: Bool
-    let isFavorite: Bool
-    let isFromDatabase: Bool
-    
-    struct ArtistInfo: Codable {
-        let id: String
-        let name: String
-    }
-}
-
-// MARK: - Album Track Item Model
-
-struct AlbumTrackItem: Identifiable, Codable {
-    let id: String
-    let name: String
-    let artists: [String]
-    let albumRanking: Int? // 1 = best track in album
-    let isRated: Bool
-    let isPinned: Bool
-    let isFavorite: Bool
-}
 
 // MARK: - Album Track Row
 
 struct AlbumTrackRow: View {
-    let track: AlbumTrackItem
+    let track: AlbumTrackWithRanking
     let trackNumber: Int
     @StateObject private var pinService = PinService.shared
     
@@ -362,12 +313,12 @@ struct AlbumTrackRow: View {
             
             // Track info
             VStack(alignment: .leading, spacing: 2) {
-                Text(track.name)
+                Text(track.trackName)
                     .font(.subheadline)
-                    .fontWeight(track.isRated ? .semibold : .medium)
+                    .fontWeight(track.hasUserRating ? .semibold : .medium)
                     .lineLimit(1)
                 
-                Text(track.artists.joined(separator: ", "))
+                Text(track.artists.map { $0.name }.joined(separator: ", "))
                     .font(.caption)
                     .foregroundColor(.secondary)
                     .lineLimit(1)
@@ -386,7 +337,7 @@ struct AlbumTrackRow: View {
         .padding(.vertical, 10)
         .padding(.horizontal, 12)
         .background(
-            track.isRated 
+            track.hasUserRating 
                 ? Color(UIColor.secondarySystemBackground)
                 : Color(UIColor.tertiarySystemBackground).opacity(0.7)
         )

@@ -58,8 +58,15 @@ class PinService: ObservableObject {
             throw PinServiceError.noUserId
         }
         
-        let endpoint = "prestige/\(userId)/\(itemType.pinApiValue)s/\(itemId)/pin"
-        try await apiClient.postWithoutResponse(endpoint, body: EmptyRequest())
+        // Use the new dedicated pin methods from APIClient
+        switch itemType {
+        case .tracks:
+            try await apiClient.togglePinTrack(userId: userId, trackId: itemId)
+        case .albums:
+            try await apiClient.togglePinAlbum(userId: userId, albumId: itemId)
+        case .artists:
+            try await apiClient.togglePinArtist(userId: userId, artistId: itemId)
+        }
     }
     
     private func unpinItem(itemId: String, itemType: ContentType) async throws {
@@ -67,8 +74,15 @@ class PinService: ObservableObject {
             throw PinServiceError.noUserId
         }
         
-        let endpoint = "prestige/\(userId)/\(itemType.pinApiValue)s/\(itemId)/pin"
-        try await apiClient.postWithoutResponse(endpoint, body: EmptyRequest())
+        // Use the same toggle endpoint - it handles both pin and unpin
+        switch itemType {
+        case .tracks:
+            try await apiClient.togglePinTrack(userId: userId, trackId: itemId)
+        case .albums:
+            try await apiClient.togglePinAlbum(userId: userId, albumId: itemId)
+        case .artists:
+            try await apiClient.togglePinArtist(userId: userId, artistId: itemId)
+        }
     }
     
     func loadPinnedItems() async {
@@ -78,7 +92,7 @@ class PinService: ObservableObject {
                 return
             }
             
-            let pinnedItemsResponse = try await apiClient.get("prestige/\(userId)/pinned", responseType: PinnedItemsResponse.self)
+            let pinnedItemsResponse = try await apiClient.getPinnedItems(userId: userId)
             
             pinnedTracks = Set(pinnedItemsResponse.tracks.map { $0.track.id })
             pinnedAlbums = Set(pinnedItemsResponse.albums.map { $0.album.id })

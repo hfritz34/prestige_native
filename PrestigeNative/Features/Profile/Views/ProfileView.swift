@@ -79,9 +79,13 @@ struct ProfileView: View {
             if let userId = authManager.user?.id {
                 Task {
                     await viewModel.loadProfileDataSynchronously(userId: userId)
-                    withAnimation(.easeInOut(duration: 0.5)) {
-                        hasInitiallyLoaded = true
-                    }
+                }
+            }
+        }
+        .onChange(of: viewModel.isLoading) { _, isLoading in
+            if !isLoading && !hasInitiallyLoaded {
+                withAnimation(.easeInOut(duration: 0.5)) {
+                    hasInitiallyLoaded = true
                 }
             }
         }

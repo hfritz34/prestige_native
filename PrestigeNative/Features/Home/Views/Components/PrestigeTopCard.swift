@@ -121,7 +121,7 @@ struct PrestigeDisplayItem {
             contentType: .tracks,
             albumPosition: track.albumPosition,
             rating: track.rating,
-            isPinned: track.isPinned ?? false
+            isPinned: track.isPinned
         )
     }
     
@@ -136,7 +136,7 @@ struct PrestigeDisplayItem {
             contentType: .albums,
             albumPosition: nil,
             rating: album.rating,
-            isPinned: album.isPinned ?? false
+            isPinned: album.isPinned
         )
     }
     
@@ -151,7 +151,7 @@ struct PrestigeDisplayItem {
             contentType: .artists,
             albumPosition: nil,
             rating: artist.rating,
-            isPinned: artist.isPinned ?? false
+            isPinned: artist.isPinned
         )
     }
     

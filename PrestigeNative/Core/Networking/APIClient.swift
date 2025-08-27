@@ -703,4 +703,42 @@ extension APIClient {
         let endpoint = APIEndpoints.itemDetails(itemType: itemType, itemId: itemId)
         return try await get(endpoint, responseType: RatingItemData.self)
     }
+    
+    // MARK: - Pin Toggle Methods
+    
+    /// Toggle pin status for track
+    func togglePinTrack(userId: String, trackId: String) async throws {
+        let endpoint = "prestige/\(userId)/tracks/\(trackId)/pin"
+        try await postWithoutResponse(endpoint, body: EmptyBody())
+    }
+    
+    /// Toggle pin status for album
+    func togglePinAlbum(userId: String, albumId: String) async throws {
+        let endpoint = "prestige/\(userId)/albums/\(albumId)/pin"
+        try await postWithoutResponse(endpoint, body: EmptyBody())
+    }
+    
+    /// Toggle pin status for artist
+    func togglePinArtist(userId: String, artistId: String) async throws {
+        let endpoint = "prestige/\(userId)/artists/\(artistId)/pin"
+        try await postWithoutResponse(endpoint, body: EmptyBody())
+    }
+    
+    /// Get album tracks with rankings
+    func getAlbumTracksWithRankings(userId: String, albumId: String) async throws -> AlbumTracksWithRankingsResponse {
+        let endpoint = "prestige/\(userId)/albums/\(albumId)/tracks"
+        return try await get(endpoint, responseType: AlbumTracksWithRankingsResponse.self)
+    }
+    
+    /// Get artist albums with user activity and ratings
+    func getArtistAlbumsWithUserActivity(userId: String, artistId: String) async throws -> ArtistAlbumsWithRankingsResponse {
+        let endpoint = "prestige/\(userId)/artists/\(artistId)/albums"
+        return try await get(endpoint, responseType: ArtistAlbumsWithRankingsResponse.self)
+    }
+    
+    /// Get all pinned items for a user
+    func getPinnedItems(userId: String) async throws -> PinnedItemsResponse {
+        let endpoint = "prestige/\(userId)/pinned"
+        return try await get(endpoint, responseType: PinnedItemsResponse.self)
+    }
 }

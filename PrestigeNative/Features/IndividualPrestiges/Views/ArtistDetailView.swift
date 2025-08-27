@@ -18,9 +18,9 @@ struct ArtistDetailView: View {
     @State private var isPlaying = false
     @StateObject private var ratingViewModel = RatingViewModel()
     @StateObject private var pinService = PinService.shared
-    @State private var ratedAlbums: [RatedAlbumItem] = []
+    @State private var ratedAlbumsResponse: ArtistAlbumsWithRankingsResponse?
     @State private var isLoadingAlbums = false
-    @State private var showAllAlbums = false
+    @State private var showAllAlbums = true
     
     var body: some View {
         NavigationView {
@@ -189,7 +189,7 @@ struct ArtistDetailView: View {
                 
                 StatCard(
                     title: "Rated Albums",
-                    value: "\(ratedAlbums.count)",
+                    value: "\(ratedAlbumsResponse?.ratedAlbums ?? 0)",
                     icon: "square.stack.fill",
                     color: .orange
                 )
@@ -206,8 +206,8 @@ struct ArtistDetailView: View {
                 
                 Spacer()
                 
-                if !ratedAlbums.isEmpty {
-                    Button(showAllAlbums ? "Show Less" : "Show All") {
+                if let response = ratedAlbumsResponse, !response.albums.isEmpty {
+                    Button(showAllAlbums ? "Hide Albums" : "Show Albums") {
                         withAnimation(.easeInOut(duration: 0.3)) {
                             showAllAlbums.toggle()
                         }
@@ -219,9 +219,22 @@ struct ArtistDetailView: View {
             
             // Albums content
             if isLoadingAlbums {
-                CompactBeatVisualizer(isPlaying: true)
+                MusicWaveLoader()
                     .padding(.vertical, 20)
-            } else if ratedAlbums.isEmpty {
+            } else if let response = ratedAlbumsResponse, !response.albums.isEmpty, showAllAlbums {
+                LazyVStack(spacing: 8) {
+                    ForEach(Array(response.albums.enumerated()), id: \.element.id) { index, album in
+                        RatedAlbumRow(
+                            album: album,
+                            rank: index + 1
+                        )
+                        .transition(.opacity.combined(with: .scale(scale: 0.95)))
+                    }
+                }
+                .padding()
+                .background(Color(UIColor.tertiarySystemBackground))
+                .cornerRadius(12)
+            } else if let response = ratedAlbumsResponse, response.albums.isEmpty {
                 VStack(spacing: 12) {
                     Image(systemName: "square.stack")
                         .font(.largeTitle)
@@ -236,21 +249,6 @@ struct ArtistDetailView: View {
                 }
                 .padding(.vertical, 30)
                 .frame(maxWidth: .infinity)
-                .background(Color(UIColor.tertiarySystemBackground))
-                .cornerRadius(12)
-            } else {
-                LazyVStack(spacing: 8) {
-                    let displayedAlbums = showAllAlbums ? ratedAlbums : Array(ratedAlbums.prefix(3))
-                    
-                    ForEach(Array(displayedAlbums.enumerated()), id: \.element.id) { index, album in
-                        RatedAlbumRow(
-                            album: album,
-                            rank: index + 1
-                        )
-                        .transition(.opacity.combined(with: .scale(scale: 0.95)))
-                    }
-                }
-                .padding()
                 .background(Color(UIColor.tertiarySystemBackground))
                 .cornerRadius(12)
             }
@@ -446,26 +444,32 @@ struct ArtistDetailView: View {
     private func loadRatedAlbums() async {
         isLoadingAlbums = true
         
-        // TODO: Replace with actual API call
-        // For now, simulate loading with mock data
-        DispatchQueue.main.asyncAfter(deadline: .now() + 1.0) {
-            ratedAlbums = createMockRatedAlbums()
-            isLoadingAlbums = false
-        }
-    }
-    
-    private func createMockRatedAlbums() -> [RatedAlbumItem] {
-        // Mock data - replace with actual API call
-        return (1...5).map { index in
-            RatedAlbumItem(
-                id: "album_\(index)",
-                albumName: "Album \(index)",
-                imageUrl: "https://example.com/album\(index).jpg",
-                rating: Double.random(in: 6.0...10.0),
-                listeningTimeMinutes: Int.random(in: 200...2000),
-                trackCount: Int.random(in: 8...16),
-                releaseYear: 2020 - index
-            )
+        Task {
+            do {
+                guard let userId = AuthManager.shared.user?.id else {
+                    print("No user ID available for loading rated albums")
+                    await MainActor.run {
+                        isLoadingAlbums = false
+                    }
+                    return
+                }
+                
+                let albumsResponse = try await APIClient.shared.getArtistAlbumsWithUserActivity(
+                    userId: userId,
+                    artistId: item.spotifyId
+                )
+                
+                await MainActor.run {
+                    ratedAlbumsResponse = albumsResponse
+                    isLoadingAlbums = false
+                }
+            } catch {
+                await MainActor.run {
+                    print("Error loading rated albums: \(error)")
+                    ratedAlbumsResponse = nil
+                    isLoadingAlbums = false
+                }
+            }
         }
     }
     
@@ -578,22 +582,10 @@ struct ArtistDetailView: View {
     }
 }
 
-// MARK: - Supporting Models
-
-struct RatedAlbumItem: Identifiable {
-    let id: String
-    let albumName: String
-    let imageUrl: String?
-    let rating: Double
-    let listeningTimeMinutes: Int
-    let trackCount: Int
-    let releaseYear: Int
-}
-
 // MARK: - Supporting Views
 
 struct RatedAlbumRow: View {
-    let album: RatedAlbumItem
+    let album: ArtistAlbumWithRating
     let rank: Int
     
     var body: some View {
@@ -606,7 +598,7 @@ struct RatedAlbumRow: View {
                 .frame(width: 24, alignment: .center)
             
             // Album artwork
-            AsyncImage(url: URL(string: album.imageUrl ?? "")) { image in
+            AsyncImage(url: URL(string: album.albumImage ?? "")) { image in
                 image
                     .resizable()
                     .aspectRatio(contentMode: .fill)
@@ -630,13 +622,15 @@ struct RatedAlbumRow: View {
                     .lineLimit(1)
                 
                 HStack(spacing: 8) {
-                    Text("\(album.releaseYear)")
-                        .font(.caption)
-                        .foregroundColor(.secondary)
-                    
-                    Text("•")
-                        .font(.caption)
-                        .foregroundColor(.secondary)
+                    if let releaseDate = album.releaseDate, !releaseDate.isEmpty {
+                        Text(String(releaseDate.prefix(4)))
+                            .font(.caption)
+                            .foregroundColor(.secondary)
+                        
+                        Text("•")
+                            .font(.caption)
+                            .foregroundColor(.secondary)
+                    }
                     
                     Text("\(album.trackCount) tracks")
                         .font(.caption)
@@ -648,9 +642,11 @@ struct RatedAlbumRow: View {
             
             // Rating and stats
             VStack(alignment: .trailing, spacing: 2) {
-                RatingBadge(score: album.rating, size: .small)
+                if let rating = album.albumRatingScore {
+                    RatingBadge(score: rating, size: .small)
+                }
                 
-                Text(TimeFormatter.formatListeningTime(album.listeningTimeMinutes * 60 * 1000))
+                Text(TimeFormatter.formatListeningTime(album.totalListeningTime * 1000))
                     .font(.caption2)
                     .foregroundColor(.secondary)
             }

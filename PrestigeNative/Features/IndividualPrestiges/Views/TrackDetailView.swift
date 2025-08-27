@@ -12,7 +12,7 @@ struct TrackDetailView: View {
     let track: UserTrackResponse
     let rank: Int?
     
-    @State private var albumTracks: AlbumTracksWithRankingsResponse?
+    @State private var albumTracksResponse: AlbumTracksWithRankingsResponse?
     @State private var isLoadingAlbumData = false
     @StateObject private var pinService = PinService.shared
     @Environment(\.dismiss) private var dismiss
@@ -150,7 +150,7 @@ struct TrackDetailView: View {
                         .font(.title2)
                         .fontWeight(.bold)
                 } else if let albumRanking = currentTrackAlbumRanking,
-                          let totalTracks = albumTracks?.totalTracks {
+                          let totalTracks = albumTracksResponse?.totalTracks {
                     Text("🏆 #\(albumRanking) of \(totalTracks)")
                         .font(.title2)
                         .fontWeight(.bold)
@@ -224,7 +224,7 @@ struct TrackDetailView: View {
     // MARK: - Computed Properties
     
     private var currentTrackAlbumRanking: Int? {
-        return albumTracks?.tracks.first { $0.trackId == track.track.id }?.albumRanking
+        return albumTracksResponse?.tracks.first { $0.trackId == track.track.id }?.albumRanking
     }
     
     // MARK: - Data Loading
@@ -243,13 +243,13 @@ struct TrackDetailView: View {
                 }
                 
                 // Get album tracks with rankings from prestige API
-                let albumData = try await APIClient.shared.get(
-                    "prestige/\(userId)/albums/\(track.track.album.id)/tracks", 
-                    responseType: AlbumTracksWithRankingsResponse.self
+                let albumData = try await APIClient.shared.getAlbumTracksWithRankings(
+                    userId: userId,
+                    albumId: track.track.album.id
                 )
                 
                 await MainActor.run {
-                    albumTracks = albumData
+                    albumTracksResponse = albumData
                     isLoadingAlbumData = false
                 }
             } catch {

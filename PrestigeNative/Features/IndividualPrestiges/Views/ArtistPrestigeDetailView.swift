@@ -287,35 +287,17 @@ struct ArtistPrestigeDetailView: View {
     }
 }
 
-// MARK: - Artist Album Response Models
-
-struct ArtistAlbumsWithRankingsResponse: Codable {
-    let artistId: String
-    let totalAlbums: Int
-    let albums: [ArtistAlbumResponse]
-}
-
-struct ArtistAlbumResponse: Codable {
-    let albumId: String
-    let albumName: String
-    let artistName: String
-    let albumImage: String
-    let albumRatingScore: Double?
-    let totalTime: Int
-    let isPinned: Bool
-    let isFavorite: Bool
-}
 
 // MARK: - Artist Album Row
 
 struct ArtistAlbumRow: View {
-    let album: ArtistAlbumResponse
+    let album: ArtistAlbumWithRating
     
     var body: some View {
         HStack(spacing: 12) {
             // Album image
             CachedAsyncImage(
-                url: album.albumImage,
+                url: album.albumImage ?? "",
                 placeholder: Image(systemName: "square.stack"),
                 contentMode: .fill,
                 maxWidth: 50,
@@ -330,7 +312,7 @@ struct ArtistAlbumRow: View {
                     .fontWeight(.medium)
                     .lineLimit(1)
                 
-                Text("\(Int(album.totalTime / 60)) minutes")
+                Text("\(Int(album.totalListeningTime / 60)) minutes")
                     .font(.caption)
                     .foregroundColor(.secondary)
                     .lineLimit(1)
@@ -338,16 +320,9 @@ struct ArtistAlbumRow: View {
             
             Spacer()
             
-            // Status indicators
-            HStack(spacing: 8) {
-                if album.isPinned {
-                    Text("📌")
-                        .font(.caption)
-                }
-                if album.isFavorite {
-                    Text("❤️")
-                        .font(.caption)
-                }
+            // Rating display
+            if let rating = album.albumRatingScore {
+                RatingBadge(score: rating, size: .small)
             }
         }
         .padding(.vertical, 8)

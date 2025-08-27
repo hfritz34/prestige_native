@@ -134,7 +134,8 @@ struct TopItemCard: View {
                     album: .init(id: "album_id", name: "Sample Album", images: []),
                     artists: [.init(id: "artist_id", name: "Sample Artist")]
                 ),
-                userId: "user1"
+                userId: "user1",
+                isPinned: false
             )
         )
     }

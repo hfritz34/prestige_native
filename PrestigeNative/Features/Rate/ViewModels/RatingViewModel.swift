@@ -262,6 +262,16 @@ class RatingViewModel: ObservableObject {
         selectedCategory = nil
         existingRating = nil
         
+        // Ensure categories are loaded before proceeding
+        if categories.isEmpty {
+            do {
+                _ = try await ratingService.fetchCategories()
+            } catch {
+                self.error = "Failed to load rating categories: \(error.localizedDescription)"
+                return
+            }
+        }
+        
         // Check for existing rating
         do {
             let server = try await ratingService.initializeRating(

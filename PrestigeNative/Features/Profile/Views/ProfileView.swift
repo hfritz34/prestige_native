@@ -17,6 +17,7 @@ struct ProfileView: View {
     @State private var showingSettings = false
     @State private var selectedPrestige: PrestigeSelection?
     @State private var hasInitiallyLoaded = false
+    @State private var minimumLoadingTime = false
     
     var body: some View {
         ZStack {
@@ -69,8 +70,8 @@ struct ProfileView: View {
             .opacity(hasInitiallyLoaded ? 1 : 0)
             .animation(.easeInOut(duration: 0.3), value: hasInitiallyLoaded)
             
-            // Full-screen loading overlay
-            if viewModel.isLoading && !hasInitiallyLoaded {
+            // Full-screen loading overlay - show until both data is loaded AND minimum time elapsed
+            if (viewModel.isLoading || !minimumLoadingTime) && !hasInitiallyLoaded {
                 BeatVisualizerLoadingView(message: "Loading your profile...")
                     .transition(.opacity.combined(with: .scale(scale: 0.95)))
             }
@@ -78,16 +79,24 @@ struct ProfileView: View {
         .onAppear {
             if let userId = authManager.user?.id {
                 Task {
+                    // Start minimum loading timer (2.5 seconds)
+                    Task {
+                        try await Task.sleep(nanoseconds: 2_500_000_000)
+                        await MainActor.run {
+                            minimumLoadingTime = true
+                        }
+                    }
+                    
+                    // Load profile data
                     await viewModel.loadProfileDataSynchronously(userId: userId)
                 }
             }
         }
         .onChange(of: viewModel.isLoading) { _, isLoading in
-            if !isLoading && !hasInitiallyLoaded {
-                withAnimation(.easeInOut(duration: 0.5)) {
-                    hasInitiallyLoaded = true
-                }
-            }
+            checkIfReadyToShow()
+        }
+        .onChange(of: minimumLoadingTime) { _, _ in
+            checkIfReadyToShow()
         }
         .preloadAlbumImages(viewModel.topAlbums)
         .preloadTrackImages(viewModel.topTracks)
@@ -484,6 +493,15 @@ struct ProfileView: View {
     }
     
     // MARK: - Helper Functions
+    
+    /// Check if ready to show content (both data loaded and minimum time elapsed)
+    private func checkIfReadyToShow() {
+        if !viewModel.isLoading && minimumLoadingTime && !hasInitiallyLoaded {
+            withAnimation(.easeInOut(duration: 0.5)) {
+                hasInitiallyLoaded = true
+            }
+        }
+    }
     
     private func convertRatedItemToPrestigeDisplayItem(_ ratedItem: RatedItem) -> PrestigeDisplayItem {
         let contentType: ContentType

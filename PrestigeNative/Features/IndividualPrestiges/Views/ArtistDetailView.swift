@@ -63,6 +63,9 @@ struct ArtistDetailView: View {
         }
         .onAppear {
             Task {
+                // Inject AuthManager into RatingViewModel
+                await ratingViewModel.setAuthManager(AuthManager.shared)
+                
                 await loadItemRating()
                 await loadRatedAlbums()
                 await pinService.loadPinnedItems()

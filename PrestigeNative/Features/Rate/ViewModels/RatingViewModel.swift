@@ -29,6 +29,9 @@ class RatingViewModel: ObservableObject {
     @Published var currentRatingItem: RatingItemData?
     @Published var existingRating: Rating?
     
+    // Track current item's album ID for track comparison filtering
+    private var currentItemAlbumId: String?
+    
     @Published var comparisonItems: [RatingItemData] = []
     @Published var currentComparisonIndex = 0
     @Published var comparisons: [ComparisonPair] = []
@@ -218,6 +221,7 @@ class RatingViewModel: ObservableObject {
                     imageUrl: nil,
                     artists: nil,
                     albumName: nil,
+                    albumId: rating.albumId,
                     itemType: rating.itemType
                 )
             }
@@ -244,6 +248,7 @@ class RatingViewModel: ObservableObject {
                 imageUrl: item.imageUrl,
                 artists: item.artists,
                 albumName: item.albumName,
+                albumId: nil,
                 itemType: RatingItemType(rawValue: item.itemType) ?? selectedItemType
             )
         }
@@ -262,6 +267,14 @@ class RatingViewModel: ObservableObject {
         selectedCategory = nil
         existingRating = nil
         
+        // Ensure selectedItemType matches the item being rated
+        selectedItemType = item.itemType
+        // Prefer albumId from the item payload when rating tracks; fallback to server init later
+        if item.itemType == .track {
+            currentItemAlbumId = item.albumId
+        }
+        print("🔵 RatingViewModel: startRating - selectedItemType set to: \(selectedItemType.rawValue)")
+        
         // Ensure categories are loaded before proceeding
         if categories.isEmpty {
             do {
@@ -272,12 +285,28 @@ class RatingViewModel: ObservableObject {
             }
         }
         
+        // Always load fresh user ratings for the selected type before comparisons
+        // Web does this on every rate flow start to ensure latest data
+        do {
+            _ = try await ratingService.fetchUserRatings(itemType: item.itemType)
+        } catch {
+            print("Failed to prefetch user ratings for \(item.itemType.rawValue): \(error)")
+            // Continue; flow can still proceed (will treat as first rating if none loaded)
+        }
+        
         // Check for existing rating
         do {
             let server = try await ratingService.initializeRating(
                 itemType: item.itemType,
                 itemId: item.id
             )
+            
+            // Store album ID for track comparison filtering, but don't overwrite a known albumId with nil
+            if let serverAlbumId = server.albumId, !serverAlbumId.isEmpty {
+                currentItemAlbumId = serverAlbumId
+            }
+            print("🔵 RatingViewModel: startRating - itemType: \(item.itemType.rawValue), itemId: \(item.id)")
+            print("🔵 RatingViewModel: Server response albumId: \(server.albumId ?? "nil")")
             
             if server.isNewRating == false,
                let catId = server.categoryId,
@@ -310,12 +339,25 @@ class RatingViewModel: ObservableObject {
             prepareComparisons()
         } else {
             // For new ratings, check if there are items to compare
-            let categoryRatings = getRatingsInCategory(category)
+            let itemTypeInfo = selectedItemType == .track ? "track (albumId: \(currentItemAlbumId ?? "nil"))" : selectedItemType.rawValue
+            print("🔵 RatingViewModel: selectCategory - checking for items to compare for \(itemTypeInfo)")
+            let categoryRatings = getRatingsInCategory(category, albumId: currentItemAlbumId)
+            print("🔵 Ratings Debug: albumId=\(currentItemAlbumId ?? "nil"), allTypeRatings=\(userRatings[selectedItemType.rawValue]?.count ?? 0), partitionFiltered=\(categoryRatings.count)")
             
             if categoryRatings.isEmpty {
+                if selectedItemType == .track {
+                    print("✅ RatingViewModel: First track in this album's \(category.name) category - assigning position 0")
+                } else {
+                    print("✅ RatingViewModel: First \(selectedItemType.rawValue) in \(category.name) category - assigning position 0")
+                }
                 // No items to compare, assign top position
                 saveRating(position: 0)
             } else {
+                if selectedItemType == .track {
+                    print("🔵 RatingViewModel: Found \(categoryRatings.count) other rated tracks in same album - starting album-scoped comparisons")
+                } else {
+                    print("🔵 RatingViewModel: Found \(categoryRatings.count) other rated \(selectedItemType.rawValue)s - starting comparisons")
+                }
                 prepareComparisons()
             }
         }
@@ -325,8 +367,61 @@ class RatingViewModel: ObservableObject {
         guard let category = selectedCategory,
               let item = currentRatingItem else { return }
         
-        // Get existing ratings in the selected category
-        let categoryRatings = getRatingsInCategory(category)
+        // Get existing ratings in the selected category, filtered by album for tracks
+        var categoryRatings = getRatingsInCategory(category, albumId: currentItemAlbumId)
+
+        // If item is track and we have zero candidates but user has other track ratings,
+        // attempt to enrich missing albumIds from metadata and retry once
+        if item.itemType == .track,
+           categoryRatings.isEmpty,
+           let allTrackRatings = userRatings[RatingItemType.track.rawValue],
+           !allTrackRatings.isEmpty {
+            // Find ratings in this category with missing albumId
+            let missingAlbumRatings = allTrackRatings.filter { $0.categoryId == category.id && $0.albumId == nil }
+            if !missingAlbumRatings.isEmpty {
+                Task {
+                    let itemsToFetch = missingAlbumRatings.map { (id: $0.itemId, type: RatingItemType.track) }
+                    let details = await libraryService.getItemDetailsBatch(items: itemsToFetch)
+                    // Update cache for these items (albumName/Id available in ItemDetailsResponse)
+                    await MainActor.run {
+                        for d in details {
+                            let updated = RatingItemData(
+                                id: d.id,
+                                name: d.name,
+                                imageUrl: d.imageUrl,
+                                artists: d.artists,
+                                albumName: d.albumName,
+                                albumId: d.albumId,
+                                itemType: .track
+                            )
+                            itemCache[d.id] = updated
+                        }
+                    }
+                    // Retry computing candidates
+                    let retried = getRatingsInCategory(category, albumId: currentItemAlbumId)
+                    await MainActor.run {
+                        categoryRatings = retried
+                        if categoryRatings.isEmpty {
+                            // Still empty, save as first in category
+                            saveRating(position: 0)
+                        } else {
+                            // Proceed with comparisons
+                            let sortedRatings = categoryRatings.sorted { $0.personalScore > $1.personalScore }
+                            binarySearchState = BinarySearchState(
+                                sortedRatings: sortedRatings,
+                                leftIndex: 0,
+                                rightIndex: sortedRatings.count - 1,
+                                currentMidIndex: sortedRatings.count / 2,
+                                comparisonResults: [],
+                                finalPosition: nil
+                            )
+                            startNextComparison()
+                        }
+                    }
+                }
+                return
+            }
+        }
         
         // If there are no items to compare, save immediately at top position
         guard !categoryRatings.isEmpty else {
@@ -386,6 +481,7 @@ class RatingViewModel: ObservableObject {
                 imageUrl: nil,
                 artists: nil,
                 albumName: nil,
+                albumId: nil,
                 itemType: comparisonRating.itemType
             )
             
@@ -403,6 +499,7 @@ class RatingViewModel: ObservableObject {
                         imageUrl: itemDetails.imageUrl,
                         artists: itemDetails.artists,
                         albumName: itemDetails.albumName,
+                        albumId: itemDetails.albumId ?? (comparisonRating.itemType == .track ? self.currentItemAlbumId : nil),
                         itemType: comparisonRating.itemType
                     )
                     
@@ -531,10 +628,52 @@ class RatingViewModel: ObservableObject {
     
     // MARK: - Helper Methods
     
-    private func getRatingsInCategory(_ category: RatingCategoryModel) -> [Rating] {
-        return userRatings[selectedItemType.rawValue]?
-            .filter { $0.categoryId == category.id }
-            .sorted { $0.personalScore > $1.personalScore } ?? []  // Sort by score descending (highest first)
+    private func getRatingsInCategory(_ category: RatingCategoryModel, albumId: String? = nil) -> [Rating] {
+        // Partition gating via score range (matches web behavior)
+        let allTypeRatings = userRatings[selectedItemType.rawValue] ?? []
+        let categoryRatings = allTypeRatings.filter { rating in
+            rating.personalScore >= category.minScore && rating.personalScore <= category.maxScore
+        }
+        
+        print("🔵 RatingViewModel: getRatingsInCategory - itemType: \(selectedItemType.rawValue), category: \(category.name)")
+        print("🔵 RatingViewModel: Total category ratings: \(categoryRatings.count)")
+        
+        // For tracks, filter by album to only compare tracks within the same album
+        if selectedItemType == .track {
+            print("🔵 RatingViewModel: Filtering tracks by album - provided albumId: \(albumId ?? "nil")")
+            
+            guard let albumId = albumId else {
+                print("❌ RatingViewModel: No albumId provided for track comparison - cannot filter by album")
+                // If we don't have albumId for a track, this should not happen normally,
+                // but return empty to be safe and trigger position 0
+                return []
+            }
+            
+            // Primary filter using rating.albumId; fallback to itemCache metadata when albumId is missing on rating
+            let albumFilteredRatings = categoryRatings.filter { rating in
+                if rating.albumId == albumId { return true }
+                if rating.albumId == nil, let cached = itemCache[rating.itemId], cached.albumId == albumId {
+                    return true
+                }
+                return false
+            }
+            print("🔵 RatingViewModel: Tracks in same album (\(albumId)): \(albumFilteredRatings.count)")
+            
+            if albumFilteredRatings.isEmpty {
+                print("✅ RatingViewModel: No other tracks rated in this album - first track will get position 0")
+            } else {
+                print("🔵 RatingViewModel: Found \(albumFilteredRatings.count) rated tracks in same album for comparison:")
+                // Log details of found tracks
+                for (index, rating) in albumFilteredRatings.enumerated() {
+                    print("  Track \(index + 1): \(rating.itemId), albumId: \(rating.albumId ?? "nil"), score: \(rating.personalScore)")
+                }
+            }
+            
+            return albumFilteredRatings.sorted { $0.personalScore > $1.personalScore }
+        }
+        
+        print("🔵 RatingViewModel: Non-track comparison - returning \(categoryRatings.count) items")
+        return categoryRatings.sorted { $0.personalScore > $1.personalScore }
     }
     
     private func fetchAllUserItems(type: RatingItemType) async throws -> [RatingItemData] {
@@ -566,6 +705,7 @@ class RatingViewModel: ObservableObject {
                 imageUrl: track.album.images.first?.url,
                 artists: track.artists.map { $0.name },
                 albumName: track.album.name,
+                albumId: track.album.id,
                 itemType: .track
             )
         }
@@ -584,6 +724,7 @@ class RatingViewModel: ObservableObject {
                 imageUrl: album.images.first?.url,
                 artists: album.artists.map { $0.name },
                 albumName: nil,
+                albumId: nil,
                 itemType: .album
             )
         }
@@ -602,6 +743,7 @@ class RatingViewModel: ObservableObject {
                 imageUrl: artist.images.first?.url,
                 artists: nil,
                 albumName: nil,
+                albumId: nil,
                 itemType: .artist
             )
         }
@@ -618,6 +760,7 @@ class RatingViewModel: ObservableObject {
         comparisons = []
         ratingState = .idle
         binarySearchState = nil
+        currentItemAlbumId = nil // Reset album ID tracking
     }
 
     

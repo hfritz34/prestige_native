@@ -156,6 +156,7 @@ struct RatingItemData: Codable {
     let imageUrl: String?
     let artists: [String]?
     let albumName: String?
+    let albumId: String?
     let itemType: RatingItemType
 }
 

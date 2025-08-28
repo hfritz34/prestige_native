@@ -422,6 +422,7 @@ struct RateView: View {
                 imageUrl: nil,
                 artists: nil,
                 albumName: nil,
+                albumId: rating.albumId,
                 itemType: rating.itemType
             )
             return RatedItem(id: rating.id, rating: rating, itemData: itemData)
@@ -442,6 +443,7 @@ struct RateView: View {
                 imageUrl: nil,
                 artists: nil,
                 albumName: nil,
+                albumId: rating.albumId,
                 itemType: rating.itemType
             )
             return RatedItem(id: rating.id, rating: rating, itemData: itemData)

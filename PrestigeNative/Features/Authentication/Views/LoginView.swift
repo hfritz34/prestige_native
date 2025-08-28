@@ -42,24 +42,6 @@ struct LoginView: View {
                 
                 // Login Section
                 VStack(spacing: 20) {
-                    // Debug URL Test Button
-                    Button(action: {
-                        testURLScheme()
-                    }) {
-                        HStack {
-                            Image(systemName: "link.badge.plus")
-                                .font(.title3)
-                            Text("Test URL Scheme")
-                                .font(.headline)
-                                .fontWeight(.semibold)
-                        }
-                        .frame(maxWidth: .infinity)
-                        .frame(height: 44)
-                        .background(Color.orange)
-                        .foregroundColor(.white)
-                        .cornerRadius(12)
-                    }
-                    
                     // Login Button
                     Button(action: {
                         Task {
@@ -121,20 +103,6 @@ struct LoginView: View {
         .onChange(of: authManager.error) { _, error in
             showingError = error != nil
         }
-    }
-    
-    private func testURLScheme() {
-        print("🧪 Testing URL Scheme manually...")
-        
-        // Simulate what Auth0 callback might send
-        let testURL = URL(string: "com.prestige.PrestigeNative://callback?code=test123&state=abc")!
-        
-        // This should trigger the onOpenURL handler in PrestigeNativeApp
-        print("🧪 Attempting to process test URL: \(testURL)")
-        
-        // Note: We can't directly call the URL handler from here in a real scenario,
-        // but this will help us debug the URL construction
-        print("🧪 If URL scheme is working, you should see logs in the console")
     }
 }
 

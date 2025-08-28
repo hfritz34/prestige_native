@@ -317,6 +317,7 @@ struct RatingModal: View {
                 imageUrl: nil,
                 artists: ["Sample Artist"],
                 albumName: "Sample Album",
+                albumId: nil,
                 itemType: .track
             )
             vm.ratingState = .selectingCategory

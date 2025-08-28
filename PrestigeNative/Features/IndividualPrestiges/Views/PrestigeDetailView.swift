@@ -78,7 +78,7 @@ struct PrestigeDetailView: View {
         .onAppear {
             Task {
                 // Inject AuthManager into RatingViewModel
-                await ratingViewModel.setAuthManager(AuthManager.shared)
+                ratingViewModel.setAuthManager(AuthManager.shared)
                 
                 await loadItemRating()
                 await pinService.loadPinnedItems()
@@ -436,18 +436,21 @@ struct PrestigeDetailView: View {
     
     private func loadItemRating() async {
         let itemType = getRatingItemType()
-        await ratingViewModel.loadUserRatings()
         ratingViewModel.selectedItemType = itemType
+        await ratingViewModel.loadUserRatings()
     }
     
     private func startRatingFlow() async {
+        let itemType = getRatingItemType()
+        
         let ratingItemData = RatingItemData(
             id: item.spotifyId,
             name: item.name,
             imageUrl: item.imageUrl,
             artists: item.contentType == .tracks ? [item.subtitle.components(separatedBy: " • ").first ?? ""] : nil,
-            albumName: item.contentType == .tracks ? item.subtitle.components(separatedBy: " • ").last : nil,
-            itemType: getRatingItemType()
+            albumName: item.albumName,
+            albumId: item.albumId,
+            itemType: itemType
         )
         
         await ratingViewModel.startRating(for: ratingItemData)
@@ -909,7 +912,9 @@ extension ContentType {
             contentType: .tracks,
             albumPosition: 2,
             rating: 8.5,
-            isPinned: false
+            isPinned: false,
+            albumId: "sample-album-id",
+            albumName: "A Night at the Opera"
         ),
         rank: 1
     )

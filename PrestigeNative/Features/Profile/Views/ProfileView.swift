@@ -268,13 +268,10 @@ struct ProfileView: View {
                 
                 Spacer()
                 
-                // Type selector for Ratings section
+                // Type selector for Ratings section (Albums and Artists only)
                 Menu {
                     Button("Albums") {
                         viewModel.changeRatingType(to: .album)
-                    }
-                    Button("Tracks") {
-                        viewModel.changeRatingType(to: .track)
                     }
                     Button("Artists") {
                         viewModel.changeRatingType(to: .artist)
@@ -318,7 +315,7 @@ struct ProfileView: View {
                         }
                     } else {
                         // Display rated items
-                        ForEach(Array(viewModel.currentRatings.prefix(10).enumerated()), id: \.element.id) { index, ratedItem in
+                        ForEach(Array(viewModel.currentRatings.prefix(25).enumerated()), id: \.element.id) { index, ratedItem in
                             RatedItemCard(ratedItem: ratedItem)
                                 .onTapGesture {
                                     selectedPrestige = PrestigeSelection(
@@ -355,7 +352,7 @@ struct ProfileView: View {
         } else {
             switch selectedTopType {
             case .albums:
-                ForEach(Array(viewModel.topAlbums.prefix(5).enumerated()), id: \.element.album.id) { index, album in
+                ForEach(Array(viewModel.topAlbums.prefix(25).enumerated()), id: \.element.album.id) { index, album in
                     TopItemCard(album: album)
                         .onTapGesture {
                             selectedPrestige = PrestigeSelection(
@@ -365,7 +362,7 @@ struct ProfileView: View {
                         }
                 }
             case .tracks:
-                ForEach(Array(viewModel.topTracks.prefix(5).enumerated()), id: \.element.totalTime) { index, track in
+                ForEach(Array(viewModel.topTracks.prefix(25).enumerated()), id: \.element.totalTime) { index, track in
                     TopItemCard(track: track)
                         .onTapGesture {
                             selectedPrestige = PrestigeSelection(
@@ -375,7 +372,7 @@ struct ProfileView: View {
                         }
                 }
             case .artists:
-                ForEach(Array(viewModel.topArtists.prefix(5).enumerated()), id: \.element.artist.id) { index, artist in
+                ForEach(Array(viewModel.topArtists.prefix(25).enumerated()), id: \.element.artist.id) { index, artist in
                     TopItemCard(artist: artist)
                         .onTapGesture {
                             selectedPrestige = PrestigeSelection(
@@ -395,7 +392,7 @@ struct ProfileView: View {
             if viewModel.favoriteAlbums.isEmpty {
                 favoriteEmptyState
             } else {
-                ForEach(Array(viewModel.favoriteAlbums.prefix(5).enumerated()), id: \.element.id) { index, album in
+                ForEach(Array(viewModel.favoriteAlbums.prefix(25).enumerated()), id: \.element.id) { index, album in
                     FavoriteAlbumCard(album: album)
                         .onTapGesture {
                             // Convert AlbumResponse to UserAlbumResponse for PrestigeDisplayItem
@@ -415,7 +412,7 @@ struct ProfileView: View {
             if viewModel.favoriteTracks.isEmpty {
                 favoriteEmptyState
             } else {
-                ForEach(Array(viewModel.favoriteTracks.prefix(5).enumerated()), id: \.element.id) { index, track in
+                ForEach(Array(viewModel.favoriteTracks.prefix(25).enumerated()), id: \.element.id) { index, track in
                     FavoriteItemCard(track: track)
                         .onTapGesture {
                             // Convert TrackResponse to UserTrackResponse for PrestigeDisplayItem
@@ -435,7 +432,7 @@ struct ProfileView: View {
             if viewModel.favoriteArtists.isEmpty {
                 favoriteEmptyState
             } else {
-                ForEach(Array(viewModel.favoriteArtists.prefix(5).enumerated()), id: \.element.id) { index, artist in
+                ForEach(Array(viewModel.favoriteArtists.prefix(25).enumerated()), id: \.element.id) { index, artist in
                     FavoriteArtistCard(artist: artist)
                         .onTapGesture {
                             // Convert ArtistResponse to UserArtistResponse for PrestigeDisplayItem
@@ -521,7 +518,9 @@ struct ProfileView: View {
             contentType: contentType,
             albumPosition: nil,
             rating: ratedItem.rating.personalScore,
-            isPinned: false
+            isPinned: false,
+            albumId: ratedItem.itemData.albumId,
+            albumName: ratedItem.itemData.albumName
         )
     }
     
@@ -536,7 +535,9 @@ struct ProfileView: View {
             contentType: .tracks,
             albumPosition: nil,
             rating: nil,
-            isPinned: false
+            isPinned: false,
+            albumId: nil, // Recent tracks don't have album ID in this context
+            albumName: nil // Recent tracks don't have album name in this context
         )
     }
     

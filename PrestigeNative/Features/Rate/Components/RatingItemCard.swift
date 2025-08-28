@@ -329,6 +329,7 @@ extension View {
                 imageUrl: nil,
                 artists: ["The Weeknd"],
                 albumName: "After Hours",
+                albumId: nil,
                 itemType: .track
             ),
             rating: Rating(
@@ -358,6 +359,7 @@ extension View {
                 imageUrl: nil,
                 artists: ["The Weeknd", "Daft Punk"],
                 albumName: nil,
+                albumId: nil,
                 itemType: .track
             ),
             rating: Rating(

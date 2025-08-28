@@ -452,6 +452,7 @@ private func withHapticFeedback<T>(_ action: () -> T) -> T {
             imageUrl: nil,
             artists: ["Artist A"],
             albumName: "New Album",
+            albumId: nil,
             itemType: .track
         ),
         comparisonItem: RatingItemData(
@@ -460,6 +461,7 @@ private func withHapticFeedback<T>(_ action: () -> T) -> T {
             imageUrl: nil,
             artists: ["Artist B"],
             albumName: "Existing Album",
+            albumId: nil,
             itemType: .track
         ),
         progress: (current: 3, total: 10),

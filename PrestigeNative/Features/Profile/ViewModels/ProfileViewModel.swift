@@ -174,10 +174,10 @@ class ProfileViewModel: ObservableObject {
         }
     }
     
-    /// Get current ratings based on selected type
+    /// Get current ratings based on selected type (Albums and Artists only for profile carousel)
     var currentRatings: [RatedItem] {
         switch selectedRatingType {
-        case .track: return ratedTracks
+        case .track: return ratedAlbums // Default to albums if tracks somehow selected
         case .album: return ratedAlbums
         case .artist: return ratedArtists
         }

@@ -532,6 +532,7 @@ struct ArtistDetailView: View {
             imageUrl: item.imageUrl,
             artists: nil,
             albumName: nil,
+            albumId: nil,
             itemType: getRatingItemType()
         )
         
@@ -711,7 +712,9 @@ struct RatedAlbumRow: View {
             contentType: .artists,
             albumPosition: nil,
             rating: 9.2,
-            isPinned: false
+            isPinned: false,
+            albumId: nil,
+            albumName: nil
         ),
         rank: 1
     )

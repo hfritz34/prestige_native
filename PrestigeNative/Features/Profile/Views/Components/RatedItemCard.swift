@@ -89,6 +89,7 @@ struct RatedItemCard: View {
         imageUrl: "https://via.placeholder.com/100",
         artists: ["Sample Artist"],
         albumName: "Sample Album",
+        albumId: nil,
         itemType: .track
     )
     
@@ -98,6 +99,6 @@ struct RatedItemCard: View {
         itemData: sampleItemData
     )
     
-    return RatedItemCard(ratedItem: sampleRatedItem)
+    RatedItemCard(ratedItem: sampleRatedItem)
         .padding()
 }

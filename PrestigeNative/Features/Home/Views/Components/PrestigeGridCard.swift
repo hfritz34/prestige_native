@@ -161,7 +161,9 @@ struct PrestigeGridCard: View {
                     contentType: .tracks,
                     albumPosition: index + 1,
                     rating: Double(7 + index % 3),
-                    isPinned: index % 3 == 0
+                    isPinned: index % 3 == 0,
+                    albumId: nil,
+                    albumName: nil
                 ),
                 rank: index + 1
             )

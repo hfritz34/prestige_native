@@ -90,6 +90,7 @@ class SpotifyService: ObservableObject {
                     imageUrl: track.imageUrl,
                     artists: [track.artistName],
                     albumName: nil, // Not provided in RecentlyPlayedResponse
+                    albumId: nil,
                     itemType: .track
                 )
             }

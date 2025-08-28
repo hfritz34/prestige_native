@@ -108,12 +108,14 @@ struct PrestigeDisplayItem {
     let albumPosition: Int?
     let rating: Double?
     let isPinned: Bool
+    let albumId: String?
+    let albumName: String?
     
     // Convenience initializers for different item types
     static func fromTrack(_ track: UserTrackResponse) -> PrestigeDisplayItem {
         return PrestigeDisplayItem(
             name: track.track.name,
-            subtitle: track.track.artists.first?.name ?? "Unknown Artist",
+            subtitle: "\(track.track.artists.first?.name ?? "Unknown Artist") • \(track.track.album.name)",
             imageUrl: track.track.album.images.first?.url ?? "",
             totalTimeMilliseconds: track.totalTime * 1000, // Convert seconds to milliseconds
             prestigeLevel: track.prestigeLevel,
@@ -121,7 +123,9 @@ struct PrestigeDisplayItem {
             contentType: .tracks,
             albumPosition: track.albumPosition,
             rating: track.rating,
-            isPinned: track.isPinned
+            isPinned: track.isPinned,
+            albumId: track.track.album.id,
+            albumName: track.track.album.name
         )
     }
     
@@ -136,7 +140,9 @@ struct PrestigeDisplayItem {
             contentType: .albums,
             albumPosition: nil,
             rating: album.rating,
-            isPinned: album.isPinned
+            isPinned: album.isPinned,
+            albumId: nil,
+            albumName: nil
         )
     }
     
@@ -151,7 +157,9 @@ struct PrestigeDisplayItem {
             contentType: .artists,
             albumPosition: nil,
             rating: artist.rating,
-            isPinned: artist.isPinned
+            isPinned: artist.isPinned,
+            albumId: nil,
+            albumName: nil
         )
     }
     
@@ -167,7 +175,9 @@ struct PrestigeDisplayItem {
             contentType: self.contentType,
             albumPosition: self.albumPosition,
             rating: self.rating,
-            isPinned: isPinned
+            isPinned: isPinned,
+            albumId: self.albumId,
+            albumName: self.albumName
         )
     }
 }
@@ -185,7 +195,9 @@ struct PrestigeDisplayItem {
                 contentType: .tracks,
                 albumPosition: 1,
                 rating: 8.5,
-                isPinned: false
+                isPinned: false,
+                albumId: nil,
+                albumName: nil
             ),
             rank: 1
         )
@@ -201,7 +213,9 @@ struct PrestigeDisplayItem {
                 contentType: .tracks,
                 albumPosition: 3,
                 rating: 6.5,
-                isPinned: true
+                isPinned: true,
+                albumId: nil,
+                albumName: nil
             ),
             rank: 2
         )

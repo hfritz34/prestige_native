@@ -37,6 +37,7 @@ struct BatchItemDetails: Codable {
     let imageUrl: String?
     let artists: [String]?
     let albumName: String?
+    let albumId: String?
     
     var ratingItemType: RatingItemType {
         return RatingItemType(rawValue: itemType) ?? .track
@@ -103,6 +104,7 @@ extension ItemDetailsResponse {
         self.imageUrl = batchItem.imageUrl
         self.artists = batchItem.artists
         self.albumName = batchItem.albumName
+        self.albumId = batchItem.albumId
     }
 }
 

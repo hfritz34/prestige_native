@@ -254,6 +254,7 @@ struct SwipeableRatingCard: View {
                         imageUrl: nil,
                         artists: ["Artist \(index + 1)"],
                         albumName: "Album \(index + 1)",
+                        albumId: nil,
                         itemType: .track
                     ),
                     rating: Rating(

@@ -308,25 +308,49 @@ struct HomeView: View {
     
     @ViewBuilder
     private var emptyStateView: some View {
-        switch viewModel.selectedContentType {
-        case .albums:
-            EmptyStateView(
-                icon: "square.stack",
-                title: "No Albums Found",
-                subtitle: "Listen to albums to build your prestige"
-            )
-        case .tracks:
-            EmptyStateView(
-                icon: "music.note",
-                title: "No Top Tracks",
-                subtitle: "Start listening to build your prestige"
-            )
-        case .artists:
-            EmptyStateView(
-                icon: "music.mic",
-                title: "No Top Artists",
-                subtitle: "Explore artists to build prestige"
-            )
+        switch viewModel.selectedTimeRange {
+        case .recentlyUpdated:
+            switch viewModel.selectedContentType {
+            case .albums:
+                EmptyStateView(
+                    icon: "square.stack",
+                    title: "No Recently Updated Albums",
+                    subtitle: "Albums will appear here after your next listening session"
+                )
+            case .tracks:
+                EmptyStateView(
+                    icon: "music.note",
+                    title: "No Recently Updated Tracks",
+                    subtitle: "Recently played tracks will appear here hourly"
+                )
+            case .artists:
+                EmptyStateView(
+                    icon: "music.mic",
+                    title: "No Recently Updated Artists",
+                    subtitle: "Artists from recent listening will appear here"
+                )
+            }
+        default:
+            switch viewModel.selectedContentType {
+            case .albums:
+                EmptyStateView(
+                    icon: "square.stack",
+                    title: "No Albums Found",
+                    subtitle: "Listen to albums to build your prestige"
+                )
+            case .tracks:
+                EmptyStateView(
+                    icon: "music.note",
+                    title: "No Top Tracks",
+                    subtitle: "Start listening to build your prestige"
+                )
+            case .artists:
+                EmptyStateView(
+                    icon: "music.mic",
+                    title: "No Top Artists",
+                    subtitle: "Explore artists to build prestige"
+                )
+            }
         }
     }
 }

@@ -52,14 +52,8 @@ struct PinnedItemsResponse: Codable {
     let artists: [UserArtistResponse]
 }
 
-// MARK: - Recently Updated Response
-
-struct RecentlyUpdatedResponse: Codable {
-    let tracks: [UserTrackResponse]
-    let albums: [UserAlbumResponse]
-    let artists: [UserArtistResponse]
-    let timestamp: Date
-}
+// MARK: - Recently Updated Response (defined in APIModels.swift)
+// RecentlyUpdatedResponse is now defined in APIModels.swift to avoid duplication
 
 // MARK: - Loading Coordinator
 
@@ -221,14 +215,20 @@ class LoadingCoordinator: ObservableObject {
     }
     
     private func fetchRecentlyUpdatedContent(userId: String) async throws -> PrestigeContentBundle {
-        updateProgress(0.2, message: "Fetching recently played items...")
+        updateProgress(0.2, message: "Fetching recently updated items...")
         
-        // Calculate timestamp for last hour
-        let since = Date().addingTimeInterval(-3600) // 1 hour ago
+        let profileService = ProfileService()
+        let recentData = await profileService.fetchRecentlyUpdated(userId: userId)
         
-        // Fetch recently updated items (will implement actual endpoint later)
-        // For now, return all time content as fallback
-        return try await fetchAllTimeContent(userId: userId)
+        updateProgress(0.8, message: "Processing recently updated content...")
+        
+        return PrestigeContentBundle(
+            tracks: recentData.tracks,
+            albums: recentData.albums,
+            artists: recentData.artists,
+            pinnedItems: nil,
+            recentlyUpdated: recentData
+        )
     }
     
     private func fetchPinnedContent(userId: String) async throws -> PrestigeContentBundle {

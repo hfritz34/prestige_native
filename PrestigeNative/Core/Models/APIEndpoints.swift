@@ -94,8 +94,12 @@ enum APIEndpoints {
     static func pinArtist(userId: String, artistId: String) -> String { "prestige/\(userId)/artists/\(artistId)/pin" }
     
     // MARK: - Recently Updated
-    static func recentlyUpdated(userId: String, since: String) -> String { 
-        "library/\(userId)/recently-updated?since=\(since)" 
+    static func recentlyUpdated(userId: String, since: String? = nil) -> String { 
+        var endpoint = "api/library/\(userId)/recently-updated"
+        if let since = since {
+            endpoint += "?since=\(since)"
+        }
+        return endpoint
     }
     
     // MARK: - Rating System

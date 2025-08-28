@@ -84,6 +84,24 @@ struct RecentlyPlayedResponse: Codable {
     }
 }
 
+// MARK: - Recently Updated
+
+/// Response for recently updated items from hourly batch processing
+struct RecentlyUpdatedResponse: Codable {
+    let tracks: [UserTrackResponse]
+    let albums: [UserAlbumResponse]
+    let artists: [UserArtistResponse]
+
+    /// Initialize with empty arrays by default
+    init(tracks: [UserTrackResponse] = [], 
+         albums: [UserAlbumResponse] = [], 
+         artists: [UserArtistResponse] = []) {
+        self.tracks = tracks
+        self.albums = albums
+        self.artists = artists
+    }
+}
+
 // MARK: - Search Results
 
 /// Search results from Spotify API

@@ -272,6 +272,46 @@ class ProfileService: ObservableObject {
         }
     }
     
+    /// Fetch recently updated items from hourly batch processing
+    func fetchRecentlyUpdated(userId: String) async -> RecentlyUpdatedResponse {
+        do {
+            // Get items updated in the last hour (matching web implementation)
+            let oneHourAgo = Calendar.current.date(byAdding: .hour, value: -1, to: Date()) ?? Date()
+            let formatter = ISO8601DateFormatter()
+            let sinceParam = formatter.string(from: oneHourAgo)
+
+            let endpoint = APIEndpoints.recentlyUpdated(userId: userId, since: sinceParam)
+
+            print("🔵 Fetching recently updated items for user: \(userId)")
+            let response: RecentlyUpdatedResponse = try await apiClient.get(
+                endpoint,
+                responseType: RecentlyUpdatedResponse.self
+            )
+
+            print("✅ Successfully fetched recently updated items: \(response.tracks.count) tracks, \(response.albums.count) albums, \(response.artists.count) artists")
+
+            await MainActor.run {
+                self.error = nil
+            }
+
+            return response
+
+        } catch let apiError as APIError {
+            print("❌ Recently updated API error: \(apiError)")
+            await MainActor.run {
+                self.error = apiError
+            }
+            return RecentlyUpdatedResponse()
+
+        } catch {
+            print("❌ Recently updated network error: \(error)")
+            await MainActor.run {
+                self.error = .networkError(error)
+            }
+            return RecentlyUpdatedResponse()
+        }
+    }
+
     /// Load all profile data at once
     func loadAllProfileData(userId: String) async {
         // Clear any previous errors at start

@@ -16,6 +16,7 @@ struct SwipeableRatingCard: View {
     @State private var offset: CGFloat = 0
     @State private var isDragging = false
     @State private var actionTriggered = false
+    @State private var isDeleting = false
     
     private let swipeThreshold: CGFloat = 80
     private let maxSwipeDistance: CGFloat = 120
@@ -138,6 +139,7 @@ struct SwipeableRatingCard: View {
             )
             .offset(x: offset)
             .scaleEffect(isDragging ? 0.98 : 1.0)
+            .opacity(isDeleting ? 0.0 : 1.0)
             .onTapGesture {
                 if !isDragging && abs(offset) < 5 {
                     onTap?()
@@ -162,7 +164,6 @@ struct SwipeableRatingCard: View {
                                horizontalMovement > verticalMovement * 4 && 
                                verticalMovement < 10 {
                                 isDragging = true
-                                print("🔄 Starting horizontal swipe: h=\(horizontalMovement), v=\(verticalMovement)")
                             } else {
                                 // Any other movement pattern = don't interfere with scrolling
                                 return
@@ -170,28 +171,26 @@ struct SwipeableRatingCard: View {
                         }
                         
                         if isDragging {
-                            withAnimation(.interactiveSpring(response: 0.25, dampingFraction: 0.8)) {
-                                // Apply resistance at the edges with smoother curve
-                                let rawOffset = translation.width
-                                let resistance: CGFloat = 0.4
-                                
-                                if rawOffset > 0 {
-                                    offset = rawOffset > maxSwipeDistance ? 
-                                        maxSwipeDistance + (rawOffset - maxSwipeDistance) * resistance :
-                                        rawOffset
-                                } else {
-                                    offset = -rawOffset > maxSwipeDistance ?
-                                        -(maxSwipeDistance + (-rawOffset - maxSwipeDistance) * resistance) :
-                                        rawOffset
-                                }
-                                
-                                // Haptic feedback at threshold (only once per direction)
-                                if !actionTriggered && abs(offset) > swipeThreshold {
-                                    UIImpactFeedbackGenerator(style: .light).impactOccurred()
-                                    actionTriggered = true
-                                } else if actionTriggered && abs(offset) <= swipeThreshold {
-                                    actionTriggered = false
-                                }
+                            // Apply resistance at the edges with smoother curve
+                            let rawOffset = translation.width
+                            let resistance: CGFloat = 0.4
+                            
+                            if rawOffset > 0 {
+                                offset = rawOffset > maxSwipeDistance ? 
+                                    maxSwipeDistance + (rawOffset - maxSwipeDistance) * resistance :
+                                    rawOffset
+                            } else {
+                                offset = -rawOffset > maxSwipeDistance ?
+                                    -(maxSwipeDistance + (-rawOffset - maxSwipeDistance) * resistance) :
+                                    rawOffset
+                            }
+                            
+                            // Haptic feedback at threshold (only once per direction)
+                            if !actionTriggered && abs(offset) > swipeThreshold {
+                                UIImpactFeedbackGenerator(style: .light).impactOccurred()
+                                actionTriggered = true
+                            } else if actionTriggered && abs(offset) <= swipeThreshold {
+                                actionTriggered = false
                             }
                         }
                     }
@@ -201,37 +200,45 @@ struct SwipeableRatingCard: View {
                         let velocity = value.velocity.width
                         let translation = value.translation.width
                         
-                        print("🔄 Swipe ended: translation=\(translation), velocity=\(velocity)")
-                        
                         // More responsive action triggering
                         let shouldTriggerAction = abs(translation) > swipeThreshold || abs(velocity) > 800
                         
-                        withAnimation(.spring(response: 0.4, dampingFraction: 0.8)) {
-                            if shouldTriggerAction {
-                                if translation > 0 {
-                                    // Re-rate action
-                                    UINotificationFeedbackGenerator().notificationOccurred(.success)
-                                    DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
-                                        onRerate?()
-                                    }
-                                } else {
-                                    // Delete action
-                                    UINotificationFeedbackGenerator().notificationOccurred(.warning)
-                                    DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
-                                        onDelete?()
-                                    }
+                        if shouldTriggerAction {
+                            if translation > 0 {
+                                // Re-rate action - smooth reset
+                                withAnimation(.spring(response: 0.3, dampingFraction: 0.9)) {
+                                    offset = 0
+                                    isDragging = false
+                                    actionTriggered = false
+                                }
+                                UINotificationFeedbackGenerator().notificationOccurred(.success)
+                                DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
+                                    onRerate?()
+                                }
+                            } else {
+                                // Delete action - smooth slide out with fade
+                                isDeleting = true
+                                withAnimation(.spring(response: 0.4, dampingFraction: 0.9)) {
+                                    offset = -UIScreen.main.bounds.width
+                                }
+                                UINotificationFeedbackGenerator().notificationOccurred(.warning)
+                                DispatchQueue.main.asyncAfter(deadline: .now() + 0.3) {
+                                    onDelete?()
                                 }
                             }
-                            
-                            // Reset position
-                            offset = 0
-                            isDragging = false
-                            actionTriggered = false
+                        } else {
+                            // Reset position smoothly
+                            withAnimation(.spring(response: 0.4, dampingFraction: 0.9)) {
+                                offset = 0
+                                isDragging = false
+                                actionTriggered = false
+                            }
                         }
                     }
             )
         }
         .animation(.spring(response: 0.4, dampingFraction: 0.8), value: isDragging)
+        .animation(.easeInOut(duration: 0.3), value: isDeleting)
     }
     
     private var iconForItemType: String {

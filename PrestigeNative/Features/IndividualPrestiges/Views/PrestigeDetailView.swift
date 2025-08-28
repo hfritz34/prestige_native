@@ -364,7 +364,7 @@ struct PrestigeDetailView: View {
                     
                     // View album
                     Button(action: {
-                        // Navigate to album
+                        // Album navigation will be implemented in future version
                     }) {
                         VStack(spacing: 4) {
                             Image(systemName: "square.stack")

@@ -254,7 +254,7 @@ struct ComparisonCard: View {
                 }
             )
             .scaleEffect(isPressed ? 0.95 : (isSelected ? 1.02 : 1.0))
-            .onChange(of: isSelected) { newValue in
+            .onChange(of: isSelected) { oldValue, newValue in
                 if newValue {
                     showSelectionRing = true
                     DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {

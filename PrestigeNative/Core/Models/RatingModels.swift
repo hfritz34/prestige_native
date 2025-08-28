@@ -39,7 +39,7 @@ struct RatingCategoryModel: Codable, Identifiable, Equatable {
 
 // MARK: - Rating
 
-struct Rating: Codable, Identifiable {
+struct Rating: Codable, Identifiable, Equatable {
     let itemId: String
     let itemType: RatingItemType
     let albumId: String?

@@ -18,6 +18,11 @@ struct RateView: View {
     @State private var yourRatingsLimit: Int = 50
     @State private var searchLimit: Int = 50
     
+    // Performance optimization: Cache computed properties
+    @State private var cachedTopRatedItems: [RatedItem] = []
+    @State private var cachedAllRatedItems: [RatedItem] = []
+    @State private var lastRatingsUpdateTime: Date = Date()
+    
     var body: some View {
         NavigationView {
             VStack(spacing: 0) {
@@ -51,6 +56,12 @@ struct RateView: View {
             viewModel.setAuthManager(authManager)
             Task { await viewModel.loadInitialData() }
         }
+        .onChange(of: viewModel.filteredRatings) { oldValue, newValue in
+            updateCachedRatings()
+        }
+        .onChange(of: viewModel.selectedItemType) { oldValue, newValue in
+            updateCachedRatings()
+        }
     }
     
     // MARK: - View Components
@@ -71,7 +82,7 @@ struct RateView: View {
                 TextField("Search your library...", text: $searchText)
                     .textFieldStyle(PlainTextFieldStyle())
                     .font(.system(size: 16))
-                    .onChange(of: searchText) { newValue in
+                    .onChange(of: searchText) { oldValue, newValue in
                         Task { await viewModel.searchLibrary(query: newValue) }
                     }
                 
@@ -161,7 +172,7 @@ struct RateView: View {
             searchResultsView
         } else {
             ScrollView(.vertical, showsIndicators: true) {
-                LazyVStack(spacing: 12) {
+                LazyVStack(spacing: 12, pinnedViews: []) {
                     switch selectedTab {
                     case .unrated:
                         unratedContent
@@ -409,34 +420,23 @@ struct RateView: View {
     }
     
     private var topRatedItems: [RatedItem] {
-        let ratings = viewModel.filteredRatings
-            .filter { $0.personalScore >= 7.0 } // Top rated threshold
-            .sorted { $0.personalScore > $1.personalScore }
-            .prefix(20) // Show top 20
-        
-        return Array(ratings).compactMap { rating in
-            // Prefer cached data from VM; otherwise minimal fallback
-            let itemData = viewModel.getItemData(for: rating) ?? RatingItemData(
-                id: rating.itemId,
-                name: "Unknown",
-                imageUrl: nil,
-                artists: nil,
-                albumName: nil,
-                albumId: rating.albumId,
-                itemType: rating.itemType
-            )
-            return RatedItem(id: rating.id, rating: rating, itemData: itemData)
-        }
+        return cachedTopRatedItems
     }
     
     private var allRatedItems: [RatedItem] {
-        let ratings = searchText.isEmpty ? viewModel.filteredRatings :
-                     viewModel.filteredRatings.filter { rating in
-                         // This would need item data to search properly
-                         return true // Placeholder
-                     }
+        return cachedAllRatedItems
+    }
+    
+    // MARK: - Cache Update Methods
+    
+    private func updateCachedRatings() {
+        // Update top rated items cache
+        let topRatings = viewModel.filteredRatings
+            .filter { $0.personalScore >= 7.0 }
+            .sorted { $0.personalScore > $1.personalScore }
+            .prefix(20)
         
-        return ratings.sorted { $0.personalScore > $1.personalScore }.compactMap { rating in
+        cachedTopRatedItems = Array(topRatings).compactMap { rating in
             let itemData = viewModel.getItemData(for: rating) ?? RatingItemData(
                 id: rating.itemId,
                 name: "Unknown",
@@ -448,6 +448,23 @@ struct RateView: View {
             )
             return RatedItem(id: rating.id, rating: rating, itemData: itemData)
         }
+        
+        // Update all rated items cache
+        let allRatings = viewModel.filteredRatings.sorted { $0.personalScore > $1.personalScore }
+        cachedAllRatedItems = allRatings.compactMap { rating in
+            let itemData = viewModel.getItemData(for: rating) ?? RatingItemData(
+                id: rating.itemId,
+                name: "Unknown",
+                imageUrl: nil,
+                artists: nil,
+                albumName: nil,
+                albumId: rating.albumId,
+                itemType: rating.itemType
+            )
+            return RatedItem(id: rating.id, rating: rating, itemData: itemData)
+        }
+        
+        lastRatingsUpdateTime = Date()
     }
 }
 // MARK: - Load More Button

@@ -210,7 +210,7 @@ class ProfileViewModel: ObservableObject {
     
     func changeTimeRange(_ range: TimeRange, userId: String? = nil) {
         selectedTimeRange = range
-        // TODO: Implement time range filtering when API supports it
+        // Time range filtering will be implemented when API supports it
         loadProfileData(userId: userId)
     }
 }

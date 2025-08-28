@@ -565,8 +565,16 @@ struct PrestigeDetailView: View {
             }
             
             if isLoadingAlbumTracks {
-                MusicWaveLoader()
-                    .padding(.vertical, 20)
+                HStack(spacing: 12) {
+                    ProgressView()
+                        .scaleEffect(0.8)
+                        .progressViewStyle(CircularProgressViewStyle(tint: .purple))
+                    
+                    Text("Loading album tracks...")
+                        .font(.subheadline)
+                        .foregroundColor(.secondary)
+                }
+                .padding(.vertical, 20)
             } else if let tracksResponse = albumTracksResponse, showAllTracks {
                 LazyVStack(spacing: 8) {
                     ForEach(tracksResponse.tracks.indices, id: \.self) { index in
@@ -663,8 +671,16 @@ struct PrestigeDetailView: View {
             }
             
             if isLoadingArtistAlbums {
-                MusicWaveLoader()
-                    .padding(.vertical, 20)
+                HStack(spacing: 12) {
+                    ProgressView()
+                        .scaleEffect(0.8)
+                        .progressViewStyle(CircularProgressViewStyle(tint: .purple))
+                    
+                    Text("Loading rated albums...")
+                        .font(.subheadline)
+                        .foregroundColor(.secondary)
+                }
+                .padding(.vertical, 20)
             } else if let albumsResponse = artistAlbumsResponse, !albumsResponse.albums.isEmpty, showAllAlbums {
                 LazyVStack(spacing: 8) {
                     ForEach(Array(albumsResponse.albums.enumerated()), id: \.element.id) { index, album in

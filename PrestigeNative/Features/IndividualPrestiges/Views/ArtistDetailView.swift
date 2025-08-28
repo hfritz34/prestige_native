@@ -219,11 +219,19 @@ struct ArtistDetailView: View {
             
             // Albums content
             if isLoadingAlbums {
-                MusicWaveLoader()
-                    .padding(.vertical, 20)
+                HStack(spacing: 12) {
+                    ProgressView()
+                        .scaleEffect(0.8)
+                        .progressViewStyle(CircularProgressViewStyle(tint: .purple))
+                    
+                    Text("Loading rated albums...")
+                        .font(.subheadline)
+                        .foregroundColor(.secondary)
+                }
+                .padding(.vertical, 20)
             } else if let response = ratedAlbumsResponse, !response.albums.isEmpty, showAllAlbums {
                 LazyVStack(spacing: 8) {
-                    ForEach(Array(response.albums.enumerated()), id: \.element.id) { index, album in
+                    ForEach(Array(sortedAlbums.enumerated()), id: \.element.id) { index, album in
                         RatedAlbumRow(
                             album: album,
                             rank: index + 1
@@ -442,33 +450,40 @@ struct ArtistDetailView: View {
     // MARK: - Data Loading Methods
     
     private func loadRatedAlbums() async {
-        isLoadingAlbums = true
+        await MainActor.run { isLoadingAlbums = true }
         
-        Task {
-            do {
-                guard let userId = AuthManager.shared.user?.id else {
-                    print("No user ID available for loading rated albums")
-                    await MainActor.run {
-                        isLoadingAlbums = false
-                    }
-                    return
-                }
-                
-                let albumsResponse = try await APIClient.shared.getArtistAlbumsWithUserActivity(
-                    userId: userId,
-                    artistId: item.spotifyId
-                )
-                
-                await MainActor.run {
-                    ratedAlbumsResponse = albumsResponse
-                    isLoadingAlbums = false
-                }
-            } catch {
-                await MainActor.run {
-                    print("Error loading rated albums: \(error)")
-                    ratedAlbumsResponse = nil
-                    isLoadingAlbums = false
-                }
+        do {
+            guard let userId = AuthManager.shared.user?.id else {
+                print("❌ ArtistDetail: No user ID available for loading rated albums")
+                await MainActor.run { isLoadingAlbums = false }
+                return
+            }
+            
+            print("🔵 ArtistDetail: Loading rated albums for userId: \(userId), artistId: \(item.spotifyId)")
+            
+            let albumsResponse = try await APIClient.shared.getArtistAlbumsWithUserActivity(
+                userId: userId,
+                artistId: item.spotifyId
+            )
+            
+            print("✅ ArtistDetail: Successfully loaded rated albums - count: \(albumsResponse.albums.count)")
+            print("🔵 ArtistDetail: Albums response: \(albumsResponse)")
+            
+            await MainActor.run {
+                ratedAlbumsResponse = albumsResponse
+                isLoadingAlbums = false
+            }
+        } catch {
+            print("❌ ArtistDetail: Error loading rated albums: \(error)")
+            print("❌ ArtistDetail: Error details: \(error.localizedDescription)")
+            
+            if let apiError = error as? APIError {
+                print("❌ ArtistDetail: API Error type: \(apiError)")
+            }
+            
+            await MainActor.run {
+                ratedAlbumsResponse = nil
+                isLoadingAlbums = false
             }
         }
     }
@@ -478,6 +493,23 @@ struct ArtistDetailView: View {
     private var currentRating: Rating? {
         let itemType = getRatingItemType()
         return ratingViewModel.userRatings[itemType.rawValue]?.first { $0.itemId == item.spotifyId }
+    }
+    
+    private var sortedAlbums: [ArtistAlbumWithRating] {
+        return ratedAlbumsResponse?.albums.sorted { first, second in
+            // Sort by rating score (highest to lowest)
+            // Handle nil ratings by putting them at the end
+            switch (first.albumRatingScore, second.albumRatingScore) {
+            case let (.some(firstScore), .some(secondScore)):
+                return firstScore > secondScore
+            case (.some(_), .none):
+                return true  // Rated albums come before unrated
+            case (.none, .some(_)):
+                return false // Unrated albums go to the end
+            case (.none, .none):
+                return false // Keep original order for unrated albums
+            }
+        } ?? []
     }
     
     private func getRatingItemType() -> RatingItemType {
@@ -632,9 +664,15 @@ struct RatedAlbumRow: View {
                             .foregroundColor(.secondary)
                     }
                     
-                    Text("\(album.trackCount) tracks")
-                        .font(.caption)
-                        .foregroundColor(.secondary)
+                    if let ratedTracks = album.ratedTracks, let totalTracks = album.totalTracks {
+                        Text("\(ratedTracks)/\(totalTracks) tracks rated")
+                            .font(.caption)
+                            .foregroundColor(.secondary)
+                    } else {
+                        Text("No track data")
+                            .font(.caption)
+                            .foregroundColor(.secondary)
+                    }
                 }
             }
             
@@ -646,9 +684,12 @@ struct RatedAlbumRow: View {
                     RatingBadge(score: rating, size: .small)
                 }
                 
-                Text(TimeFormatter.formatListeningTime(album.totalListeningTime * 1000))
-                    .font(.caption2)
-                    .foregroundColor(.secondary)
+                if let position = album.albumRatingPosition {
+                    Text("Rank #\(position)")
+                        .font(.caption2)
+                        .foregroundColor(.purple)
+                        .fontWeight(.medium)
+                }
             }
         }
         .padding(.vertical, 4)

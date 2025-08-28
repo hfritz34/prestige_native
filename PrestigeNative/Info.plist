@@ -64,15 +64,20 @@
 			<key>CFBundleURLSchemes</key>
 			<array>
 				<string>prestigenative</string>
+				<string>com.prestige.PrestigeNative</string>
+			</array>
+		</dict>
+		<dict>
+			<key>CFBundleURLName</key>
+			<string>Auth0</string>
+			<key>CFBundleURLSchemes</key>
+			<array>
+				<string>com.prestige.PrestigeNative</string>
 			</array>
 		</dict>
 	</array>
-	<key>Auth0ClientId</key>
-	<string>NZ5N1xnHOdgdVuXNPoBuNydMhg83Oe0p</string>
-	<key>Auth0Domain</key>
-	<string>dev-tfgyd3i2jqk0igxv.us.auth0.com</string>
 	<key>AZURE_FUNCTION_KEY</key>
-	<string>REPLACE_WITH_YOUR_AZURE_FUNCTION_KEY</string>
+	<string>$(AZURE_FUNCTION_KEY)</string>
 	<key>LSApplicationQueriesSchemes</key>
 	<array>
 		<string>spotify</string>

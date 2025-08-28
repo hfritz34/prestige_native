@@ -25,22 +25,84 @@ class AuthManager: ObservableObject {
     private let credentialsManager: CredentialsManager
     
     // Auth0 Configuration
-    private let auth0Domain = "dev-tfgyd3i2jqk0igxv.us.auth0.com"
-    private let auth0ClientId = "NZ5N1xnHOdgdVuXNPoBuNydMhg83Oe0p"
-    private let auth0Audience = "https://prestige-auth0-resource"
+    private let auth0Domain: String
+    private let auth0ClientId: String
+    private let auth0Audience: String?
     
     private init() {
+        print("🔵 Auth: Initializing AuthManager...")
+        
+        // Load Auth0 configuration from Auth0.plist
+        guard let path = Bundle.main.path(forResource: "Auth0", ofType: "plist") else {
+            print("❌ Auth: Auth0.plist file not found at path")
+            fatalError("Auth0.plist not found")
+        }
+        
+        print("🔵 Auth: Found Auth0.plist at path: \(path)")
+        
+        guard let plist = NSDictionary(contentsOfFile: path) else {
+            print("❌ Auth: Could not load Auth0.plist contents")
+            fatalError("Could not load Auth0.plist contents")
+        }
+        
+        print("🔵 Auth: Loaded Auth0.plist with keys: \(plist.allKeys)")
+        
+        guard let domain = plist["Domain"] as? String,
+              let clientId = plist["ClientId"] as? String else {
+            print("❌ Auth: Missing required keys in Auth0.plist")
+            print("🔵 Auth: Domain: \(plist["Domain"] ?? "nil")")
+            print("🔵 Auth: ClientId: \(plist["ClientId"] ?? "nil")")
+            fatalError("Auth0.plist missing required keys")
+        }
+        
+        self.auth0Domain = domain
+        self.auth0ClientId = clientId
+        self.auth0Audience = plist["Audience"] as? String
+        
+        print("🔵 Auth: Configuration loaded:")
+        print("🔵 Auth: - Domain: \(auth0Domain)")
+        print("🔵 Auth: - ClientId: \(auth0ClientId)")
+        print("🔵 Auth: - Audience: \(auth0Audience ?? "nil")")
+        print("🔵 Auth: - Bundle ID: \(Bundle.main.bundleIdentifier ?? "nil")")
+        
         // Initialize Auth0 CredentialsManager
         self.credentialsManager = CredentialsManager(authentication: Auth0.authentication(clientId: auth0ClientId, domain: auth0Domain))
         
+        print("🔵 Auth: CredentialsManager initialized")
+        
+        // Run debug configuration check
+        debugConfiguration()
+        
         // Check for existing credentials on app launch
         checkExistingSession()
+    }
+    
+    private var auth0CallbackURL: URL? {
+        guard let bundleId = Bundle.main.bundleIdentifier else { 
+            print("❌ Auth: Could not get bundle identifier for callback URL")
+            return nil
+        }
+        
+        // Try simpler callback format first: {BUNDLE_ID}://callback
+        let urlString = "\(bundleId)://callback"
+        print("🔵 Auth: Constructing callback URL:")
+        print("🔵 Auth: - Bundle ID: \(bundleId)")
+        print("🔵 Auth: - Simplified URL: \(urlString)")
+        
+        guard let url = URL(string: urlString) else {
+            print("❌ Auth: Could not create valid URL from string: \(urlString)")
+            return nil
+        }
+        
+        print("🔵 Auth: Successfully created callback URL: \(url)")
+        return url
     }
     
     // MARK: - Authentication Methods
     
     /// Initiate login flow with Auth0
     func login() async {
+        print("🔵 Auth: Login method called")
         await MainActor.run { 
             isLoading = true
             error = nil
@@ -48,18 +110,52 @@ class AuthManager: ObservableObject {
         
         do {
             print("🔵 Auth: Starting Auth0 login flow")
+            print("🔵 Auth: Building WebAuth with:")
+            print("🔵 Auth: - ClientId: \(auth0ClientId)")
+            print("🔵 Auth: - Domain: \(auth0Domain)")
             
-            let credentials = try await Auth0
+            var webAuth = Auth0
                 .webAuth(clientId: auth0ClientId, domain: auth0Domain)
-                .scope("openid profile email")
-                .audience(auth0Audience)
-                .start()
+                .scope("openid profile email offline_access")
             
-            print("✅ Auth: Login successful")
+            print("🔵 Auth: Base WebAuth created with scope")
+            
+            if let audience = auth0Audience, !audience.isEmpty {
+                print("🔵 Auth: Adding audience: \(audience)")
+                webAuth = webAuth.audience(audience)
+            } else {
+                print("🔵 Auth: No audience configured")
+            }
+            
+            if let redirect = auth0CallbackURL {
+                print("🔵 Auth: Setting redirect URL: \(redirect)")
+                webAuth = webAuth.redirectURL(redirect)
+            } else {
+                print("❌ Auth: No redirect URL available!")
+            }
+            
+            print("🔵 Auth: About to start WebAuth flow...")
+            print("🔵 Auth: This should open Safari with Auth0 login page...")
+            
+            // Add timeout handling
+            let credentials = try await withTimeout(seconds: 30) {
+                let result = try await webAuth.start()
+                print("🔵 Auth: WebAuth.start() returned successfully")
+                return result
+            }
+            
+            print("✅ Auth: Login successful, got credentials")
             await handleSuccessfulAuth(credentials: credentials)
             
         } catch {
-            print("❌ Auth: Login failed - \(error)")
+            print("❌ Auth: Login failed with error: \(error)")
+            print("❌ Auth: Error type: \(type(of: error))")
+            print("❌ Auth: Error description: \(error.localizedDescription)")
+            
+            if let auth0Error = error as? Auth0.WebAuthError {
+                print("❌ Auth: Auth0 specific error: \(auth0Error)")
+            }
+            
             await MainActor.run {
                 self.isLoading = false
                 self.error = .loginFailed(error.localizedDescription)
@@ -78,9 +174,12 @@ class AuthManager: ObservableObject {
             _ = credentialsManager.clear()
             
             // Logout from Auth0
-            try await Auth0
+            var webAuth = Auth0
                 .webAuth(clientId: auth0ClientId, domain: auth0Domain)
-                .clearSession()
+            if let redirect = auth0CallbackURL {
+                webAuth = webAuth.redirectURL(redirect)
+            }
+            try await webAuth.clearSession()
             
             print("✅ Auth: Logout successful")
             await MainActor.run {
@@ -209,6 +308,64 @@ class AuthManager: ObservableObject {
         APIClient.shared.setAuthManager(self)
         print("✅ Auth: Injected AuthManager into APIClient")
         print("✅ Auth: User authenticated successfully - \(authUser.nickname)")
+    }
+    
+    // MARK: - Timeout Helper
+    
+    /// Add timeout to async operations
+    private func withTimeout<T>(seconds: TimeInterval, operation: @escaping () async throws -> T) async throws -> T {
+        return try await withThrowingTaskGroup(of: T.self) { group in
+            // Add the main operation
+            group.addTask {
+                try await operation()
+            }
+            
+            // Add timeout task
+            group.addTask {
+                try await Task.sleep(nanoseconds: UInt64(seconds * 1_000_000_000))
+                throw AuthError.loginFailed("Authentication timeout after \(seconds) seconds")
+            }
+            
+            // Return the first completed task and cancel others
+            let result = try await group.next()!
+            group.cancelAll()
+            return result
+        }
+    }
+    
+    // MARK: - Debug Methods
+    
+    /// Debug method to verify Auth0 and URL scheme configuration
+    func debugConfiguration() {
+        print("🔧 Auth Debug: Configuration Check")
+        print("🔧 Auth Debug: ======================")
+        print("🔧 Auth Debug: Domain: \(auth0Domain)")
+        print("🔧 Auth Debug: ClientId: \(auth0ClientId)")
+        print("🔧 Auth Debug: Audience: \(auth0Audience ?? "nil")")
+        print("🔧 Auth Debug: Bundle ID: \(Bundle.main.bundleIdentifier ?? "nil")")
+        print("🔧 Auth Debug: Callback URL: \(auth0CallbackURL?.absoluteString ?? "nil")")
+        
+        // Check URL schemes in Info.plist
+        if let urlTypes = Bundle.main.object(forInfoDictionaryKey: "CFBundleURLTypes") as? [[String: Any]] {
+            print("🔧 Auth Debug: Registered URL Schemes:")
+            for urlType in urlTypes {
+                if let schemes = urlType["CFBundleURLSchemes"] as? [String],
+                   let name = urlType["CFBundleURLName"] as? String {
+                    print("🔧 Auth Debug: - \(name): \(schemes)")
+                }
+            }
+        } else {
+            print("🔧 Auth Debug: No URL schemes found in Info.plist")
+        }
+        
+        // Verify Auth0.plist exists and is readable
+        if let path = Bundle.main.path(forResource: "Auth0", ofType: "plist") {
+            print("🔧 Auth Debug: Auth0.plist found at: \(path)")
+        } else {
+            print("🔧 Auth Debug: Auth0.plist NOT found")
+        }
+        
+        print("🔧 Auth Debug: ======================")
     }
     
     // MARK: - Helper Methods

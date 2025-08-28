@@ -733,7 +733,35 @@ extension APIClient {
     /// Get artist albums with user activity and ratings
     func getArtistAlbumsWithUserActivity(userId: String, artistId: String) async throws -> ArtistAlbumsWithRankingsResponse {
         let endpoint = "prestige/\(userId)/artists/\(artistId)/albums"
-        return try await get(endpoint, responseType: ArtistAlbumsWithRankingsResponse.self)
+        print("🔵 APIClient: Making request to endpoint: \(endpoint)")
+        print("🔵 APIClient: Full URL: \(baseURL)/\(endpoint)")
+        
+        do {
+            let result = try await get(endpoint, responseType: ArtistAlbumsWithRankingsResponse.self)
+            print("✅ APIClient: Successfully parsed ArtistAlbumsWithRankingsResponse")
+            print("🔵 APIClient: - artistId: \(result.artistId)")
+            print("🔵 APIClient: - totalAlbums: \(result.totalAlbums)")
+            print("🔵 APIClient: - albums count: \(result.albums.count)")
+            print("🔵 APIClient: - ratedAlbums: \(result.ratedAlbums)")
+            
+            if !result.albums.isEmpty {
+                print("🔵 APIClient: First album example:")
+                let firstAlbum = result.albums[0]
+                print("🔵 APIClient:   - albumId: \(firstAlbum.albumId)")
+                print("🔵 APIClient:   - albumName: \(firstAlbum.albumName)")
+                print("🔵 APIClient:   - artistName: \(firstAlbum.artistName)")
+                print("🔵 APIClient:   - albumRatingScore: \(firstAlbum.albumRatingScore ?? 0.0)")
+                print("🔵 APIClient:   - albumRatingPosition: \(firstAlbum.albumRatingPosition ?? 0)")
+            }
+            
+            return result
+        } catch {
+            print("❌ APIClient: Error in getArtistAlbumsWithUserActivity: \(error)")
+            if let data = error as? DecodingError {
+                print("❌ APIClient: Decoding error details: \(data)")
+            }
+            throw error
+        }
     }
     
     /// Get all pinned items for a user

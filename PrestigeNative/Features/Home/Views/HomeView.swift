@@ -224,7 +224,7 @@ struct HomeView: View {
                     subtitle: "Start listening to build your prestige"
                 )
             } else {
-                ForEach(Array(viewModel.topTracks.prefix(25).enumerated()), id: \.element.totalTime) { index, track in
+                ForEach(Array(viewModel.topTracks.prefix(25).enumerated()), id: \.element.track.id) { index, track in
                     PrestigeTrackRow(track: track, rank: index + 1)
                 }
             }
@@ -278,7 +278,7 @@ struct HomeView: View {
                 }
             }
         case .tracks:
-            ForEach(Array(viewModel.topTracks.enumerated()), id: \.element.totalTime) { index, track in
+            ForEach(Array(viewModel.topTracks.enumerated()), id: \.element.track.id) { index, track in
                 PrestigeGridCard(
                     item: PrestigeDisplayItem.fromTrack(track),
                     rank: index + 1

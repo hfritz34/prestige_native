@@ -350,8 +350,18 @@ struct AlbumTrackWithRanking: Codable, Identifiable {
 struct ArtistAlbumsWithRankingsResponse: Codable {
     let artistId: String
     let totalAlbums: Int
-    let ratedAlbums: Int
     let albums: [ArtistAlbumWithRating]
+    
+    private enum CodingKeys: String, CodingKey {
+        case artistId = "artistId"         // API returns camelCase
+        case totalAlbums = "totalAlbums"   // API returns camelCase
+        case albums = "albums"             // API returns camelCase
+    }
+    
+    // Computed property for backwards compatibility
+    var ratedAlbums: Int {
+        return albums.count
+    }
 }
 
 /// Individual album with rating information for an artist
@@ -361,9 +371,27 @@ struct ArtistAlbumWithRating: Codable, Identifiable {
     let artistName: String
     let albumImage: String?
     let albumRatingScore: Double?
-    let totalListeningTime: Int
-    let releaseDate: String?
-    let trackCount: Int
+    let albumRatingPosition: Int?
+    let albumRatingCategory: String?
+    let totalTracks: Int?      // NEW: Total tracks in album
+    let ratedTracks: Int?      // NEW: User's rated tracks in album
+    
+    private enum CodingKeys: String, CodingKey {
+        case albumId = "albumId"                         // API returns camelCase
+        case albumName = "albumName"                     // API returns camelCase
+        case artistName = "artistName"                   // API returns camelCase
+        case albumImage = "albumImage"                   // API returns camelCase
+        case albumRatingScore = "albumRatingScore"       // API returns camelCase
+        case albumRatingPosition = "albumRatingPosition" // API returns camelCase
+        case albumRatingCategory = "albumRatingCategory" // API returns camelCase
+        case totalTracks = "totalTracks"                 // NEW: Total tracks
+        case ratedTracks = "ratedTracks"                 // NEW: Rated tracks
+    }
     
     var id: String { albumId }
+    
+    // Computed properties for backwards compatibility
+    var totalListeningTime: Int { 0 } // Not available from API
+    var releaseDate: String? { nil } // Not available from API
+    var trackCount: Int { totalTracks ?? 0 } // Use totalTracks from API
 }

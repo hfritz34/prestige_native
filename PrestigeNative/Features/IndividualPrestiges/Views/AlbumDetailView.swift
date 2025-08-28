@@ -178,8 +178,16 @@ struct AlbumDetailView: View {
     private var trackListContent: some View {
         VStack(spacing: 8) {
             if isLoadingTracks {
-                MusicWaveLoader()
-                    .padding(.vertical, 20)
+                HStack(spacing: 12) {
+                    ProgressView()
+                        .scaleEffect(0.8)
+                        .progressViewStyle(CircularProgressViewStyle(tint: .purple))
+                    
+                    Text("Loading album tracks...")
+                        .font(.subheadline)
+                        .foregroundColor(.secondary)
+                }
+                .padding(.vertical, 20)
             } else if let tracksResponse = albumTracksResponse, !tracksResponse.tracks.isEmpty {
                 LazyVStack(spacing: 4) {
                     ForEach(tracksResponse.tracks.indices, id: \.self) { index in

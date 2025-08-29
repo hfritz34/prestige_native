@@ -22,6 +22,7 @@ struct RateView: View {
     @State private var cachedTopRatedItems: [RatedItem] = []
     @State private var cachedAllRatedItems: [RatedItem] = []
     @State private var lastRatingsUpdateTime: Date = Date()
+    @State private var isCacheReady = false
     
     var body: some View {
         NavigationView {
@@ -54,7 +55,12 @@ struct RateView: View {
         .onAppear {
             // Inject AuthManager and then load data (prevents missing user ID issues)
             viewModel.setAuthManager(authManager)
-            Task { await viewModel.loadInitialData() }
+            Task { 
+                await viewModel.loadInitialData()
+                await viewModel.ensureMetadataLoaded()
+                // Force an update of cached ratings to ensure everything is ready
+                updateCachedRatings()
+            }
         }
         .onChange(of: viewModel.filteredRatings) { oldValue, newValue in
             updateCachedRatings()
@@ -125,9 +131,12 @@ struct RateView: View {
                         isSelected: viewModel.selectedItemType == itemType,
                         action: {
                             viewModel.selectedItemType = itemType
+                            // Immediately update cached content for new item type
+                            updateCachedRatings()
                             Task {
                                 await viewModel.loadUserRatings()
                                 await viewModel.loadUnratedItems()
+                                await viewModel.ensureMetadataLoaded()
                             }
                         }
                     )
@@ -150,11 +159,11 @@ struct RateView: View {
                         Text(tab.title)
                             .font(.subheadline)
                             .fontWeight(selectedTab == tab ? .semibold : .medium)
-                            .foregroundColor(selectedTab == tab ? .blue : .secondary)
+                            .foregroundColor(selectedTab == tab ? Theme.primary : .secondary)
                         
                         Rectangle()
                             .frame(height: 2)
-                            .foregroundColor(selectedTab == tab ? .blue : .clear)
+                            .foregroundColor(selectedTab == tab ? Theme.primary : .clear)
                     }
                 }
                 .frame(maxWidth: .infinity)
@@ -166,40 +175,40 @@ struct RateView: View {
     
     @ViewBuilder
     private var contentSection: some View {
-        if viewModel.isLoading {
-            loadingView
-        } else if !searchText.isEmpty {
-            searchResultsView
-        } else {
-            ScrollView(.vertical, showsIndicators: true) {
-                LazyVStack(spacing: 12, pinnedViews: []) {
-                    switch selectedTab {
-                    case .unrated:
-                        unratedContent
-                    case .topRated:
-                        topRatedContent
-                    case .yourRatings:
-                        yourRatingsContent
+        ZStack(alignment: .top) {
+            // Keep main content mounted to avoid layout bounce
+            Group {
+                if !searchText.isEmpty {
+                    searchResultsView
+                } else {
+                    ScrollView(.vertical, showsIndicators: true) {
+                        LazyVStack(spacing: 12, pinnedViews: []) {
+                            switch selectedTab {
+                            case .unrated:
+                                unratedContent
+                            case .topRated:
+                                topRatedContent
+                            case .yourRatings:
+                                yourRatingsContent
+                            }
+                            
+                            // Bottom padding for safe scrolling
+                            Color.clear.frame(height: 100)
+                        }
+                        .padding(.horizontal)
+                        .padding(.top, 16)
                     }
-                    
-                    // Bottom padding for safe scrolling
-                    Color.clear.frame(height: 100)
                 }
-                .padding(.horizontal)
-                .padding(.top, 16)
+            }
+            
+            // Loading overlay that doesn't change layout height
+            if viewModel.isLoading || !isCacheReady {
+                BeatVisualizerLoadingView(message: viewModel.loadingMessage.isEmpty ? nil : viewModel.loadingMessage)
+                    .background(Color(UIColor.systemBackground).opacity(0.9))
             }
         }
     }
     
-    private var loadingView: some View {
-        VStack(spacing: 20) {
-            ForEach(0..<5, id: \.self) { _ in
-                RatingItemLoadingCard()
-            }
-        }
-        .padding(.horizontal)
-        .padding(.top, 20)
-    }
     
     private var unratedContent: some View {
         Group {
@@ -430,41 +439,49 @@ struct RateView: View {
     // MARK: - Cache Update Methods
     
     private func updateCachedRatings() {
-        // Update top rated items cache
-        let topRatings = viewModel.filteredRatings
-            .filter { $0.personalScore >= 7.0 }
-            .sorted { $0.personalScore > $1.personalScore }
-            .prefix(20)
-        
-        cachedTopRatedItems = Array(topRatings).compactMap { rating in
-            let itemData = viewModel.getItemData(for: rating) ?? RatingItemData(
-                id: rating.itemId,
-                name: "Unknown",
-                imageUrl: nil,
-                artists: nil,
-                albumName: nil,
-                albumId: rating.albumId,
-                itemType: rating.itemType
-            )
-            return RatedItem(id: rating.id, rating: rating, itemData: itemData)
+        Task {
+            // Ensure metadata is loaded first
+            await viewModel.ensureMetadataLoaded()
+            
+            await MainActor.run {
+                // Update top rated items cache
+                let topRatings = viewModel.filteredRatings
+                    .filter { $0.personalScore >= 7.0 }
+                    .sorted { $0.personalScore > $1.personalScore }
+                    .prefix(20)
+                
+                cachedTopRatedItems = Array(topRatings).compactMap { rating in
+                    let itemData = viewModel.getItemData(for: rating) ?? RatingItemData(
+                        id: rating.itemId,
+                        name: "Unknown",
+                        imageUrl: nil,
+                        artists: nil,
+                        albumName: nil,
+                        albumId: rating.albumId,
+                        itemType: rating.itemType
+                    )
+                    return RatedItem(id: rating.id, rating: rating, itemData: itemData)
+                }
+                
+                // Update all rated items cache
+                let allRatings = viewModel.filteredRatings.sorted { $0.personalScore > $1.personalScore }
+                cachedAllRatedItems = allRatings.compactMap { rating in
+                    let itemData = viewModel.getItemData(for: rating) ?? RatingItemData(
+                        id: rating.itemId,
+                        name: "Unknown",
+                        imageUrl: nil,
+                        artists: nil,
+                        albumName: nil,
+                        albumId: rating.albumId,
+                        itemType: rating.itemType
+                    )
+                    return RatedItem(id: rating.id, rating: rating, itemData: itemData)
+                }
+                
+                lastRatingsUpdateTime = Date()
+                isCacheReady = true
+            }
         }
-        
-        // Update all rated items cache
-        let allRatings = viewModel.filteredRatings.sorted { $0.personalScore > $1.personalScore }
-        cachedAllRatedItems = allRatings.compactMap { rating in
-            let itemData = viewModel.getItemData(for: rating) ?? RatingItemData(
-                id: rating.itemId,
-                name: "Unknown",
-                imageUrl: nil,
-                artists: nil,
-                albumName: nil,
-                albumId: rating.albumId,
-                itemType: rating.itemType
-            )
-            return RatedItem(id: rating.id, rating: rating, itemData: itemData)
-        }
-        
-        lastRatingsUpdateTime = Date()
     }
 }
 // MARK: - Load More Button
@@ -509,7 +526,7 @@ struct ItemTypeButton: View {
             .padding(.vertical, 10)
             .background(
                 Capsule()
-                    .fill(isSelected ? Color.blue : Color(UIColor.secondarySystemBackground))
+                    .fill(isSelected ? Theme.primary : Color(UIColor.secondarySystemBackground))
             )
         }
         .scaleEffect(isSelected ? 1.02 : 1.0)

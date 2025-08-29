@@ -15,8 +15,12 @@ struct AlbumDetailView: View {
     @State private var showAllTracks = false
     @State private var albumTracksResponse: AlbumTracksWithRankingsResponse?
     @State private var isLoadingTracks = false
+    @State private var isPinned = false
     @StateObject private var pinService = PinService.shared
     @Environment(\.dismiss) private var dismiss
+    
+    // Theme color for this view
+    private let themeColor: Color = Color(hex: "#5167FC") ?? .purple
     
     var body: some View {
         NavigationView {
@@ -49,6 +53,10 @@ struct AlbumDetailView: View {
         }
         .onAppear {
             loadAlbumTracks()
+            Task {
+                await pinService.loadPinnedItems()
+            }
+            isPinned = pinService.isItemPinned(itemId: album.album.id, itemType: .albums)
         }
     }
     
@@ -76,7 +84,7 @@ struct AlbumDetailView: View {
                         .multilineTextAlignment(.center)
                     
                     // Pin indicator
-                    if album.isPinned {
+                    if isPinned {
                         Text("📌")
                             .font(.title3)
                     }
@@ -150,21 +158,40 @@ struct AlbumDetailView: View {
                     loadAlbumTracks()
                 }
             }) {
-                HStack {
-                    Text(showAllTracks ? "Hide Tracks" : "Show All Tracks")
-                        .font(.headline)
-                        .fontWeight(.medium)
+                HStack(spacing: 12) {
+                    Image(systemName: showAllTracks ? "music.note.list" : "music.note")
+                        .font(.title3)
+                        .foregroundColor(themeColor)
+                    
+                    VStack(alignment: .leading, spacing: 2) {
+                        Text(showAllTracks ? "Hide Tracks" : "Show All Tracks")
+                            .font(.headline)
+                            .fontWeight(.medium)
+                        
+                        if !showAllTracks && albumTracksResponse == nil {
+                            Text("View album track rankings")
+                                .font(.caption)
+                                .foregroundColor(.secondary)
+                        }
+                    }
                     
                     Spacer()
                     
-                    Image(systemName: showAllTracks ? "chevron.up" : "chevron.down")
-                        .font(.subheadline)
-                        .rotationEffect(.degrees(showAllTracks ? 180 : 0))
+                    Image(systemName: showAllTracks ? "chevron.up.circle.fill" : "chevron.down.circle.fill")
+                        .font(.title2)
+                        .foregroundColor(themeColor)
+                        .rotationEffect(.degrees(showAllTracks ? 0 : 0))
                 }
                 .foregroundColor(.primary)
                 .padding()
-                .background(Color(UIColor.secondarySystemBackground))
-                .cornerRadius(12)
+                .background(
+                    RoundedRectangle(cornerRadius: 12)
+                        .fill(Color(UIColor.secondarySystemBackground))
+                        .overlay(
+                            RoundedRectangle(cornerRadius: 12)
+                                .stroke(themeColor.opacity(0.3), lineWidth: 1)
+                        )
+                )
             }
             
             // Expanded track list
@@ -213,19 +240,19 @@ struct AlbumDetailView: View {
         HStack(spacing: 12) {
             // Pin button
             Button(action: {
-                Task {
-                    let _ = await pinService.togglePin(itemId: album.album.id, itemType: .albums)
-                }
+                togglePin()
             }) {
-                HStack {
-                    Text("📌")
-                    Text(pinService.isItemPinned(itemId: album.album.id, itemType: .albums) ? "Pinned" : "Pin")
+                VStack(spacing: 4) {
+                    Image(systemName: isPinned ? "pin.fill" : "pin")
+                        .font(.title3)
+                    Text(isPinned ? "Pinned" : "Pin")
+                        .font(.caption)
                 }
                 .frame(maxWidth: .infinity)
-                .padding()
-                .background(pinService.isItemPinned(itemId: album.album.id, itemType: .albums) ? Color.yellow.opacity(0.3) : Color(UIColor.secondarySystemBackground))
-                .foregroundColor(.primary)
-                .cornerRadius(12)
+                .padding(.vertical, 12)
+                .background(isPinned ? Color.yellow : Color(UIColor.secondarySystemBackground))
+                .foregroundColor(isPinned ? .black : .primary)
+                .cornerRadius(10)
             }
             
             // Play/Open on Spotify
@@ -282,6 +309,21 @@ struct AlbumDetailView: View {
                     albumTracksResponse = nil
                     isLoadingTracks = false
                 }
+            }
+        }
+    }
+    
+    // MARK: - Actions
+    
+    private func togglePin() {
+        Task {
+            let newPinState = await pinService.togglePin(
+                itemId: album.album.id,
+                itemType: .albums
+            )
+            
+            withAnimation(.spring(response: 0.3, dampingFraction: 0.8)) {
+                isPinned = newPinState
             }
         }
     }

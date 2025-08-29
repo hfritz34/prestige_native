@@ -105,6 +105,9 @@ struct PrestigeCalculator {
     /// - Parameter totalTimeMinutes: Total listening time in minutes
     /// - Returns: Appropriate prestige level
     static func getTrackPrestigeTier(totalTimeMinutes: Int) -> PrestigeLevel {
+        if DevPrestigeTiers.isEnabled {
+            return tier(from: totalTimeMinutes, thresholds: DevPrestigeTiers.trackThresholds)
+        }
         switch totalTimeMinutes {
         case 15000...: return .darkMatter  // 15,000+ minutes
         case 6000..<15000: return .opal    // 6,000+ minutes
@@ -125,6 +128,9 @@ struct PrestigeCalculator {
     /// - Parameter totalTimeMinutes: Total listening time in minutes
     /// - Returns: Appropriate prestige level
     static func getAlbumPrestigeTier(totalTimeMinutes: Int) -> PrestigeLevel {
+        if DevPrestigeTiers.isEnabled {
+            return tier(from: totalTimeMinutes, thresholds: DevPrestigeTiers.albumThresholds)
+        }
         switch totalTimeMinutes {
         case 50000...: return .darkMatter  // 50,000+ minutes
         case 30000..<50000: return .opal   // 30,000+ minutes
@@ -145,6 +151,9 @@ struct PrestigeCalculator {
     /// - Parameter totalTimeMinutes: Total listening time in minutes
     /// - Returns: Appropriate prestige level
     static func getArtistPrestigeTier(totalTimeMinutes: Int) -> PrestigeLevel {
+        if DevPrestigeTiers.isEnabled {
+            return tier(from: totalTimeMinutes, thresholds: DevPrestigeTiers.artistThresholds)
+        }
         switch totalTimeMinutes {
         case 100000...: return .darkMatter // 100,000+ minutes
         case 50000..<100000: return .opal  // 50,000+ minutes
@@ -170,13 +179,17 @@ struct PrestigeCalculator {
     static func getNextTierInfo(currentLevel: PrestigeLevel, totalTimeMinutes: Int, itemType: ItemType) -> (nextLevel: PrestigeLevel, minutesNeeded: Int)? {
         let thresholds: [Int]
         
-        switch itemType {
-        case .track:
-            thresholds = [60, 150, 300, 500, 800, 1200, 1600, 2200, 3000, 6000, 15000]
-        case .album:
-            thresholds = [200, 350, 500, 1000, 2000, 4000, 6000, 10000, 15000, 30000, 50000]
-        case .artist:
-            thresholds = [400, 750, 1200, 2000, 3000, 6000, 10000, 15000, 25000, 50000, 100000]
+        if DevPrestigeTiers.isEnabled {
+            thresholds = DevPrestigeTiers.thresholds(for: itemType)
+        } else {
+            switch itemType {
+            case .track:
+                thresholds = [60, 150, 300, 500, 800, 1200, 1600, 2200, 3000, 6000, 15000]
+            case .album:
+                thresholds = [200, 350, 500, 1000, 2000, 4000, 6000, 10000, 15000, 30000, 50000]
+            case .artist:
+                thresholds = [400, 750, 1200, 2000, 3000, 6000, 10000, 15000, 25000, 50000, 100000]
+            }
         }
         
         let levels: [PrestigeLevel] = [.bronze, .silver, .peridot, .gold, .emerald, .sapphire, .garnet, .jet, .diamond, .opal, .darkMatter]
@@ -188,6 +201,16 @@ struct PrestigeCalculator {
         }
         
         return nil // Already at max level
+    }
+    
+    private static func tier(from minutes: Int, thresholds: [Int]) -> PrestigeLevel {
+        let levels: [PrestigeLevel] = [.bronze, .silver, .peridot, .gold, .emerald, .sapphire, .garnet, .jet, .diamond, .opal, .darkMatter]
+        for (index, threshold) in thresholds.enumerated() {
+            if minutes < threshold {
+                return levels[index]
+            }
+        }
+        return .darkMatter
     }
     
     enum ItemType {

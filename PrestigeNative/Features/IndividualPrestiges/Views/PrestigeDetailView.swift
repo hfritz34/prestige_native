@@ -126,10 +126,10 @@ struct PrestigeDetailView: View {
                                 .font(.caption)
                                 .fontWeight(.medium)
                         }
-                        .foregroundColor(.blue)
+                        .foregroundColor(Theme.primary)
                         .padding(.horizontal, 8)
                         .padding(.vertical, 4)
-                        .background(Color.blue.opacity(0.1))
+                        .background(Theme.primary.opacity(0.12))
                         .cornerRadius(6)
                         .transition(.scale.combined(with: .opacity))
                     }
@@ -278,10 +278,10 @@ struct PrestigeDetailView: View {
                     }
                 }
                 .font(.subheadline)
-                .foregroundColor(.blue)
+                .foregroundColor(Theme.primary)
                 .padding(.horizontal, 20)
                 .padding(.vertical, 10)
-                .background(Color.blue.opacity(0.1))
+                .background(Theme.primary.opacity(0.12))
                 .cornerRadius(8)
                 
                 Button("Remove Rating") {
@@ -560,13 +560,22 @@ struct PrestigeDetailView: View {
                 Spacer()
                 
                 if albumTracksResponse != nil {
-                    Button(showAllTracks ? "Hide Tracks" : "Show All Tracks") {
+                    Button(action: {
                         withAnimation(.easeInOut(duration: 0.3)) {
                             showAllTracks.toggle()
                         }
+                    }) {
+                        Text(showAllTracks ? "Hide Tracks" : "Show All Tracks")
+                            .font(.subheadline)
+                            .fontWeight(.medium)
+                            .foregroundColor(.purple)
+                            .padding(.horizontal, 16)
+                            .padding(.vertical, 8)
+                            .background(
+                                Capsule()
+                                    .fill(Color.purple.opacity(0.15))
+                            )
                     }
-                    .font(.subheadline)
-                    .foregroundColor(.blue)
                 }
             }
             
@@ -641,15 +650,45 @@ struct PrestigeDetailView: View {
                 .background(Color(UIColor.tertiarySystemBackground))
                 .cornerRadius(12)
             } else if albumTracksResponse == nil {
-                Button("Show All Tracks") {
+                Button(action: {
                     loadAlbumTracks()
                     withAnimation(.easeInOut(duration: 0.3)) {
                         showAllTracks = true
                     }
+                }) {
+                    HStack(spacing: 12) {
+                        Image(systemName: "music.note")
+                            .font(.title3)
+                            .foregroundColor(Color(hex: "#5167FC") ?? .purple)
+                        
+                        VStack(alignment: .leading, spacing: 2) {
+                            Text("Show All Tracks")
+                                .font(.headline)
+                                .fontWeight(.medium)
+                            
+                            Text("View album track rankings")
+                                .font(.caption)
+                                .foregroundColor(.secondary)
+                        }
+                        
+                        Spacer()
+                        
+                        Image(systemName: "chevron.down.circle.fill")
+                            .font(.title2)
+                            .foregroundColor(Color(hex: "#5167FC") ?? .purple)
+                    }
+                    .foregroundColor(.primary)
+                    .padding()
+                    .background(
+                        RoundedRectangle(cornerRadius: 12)
+                            .fill(Color(UIColor.secondarySystemBackground))
+                            .overlay(
+                                RoundedRectangle(cornerRadius: 12)
+                                    .stroke((Color(hex: "#5167FC") ?? .purple).opacity(0.3), lineWidth: 1)
+                            )
+                    )
                 }
-                .font(.subheadline)
-                .foregroundColor(.blue)
-                .padding(.vertical, 20)
+                .padding(.vertical, 8)
             }
         }
     }
@@ -666,13 +705,22 @@ struct PrestigeDetailView: View {
                 Spacer()
                 
                 if artistAlbumsResponse != nil {
-                    Button(showAllAlbums ? "Hide Albums" : "Show Albums") {
+                    Button(action: {
                         withAnimation(.easeInOut(duration: 0.3)) {
                             showAllAlbums.toggle()
                         }
+                    }) {
+                        Text(showAllAlbums ? "Hide Albums" : "Show Rated Albums")
+                            .font(.subheadline)
+                            .fontWeight(.medium)
+                            .foregroundColor(.purple)
+                            .padding(.horizontal, 16)
+                            .padding(.vertical, 8)
+                            .background(
+                                Capsule()
+                                    .fill(Color.purple.opacity(0.15))
+                            )
                     }
-                    .font(.subheadline)
-                    .foregroundColor(.blue)
                 }
             }
             
@@ -773,15 +821,45 @@ struct PrestigeDetailView: View {
                 .background(Color(UIColor.tertiarySystemBackground))
                 .cornerRadius(12)
             } else if artistAlbumsResponse == nil {
-                Button("Show Rated Albums") {
+                Button(action: {
                     loadArtistAlbums()
                     withAnimation(.easeInOut(duration: 0.3)) {
                         showAllAlbums = true
                     }
+                }) {
+                    HStack(spacing: 12) {
+                        Image(systemName: "square.stack")
+                            .font(.title3)
+                            .foregroundColor(.green)
+                        
+                        VStack(alignment: .leading, spacing: 2) {
+                            Text("Show Rated Albums")
+                                .font(.headline)
+                                .fontWeight(.medium)
+                            
+                            Text("View artist album rankings")
+                                .font(.caption)
+                                .foregroundColor(.secondary)
+                        }
+                        
+                        Spacer()
+                        
+                        Image(systemName: "chevron.down.circle.fill")
+                            .font(.title2)
+                            .foregroundColor(.green)
+                    }
+                    .foregroundColor(.primary)
+                    .padding()
+                    .background(
+                        RoundedRectangle(cornerRadius: 12)
+                            .fill(Color(UIColor.secondarySystemBackground))
+                            .overlay(
+                                RoundedRectangle(cornerRadius: 12)
+                                    .stroke(Color.green.opacity(0.3), lineWidth: 1)
+                            )
+                    )
                 }
-                .font(.subheadline)
-                .foregroundColor(.blue)
-                .padding(.vertical, 20)
+                .padding(.vertical, 8)
             }
         }
     }

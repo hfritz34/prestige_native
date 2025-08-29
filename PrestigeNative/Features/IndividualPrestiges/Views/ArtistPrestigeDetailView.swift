@@ -15,6 +15,7 @@ struct ArtistPrestigeDetailView: View {
     @State private var showAllAlbums = false
     @State private var artistAlbums: ArtistAlbumsWithRankingsResponse?
     @State private var isLoadingAlbums = false
+    @State private var isPinned = false
     @StateObject private var pinService = PinService.shared
     @Environment(\.dismiss) private var dismiss
     
@@ -49,6 +50,10 @@ struct ArtistPrestigeDetailView: View {
         }
         .onAppear {
             loadArtistAlbums()
+            Task {
+                await pinService.loadPinnedItems()
+            }
+            isPinned = pinService.isItemPinned(itemId: artist.artist.id, itemType: .artists)
         }
     }
     
@@ -90,7 +95,7 @@ struct ArtistPrestigeDetailView: View {
                         .multilineTextAlignment(.center)
                     
                     // Pin indicator
-                    if pinService.isItemPinned(itemId: artist.artist.id, itemType: .artists) {
+                    if isPinned {
                         Text("📌")
                             .font(.title3)
                     }
@@ -168,21 +173,40 @@ struct ArtistPrestigeDetailView: View {
                     showAllAlbums.toggle()
                 }
             }) {
-                HStack {
-                    Text(showAllAlbums ? "Hide Albums" : "Show All Albums")
-                        .font(.headline)
-                        .fontWeight(.medium)
+                HStack(spacing: 12) {
+                    Image(systemName: showAllAlbums ? "square.stack.fill" : "square.stack")
+                        .font(.title3)
+                        .foregroundColor(.green)
+                    
+                    VStack(alignment: .leading, spacing: 2) {
+                        Text(showAllAlbums ? "Hide Albums" : "Show Rated Albums")
+                            .font(.headline)
+                            .fontWeight(.medium)
+                        
+                        if !showAllAlbums && artistAlbums == nil {
+                            Text("View artist album rankings")
+                                .font(.caption)
+                                .foregroundColor(.secondary)
+                        }
+                    }
                     
                     Spacer()
                     
-                    Image(systemName: showAllAlbums ? "chevron.up" : "chevron.down")
-                        .font(.subheadline)
-                        .rotationEffect(.degrees(showAllAlbums ? 180 : 0))
+                    Image(systemName: showAllAlbums ? "chevron.up.circle.fill" : "chevron.down.circle.fill")
+                        .font(.title2)
+                        .foregroundColor(.green)
+                        .rotationEffect(.degrees(showAllAlbums ? 0 : 0))
                 }
                 .foregroundColor(.primary)
                 .padding()
-                .background(Color(UIColor.secondarySystemBackground))
-                .cornerRadius(12)
+                .background(
+                    RoundedRectangle(cornerRadius: 12)
+                        .fill(Color(UIColor.secondarySystemBackground))
+                        .overlay(
+                            RoundedRectangle(cornerRadius: 12)
+                                .stroke(Color.green.opacity(0.3), lineWidth: 1)
+                        )
+                )
             }
             
             // Expanded album list
@@ -220,19 +244,19 @@ struct ArtistPrestigeDetailView: View {
         HStack(spacing: 12) {
             // Pin button
             Button(action: {
-                Task {
-                    let _ = await pinService.togglePin(itemId: artist.artist.id, itemType: .artists)
-                }
+                togglePin()
             }) {
-                HStack {
-                    Text("📌")
-                    Text(pinService.isItemPinned(itemId: artist.artist.id, itemType: .artists) ? "Pinned" : "Pin")
+                VStack(spacing: 4) {
+                    Image(systemName: isPinned ? "pin.fill" : "pin")
+                        .font(.title3)
+                    Text(isPinned ? "Pinned" : "Pin")
+                        .font(.caption)
                 }
                 .frame(maxWidth: .infinity)
-                .padding()
-                .background(pinService.isItemPinned(itemId: artist.artist.id, itemType: .artists) ? Color.yellow.opacity(0.3) : Color(UIColor.secondarySystemBackground))
-                .foregroundColor(.primary)
-                .cornerRadius(12)
+                .padding(.vertical, 12)
+                .background(isPinned ? Color.yellow : Color(UIColor.secondarySystemBackground))
+                .foregroundColor(isPinned ? .black : .primary)
+                .cornerRadius(10)
             }
             
             // Play/Open on Spotify
@@ -282,6 +306,21 @@ struct ArtistPrestigeDetailView: View {
                     print("Error loading artist albums: \(error)")
                     isLoadingAlbums = false
                 }
+            }
+        }
+    }
+    
+    // MARK: - Actions
+    
+    private func togglePin() {
+        Task {
+            let newPinState = await pinService.togglePin(
+                itemId: artist.artist.id,
+                itemType: .artists
+            )
+            
+            withAnimation(.spring(response: 0.3, dampingFraction: 0.8)) {
+                isPinned = newPinState
             }
         }
     }

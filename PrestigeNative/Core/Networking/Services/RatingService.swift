@@ -29,7 +29,8 @@ class RatingService: ObservableObject {
             // Try decoding as wrapper { categories: [...] }
             if let wrapped: RatingCategoryResponse = try? await apiClient.get(
                 APIEndpoints.ratingCategories,
-                responseType: RatingCategoryResponse.self
+                responseType: RatingCategoryResponse.self,
+                cacheCategory: .ratingCategories
             ) {
                 let sorted = wrapped.categories.sorted { $0.displayOrder < $1.displayOrder }
                 await MainActor.run { self.categories = sorted }
@@ -39,7 +40,8 @@ class RatingService: ObservableObject {
             // Fallback: API might return a bare array
             let arrayResponse: [RatingCategoryModel] = try await apiClient.get(
                 APIEndpoints.ratingCategories,
-                responseType: [RatingCategoryModel].self
+                responseType: [RatingCategoryModel].self,
+                cacheCategory: .ratingCategories
             )
             let sorted = arrayResponse.sorted { $0.displayOrder < $1.displayOrder }
             await MainActor.run { self.categories = sorted }
@@ -88,6 +90,12 @@ class RatingService: ObservableObject {
                 responseType: ServerRatingResponse.self
             )
             
+            // Invalidate cache for user ratings after successful save
+            await ResponseCacheService.shared.invalidateWithRedis(
+                category: .userRatings,
+                keyPattern: itemType.rawValue
+            )
+            
             return server.toClientRating()
         } catch {
             await MainActor.run { self.error = error as? APIError }
@@ -131,7 +139,8 @@ class RatingService: ObservableObject {
             let endpoint = APIEndpoints.userRatings(itemType: itemType.rawValue)
             let serverRatings = try await apiClient.get(
                 endpoint,
-                responseType: [ServerRatingResponse].self
+                responseType: [ServerRatingResponse].self,
+                cacheCategory: .userRatings
             )
             
             await MainActor.run {
@@ -163,6 +172,12 @@ class RatingService: ObservableObject {
                     self.userRatings[itemType.rawValue] = ratings
                 }
             }
+            
+            // Invalidate cache for user ratings
+            await ResponseCacheService.shared.invalidateWithRedis(
+                category: .userRatings,
+                keyPattern: itemType.rawValue
+            )
         } catch {
             await MainActor.run { self.error = error as? APIError }
             throw error

@@ -152,13 +152,27 @@ class APIClient: ObservableObject {
     // MARK: - Public API Methods
     
     /// Perform GET request
-    func get<T: Decodable>(
+    /// GET request with caching support
+    func get<T: Codable>(
         _ endpoint: String,
-        responseType: T.Type
+        responseType: T.Type,
+        cacheCategory: CacheCategory? = nil,
+        forceRefresh: Bool = false
     ) async throws -> T {
         guard let url = APIEndpoints.fullURL(for: endpoint) else {
             print("❌ APIClient: Invalid URL for endpoint: \(endpoint)")
             throw APIError.invalidURL
+        }
+        
+        // Check cache first if category provided and not forcing refresh
+        if let cacheCategory = cacheCategory, !forceRefresh {
+            if let cached = ResponseCacheService.shared.getCachedResponse(
+                for: endpoint,
+                responseType: responseType,
+                category: cacheCategory
+            ) {
+                return cached
+            }
         }
         
         print("🔵 APIClient: Making GET request to: \(url.absoluteString)")
@@ -170,6 +184,16 @@ class APIClient: ObservableObject {
         do {
             let result = try await retryRequest(request, responseType: responseType)
             await MainActor.run { lastError = nil }
+            
+            // Cache the result if category provided
+            if let cacheCategory = cacheCategory {
+                ResponseCacheService.shared.cacheResponse(
+                    result,
+                    for: endpoint,
+                    category: cacheCategory
+                )
+            }
+            
             return result
         } catch let error as APIError {
             await MainActor.run { lastError = error }

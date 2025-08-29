@@ -9,6 +9,16 @@
 import Foundation
 import Combine
 
+// Thread-safe generic cache actor used only within this file to avoid Xcode target membership issues
+private actor SafeItemCache<Value> {
+    private var storage: [String: Value] = [:]
+    
+    func get(forKey key: String) -> Value? { storage[key] }
+    func set(_ value: Value, forKey key: String) { storage[key] = value }
+    func removeAll() { storage.removeAll() }
+    var count: Int { storage.count }
+}
+
 // Response model for item details API
 struct ItemDetailsResponse: Codable {
     let id: String
@@ -23,8 +33,8 @@ struct ItemDetailsResponse: Codable {
 class LibraryService: ObservableObject {
     private let apiClient: APIClient
     
-    // In-memory cache for item details
-    private var itemCache: [String: ItemDetailsResponse] = [:]
+    // Thread-safe in-memory cache for item details
+    private let itemCache = SafeItemCache<ItemDetailsResponse>()
     
     @Published var isLoading = false
     @Published var error: APIError?
@@ -40,7 +50,7 @@ class LibraryService: ObservableObject {
         let cacheKey = "\(itemType.rawValue)_\(itemId)"
         
         // Check local memory cache first for immediate response
-        if let cachedItem = itemCache[cacheKey] {
+        if let cachedItem = await itemCache.get(forKey: cacheKey) {
             print("📦 Memory cache hit for \(itemType.rawValue) \(itemId)")
             return cachedItem
         }
@@ -59,7 +69,7 @@ class LibraryService: ObservableObject {
             )
             
             // Cache in memory for immediate future access
-            itemCache[cacheKey] = response
+            await itemCache.set(response, forKey: cacheKey)
             
             await MainActor.run { 
                 isLoading = false 
@@ -86,7 +96,7 @@ class LibraryService: ObservableObject {
         
         for item in items {
             let cacheKey = "\(item.type.rawValue)_\(item.id)"
-            if let cachedItem = itemCache[cacheKey] {
+            if let cachedItem = await itemCache.get(forKey: cacheKey) {
                 cachedResults.append(cachedItem)
             } else {
                 uncachedItems.append(item)
@@ -107,7 +117,7 @@ class LibraryService: ObservableObject {
         // Cache the new results
         for result in batchResults {
             let cacheKey = "\(result.itemType)_\(result.id)"
-            itemCache[cacheKey] = result
+            await itemCache.set(result, forKey: cacheKey)
         }
         
         // Combine cached and fresh results
@@ -204,16 +214,15 @@ class LibraryService: ObservableObject {
     
     /// Clear the cache (useful for memory management)
     func clearCache() {
-        itemCache.removeAll()
+        Task { await itemCache.removeAll() }
         print("🗑️ LibraryService cache cleared")
     }
     
     /// Get cache statistics
-    func getCacheStats() -> (count: Int, memory: String) {
-        let count = itemCache.count
-        let memoryUsage = MemoryLayout.size(ofValue: itemCache) + 
-                         itemCache.values.reduce(0) { $0 + MemoryLayout.size(ofValue: $1) }
-        let memoryString = ByteCountFormatter.string(fromByteCount: Int64(memoryUsage), countStyle: .memory)
+    func getCacheStats() async -> (count: Int, memory: String) {
+        let count = await itemCache.count
+        // Rough estimate; we avoid iterating values across actor here
+        let memoryString = "~\(count) items"
         return (count, memoryString)
     }
 }

@@ -40,6 +40,8 @@ class RatingViewModel: ObservableObject {
     var binarySearchState: BinarySearchState?
     
     @Published var isLoading = false
+    @Published var loadingProgress: Double = 0.0
+    @Published var loadingMessage: String = ""
     @Published var error: String?
     @Published var showRatingModal = false
     @Published var ratingState: RatingFlowState = .idle
@@ -112,28 +114,55 @@ class RatingViewModel: ObservableObject {
     func loadInitialData() async {
         do {
             isLoading = true
+            loadingProgress = 0.0
+            loadingMessage = "Loading rating system..."
             
             // Load categories if not already loaded
             if categories.isEmpty {
+                loadingProgress = 0.1
+                loadingMessage = "Loading rating categories..."
                 _ = try await ratingService.fetchCategories()
             }
             
+            loadingProgress = 0.2
+            loadingMessage = "Preloading metadata for all content types..."
+            // Preload metadata for all content types to prevent "Unknown" fallbacks
+            await preloadAllContentMetadata()
+            
+            loadingProgress = 0.6
+            loadingMessage = "Loading your ratings..."
             // Load user ratings for selected item type
             await loadUserRatings()
             
+            loadingProgress = 0.8
+            loadingMessage = "Loading unrated items..."
             // Load unrated items
             await loadUnratedItems()
             
+            loadingProgress = 0.9
+            loadingMessage = "Preparing display..."
+            // Ensure metadata is loaded for immediate display
+            await ensureMetadataLoaded()
+            
+            // Add a brief delay to ensure everything is ready for display
+            try? await Task.sleep(nanoseconds: 500_000_000) // 0.5 seconds
+            
+            loadingProgress = 1.0
+            loadingMessage = "Ready!"
             isLoading = false
         } catch {
             self.error = error.localizedDescription
             isLoading = false
+            loadingProgress = 0.0
+            loadingMessage = ""
         }
     }
     
     func loadUserRatings() async {
         do {
-            _ = try await ratingService.fetchUserRatings(itemType: selectedItemType)
+            let ratings = try await ratingService.fetchUserRatings(itemType: selectedItemType)
+            // Metadata is preloaded during initial data load, but load any missing items
+            await loadMetadataForRatings(ratings)
         } catch {
             print("Failed to load user ratings: \(error)")
         }
@@ -778,8 +807,95 @@ class RatingViewModel: ObservableObject {
         itemCache[item.id] = item
     }
 
+    /// Load metadata for a batch of ratings to populate itemCache
+    private func loadMetadataForRatings(_ ratings: [Rating]) async {
+        let itemIds = Array(Set(ratings.map { $0.itemId })) // Remove duplicates
+        
+        // Only load metadata for items not already in cache
+        let uncachedIds = itemIds.filter { itemCache[$0] == nil }
+        
+        guard !uncachedIds.isEmpty else { return }
+        
+        do {
+            // Load metadata in batches to avoid overwhelming the API
+            let batchSize = 20
+            for batch in uncachedIds.chunked(into: batchSize) {
+                await withTaskGroup(of: Void.self) { group in
+                    for itemId in batch {
+                        group.addTask { [weak self] in
+                            guard let self = self else { return }
+                            
+                            // Find the rating to determine item type
+                            if let rating = ratings.first(where: { $0.itemId == itemId }) {
+                                do {
+                                    let details = try await self.libraryService.getItemDetails(
+                                        itemId: itemId,
+                                        itemType: rating.itemType
+                                    )
+                                    
+                                    let itemData = RatingItemData(
+                                        id: itemId,
+                                        name: details.name,
+                                        imageUrl: details.imageUrl,
+                                        artists: details.artists,
+                                        albumName: details.albumName,
+                                        albumId: details.albumId,
+                                        itemType: rating.itemType
+                                    )
+                                    
+                                    await MainActor.run {
+                                        self.itemCache[itemId] = itemData
+                                    }
+                                } catch {
+                                    print("Failed to load metadata for item \(itemId): \(error)")
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
+    
+    /// Preload metadata for all content types to prevent "Unknown" fallbacks
+    private func preloadAllContentMetadata() async {
+        print("🔄 Starting comprehensive metadata preloading for all content types...")
+        
+        loadingMessage = "Fetching tracks ratings..."
+        // Fetch ratings for all content types concurrently
+        async let tracksTask = ratingService.fetchUserRatings(itemType: .track)
+        
+        loadingMessage = "Fetching albums ratings..."
+        async let albumsTask = ratingService.fetchUserRatings(itemType: .album) 
+        
+        loadingMessage = "Fetching artists ratings..."
+        async let artistsTask = ratingService.fetchUserRatings(itemType: .artist)
+        
+        do {
+            let (tracks, albums, artists) = try await (tracksTask, albumsTask, artistsTask)
+            
+            // Combine all ratings for batch metadata loading
+            let allRatings = tracks + albums + artists
+            print("📊 Preloading metadata for \(allRatings.count) total ratings (\(tracks.count) tracks, \(albums.count) albums, \(artists.count) artists)")
+            
+            loadingMessage = "Loading metadata for \(allRatings.count) items..."
+            // Load metadata for all ratings
+            await loadMetadataForRatings(allRatings)
+            
+            print("✅ Comprehensive metadata preloading completed")
+        } catch {
+            print("⚠️ Failed to preload some metadata: \(error)")
+        }
+    }
+    
     func getItemData(for rating: Rating) -> RatingItemData? {
         return itemCache[rating.itemId]
+    }
+    
+    /// Ensure metadata is loaded for current ratings - call this before accessing rated items
+    func ensureMetadataLoaded() async {
+        let currentRatings = userRatings[selectedItemType.rawValue] ?? []
+        await loadMetadataForRatings(currentRatings)
     }
     
     // MARK: - Computed Properties

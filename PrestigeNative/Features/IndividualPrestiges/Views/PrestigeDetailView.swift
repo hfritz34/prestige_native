@@ -14,7 +14,7 @@ struct PrestigeDetailView: View {
     @Environment(\.dismiss) private var dismiss
     @State private var showingShareSheet = false
     @State private var isPinned: Bool = false
-    @State private var showComparisonView = false
+    @State private var showFriendComparison = false
     @State private var isPlaying = false
     @StateObject private var ratingViewModel = RatingViewModel()
     @StateObject private var pinService = PinService.shared
@@ -73,6 +73,12 @@ struct PrestigeDetailView: View {
             .sheet(isPresented: $ratingViewModel.showRatingModal) {
                 RatingModal()
                     .environmentObject(ratingViewModel)
+            }
+            .sheet(isPresented: $showFriendComparison) {
+                FriendComparisonModalView(
+                    item: item,
+                    itemType: getItemTypeString()
+                )
             }
         }
         .onAppear {
@@ -325,44 +331,45 @@ struct PrestigeDetailView: View {
     
     private var actionButtons: some View {
         VStack(spacing: 16) {
-            // Three action buttons for tracks
-            if item.contentType == .tracks {
-                HStack(spacing: 12) {
-                    // Pin button
-                    Button(action: {
-                        togglePin()
-                    }) {
-                        VStack(spacing: 4) {
-                            Image(systemName: isPinned ? "pin.fill" : "pin")
-                                .font(.title3)
-                            Text(isPinned ? "Pinned" : "Pin")
-                                .font(.caption)
-                        }
-                        .frame(maxWidth: .infinity)
-                        .padding(.vertical, 12)
-                        .background(isPinned ? Color.yellow : Color(UIColor.secondarySystemBackground))
-                        .foregroundColor(isPinned ? .black : .primary)
-                        .cornerRadius(10)
+            // Action buttons based on content type
+            HStack(spacing: 12) {
+                // Pin button (for all content types)
+                Button(action: {
+                    togglePin()
+                }) {
+                    VStack(spacing: 4) {
+                        Image(systemName: isPinned ? "pin.fill" : "pin")
+                            .font(.title3)
+                        Text(isPinned ? "Pinned" : "Pin")
+                            .font(.caption)
                     }
-                    
-                    // Compare with friends
-                    Button(action: {
-                        showComparisonView = true
-                    }) {
-                        VStack(spacing: 4) {
-                            Image(systemName: "person.2.fill")
-                                .font(.title3)
-                            Text("Compare")
-                                .font(.caption)
-                        }
-                        .frame(maxWidth: .infinity)
-                        .padding(.vertical, 12)
-                        .background(Color.blue)
-                        .foregroundColor(.white)
-                        .cornerRadius(10)
+                    .frame(maxWidth: .infinity)
+                    .padding(.vertical, 12)
+                    .background(isPinned ? Color.yellow : Color(UIColor.secondarySystemBackground))
+                    .foregroundColor(isPinned ? .black : .primary)
+                    .cornerRadius(10)
+                }
+                
+                // Compare with friends (for all content types)
+                Button(action: {
+                    showFriendComparison = true
+                }) {
+                    VStack(spacing: 4) {
+                        Image(systemName: "person.2.fill")
+                            .font(.title3)
+                        Text("Compare")
+                            .font(.caption)
                     }
-                    
-                    // View album
+                    .frame(maxWidth: .infinity)
+                    .padding(.vertical, 12)
+                    .background(Color.blue)
+                    .foregroundColor(.white)
+                    .cornerRadius(10)
+                }
+                
+                // Context-specific third button
+                if item.contentType == .tracks {
+                    // View album for tracks
                     Button(action: {
                         // Album navigation will be implemented in future version
                     }) {
@@ -370,6 +377,46 @@ struct PrestigeDetailView: View {
                             Image(systemName: "square.stack")
                                 .font(.title3)
                             Text("Album")
+                                .font(.caption)
+                        }
+                        .frame(maxWidth: .infinity)
+                        .padding(.vertical, 12)
+                        .background(Color.green)
+                        .foregroundColor(.white)
+                        .cornerRadius(10)
+                    }
+                } else if item.contentType == .albums {
+                    // View tracks for albums
+                    Button(action: {
+                        loadAlbumTracks()
+                        withAnimation(.easeInOut(duration: 0.3)) {
+                            showAllTracks.toggle()
+                        }
+                    }) {
+                        VStack(spacing: 4) {
+                            Image(systemName: "music.note")
+                                .font(.title3)
+                            Text("Tracks")
+                                .font(.caption)
+                        }
+                        .frame(maxWidth: .infinity)
+                        .padding(.vertical, 12)
+                        .background(Color.purple)
+                        .foregroundColor(.white)
+                        .cornerRadius(10)
+                    }
+                } else if item.contentType == .artists {
+                    // View albums for artists
+                    Button(action: {
+                        loadArtistAlbums()
+                        withAnimation(.easeInOut(duration: 0.3)) {
+                            showAllAlbums.toggle()
+                        }
+                    }) {
+                        VStack(spacing: 4) {
+                            Image(systemName: "square.stack")
+                                .font(.title3)
+                            Text("Albums")
                                 .font(.caption)
                         }
                         .frame(maxWidth: .infinity)
@@ -470,6 +517,14 @@ struct PrestigeDetailView: View {
         }
     }
     
+    private func getItemTypeString() -> String {
+        switch item.contentType {
+        case .tracks: return "track"
+        case .albums: return "album"
+        case .artists: return "artist"
+        }
+    }
+    
     // MARK: - Action Methods
     
     private func togglePin() {
@@ -519,8 +574,10 @@ struct PrestigeDetailView: View {
         
         let percentage = tierRange > 0 ? (progressInCurrentTier / tierRange) * 100 : 0
         
+        let safePercentage = percentage.isNaN || percentage.isInfinite ? 0 : min(max(percentage, 0), 100)
+        
         return (
-            percentage: min(max(percentage, 0), 100),
+            percentage: safePercentage,
             nextTier: nextTierInfo.nextLevel,
             remainingTime: formatTime(Double(nextTierInfo.minutesNeeded))
         )
@@ -958,7 +1015,7 @@ struct PrestigeProgressBar: View {
                             endPoint: .trailing
                         )
                     )
-                    .frame(width: geometry.size.width * progress, height: 12)
+                    .frame(width: max(0, geometry.size.width * (progress.isNaN || progress.isInfinite ? 0 : progress)), height: 12)
             }
         }
         .frame(height: 12)

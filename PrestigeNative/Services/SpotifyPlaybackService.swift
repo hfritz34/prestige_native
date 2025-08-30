@@ -5,7 +5,13 @@
 //  Handles opening Spotify content using deep links and web fallbacks.
 //
 
+#if canImport(UIKit)
 import UIKit
+#endif
+#if canImport(AppKit)
+import AppKit
+#endif
+import Foundation
 
 class SpotifyPlaybackService {
     static let shared = SpotifyPlaybackService()
@@ -79,6 +85,8 @@ class SpotifyPlaybackService {
         print("🎵 Attempting to open Spotify content:")
         print("   App URL: \(appURL)")
         print("   Web URL: \(webURL)")
+        
+        #if canImport(UIKit)
         print("   Can open app URL: \(UIApplication.shared.canOpenURL(appURL))")
         
         if UIApplication.shared.canOpenURL(appURL) {
@@ -96,16 +104,26 @@ class SpotifyPlaybackService {
             print("🎵 Spotify app not available, opening web fallback...")
             openWebFallback(webURL)
         }
+        #else
+        // On macOS, just open the web URL
+        print("🎵 macOS platform detected, opening web URL...")
+        openWebFallback(webURL)
+        #endif
     }
     
     private func openWebFallback(_ webURL: URL) {
         print("🌐 Opening web fallback: \(webURL)")
+        #if canImport(UIKit)
         UIApplication.shared.open(webURL) { success in
             print("🌐 Web fallback result: \(success)")
             if !success {
                 print("❌ Failed to open Spotify web URL")
             }
         }
+        #else
+        // On macOS, use NSWorkspace
+        NSWorkspace.shared.open(webURL)
+        #endif
     }
 }
 

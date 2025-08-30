@@ -578,6 +578,87 @@ extension APIClient {
         )
     }
     
+    // MARK: - Friend Request Management
+    
+    /// Send friend request
+    func sendFriendRequest(friendId: String) async throws -> FriendResponse {
+        guard let userId = authManager?.user?.id else {
+            throw APIError.authenticationError
+        }
+        
+        let endpoint = "api/friendships/\(userId)/friend-requests/\(friendId)"
+        print("🔵 APIClient: Sending friend request - endpoint: \(endpoint)")
+        print("🔵 APIClient: Full URL will be: \(APIEndpoints.baseURL)/\(endpoint)")
+        
+        // Try to get the response as FriendResponse, but handle cases where backend might return different format
+        do {
+            return try await post(endpoint, body: EmptyBody(), responseType: FriendResponse.self)
+        } catch {
+            print("⚠️ APIClient: Friend request response parsing failed, trying alternative approach: \(error)")
+            
+            // If parsing fails, try making a basic POST and then fetch the friend details
+            try await postWithoutResponse(endpoint, body: EmptyBody())
+            
+            // Create a basic FriendResponse for the friend request that was sent
+            // We'll need to fetch the actual friend data separately
+            return FriendResponse(
+                id: friendId,
+                name: "Friend", // Placeholder - will be updated when friends list is refreshed
+                nickname: nil,
+                profilePicUrl: nil,
+                friendshipDate: Date(),
+                mutualFriends: nil,
+                status: 0, // 0 = pending
+                favoriteTracks: nil,
+                favoriteAlbums: nil,
+                favoriteArtists: nil,
+                topTracks: nil,
+                topAlbums: nil,
+                topArtists: nil
+            )
+        }
+    }
+    
+    /// Accept friend request
+    func acceptFriendRequest(friendId: String) async throws -> FriendResponse {
+        guard let userId = authManager?.user?.id else {
+            throw APIError.authenticationError
+        }
+        
+        let endpoint = "api/friendships/\(userId)/friend-requests/\(friendId)/accept"
+        return try await post(endpoint, body: EmptyBody(), responseType: FriendResponse.self)
+    }
+    
+    /// Decline friend request
+    func declineFriendRequest(friendId: String) async throws {
+        guard let userId = authManager?.user?.id else {
+            throw APIError.authenticationError
+        }
+        
+        let endpoint = "api/friendships/\(userId)/friend-requests/\(friendId)/decline"
+        try await postWithoutResponse(endpoint, body: EmptyBody())
+    }
+    
+    /// Get incoming friend requests
+    func getIncomingFriendRequests() async throws -> [FriendRequestResponse] {
+        guard let userId = authManager?.user?.id else {
+            throw APIError.authenticationError
+        }
+        
+        let endpoint = "api/friendships/\(userId)/friend-requests"
+        return try await get(endpoint, responseType: [FriendRequestResponse].self)
+    }
+    
+    /// Get outgoing friend requests
+    func getOutgoingFriendRequests() async throws -> [FriendRequestResponse] {
+        guard let userId = authManager?.user?.id else {
+            throw APIError.authenticationError
+        }
+        
+        let endpoint = "api/friendships/\(userId)/friend-requests"
+        return try await get(endpoint, responseType: [FriendRequestResponse].self)
+    }
+    
     // MARK: - Helper Models
     
     private struct EmptyBody: Codable {}

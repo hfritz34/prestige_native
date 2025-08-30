@@ -17,6 +17,10 @@ struct AlbumDetailView: View {
     @State private var isLoadingTracks = false
     @State private var isPinned = false
     @StateObject private var pinService = PinService.shared
+    @StateObject private var friendComparisonCache = FriendComparisonCache.shared
+    @StateObject private var friendsService = FriendsService()
+    @State private var friendsWhoListened: [FriendResponse] = []
+    @State private var showingFriendComparison = false
     @Environment(\.dismiss) private var dismiss
     
     // Theme color for this view
@@ -34,6 +38,9 @@ struct AlbumDetailView: View {
                     
                     // Show All Tracks toggle
                     trackListSection
+                    
+                    // Friend comparison section
+                    friendComparisonSection
                     
                     // Action buttons
                     actionButtonsSection
@@ -55,8 +62,20 @@ struct AlbumDetailView: View {
             loadAlbumTracks()
             Task {
                 await pinService.loadPinnedItems()
+                await loadFriendsWhoListened()
             }
             isPinned = pinService.isItemPinned(itemId: album.album.id, itemType: .albums)
+        }
+        .sheet(isPresented: $showingFriendComparison) {
+            FriendComparisonSheet(
+                item: PrestigeItem(
+                    id: album.album.id,
+                    name: album.album.name,
+                    imageUrl: album.album.images.first?.url ?? "",
+                    itemType: .album
+                ),
+                friends: friendsWhoListened
+            )
         }
     }
     
@@ -236,6 +255,86 @@ struct AlbumDetailView: View {
         }
     }
     
+    private var friendComparisonSection: some View {
+        VStack(spacing: 16) {
+            HStack {
+                Text("Friends")
+                    .font(.headline)
+                    .fontWeight(.bold)
+                
+                Spacer()
+                
+                if !friendsWhoListened.isEmpty {
+                    Button("Compare") {
+                        showingFriendComparison = true
+                    }
+                    .font(.subheadline)
+                    .foregroundColor(.blue)
+                }
+            }
+            
+            if friendsWhoListened.isEmpty {
+                // Empty state
+                VStack(spacing: 12) {
+                    Image(systemName: "person.2")
+                        .font(.largeTitle)
+                        .foregroundColor(.gray.opacity(0.3))
+                    
+                    Text("None of your friends have listened to this album yet")
+                        .font(.subheadline)
+                        .foregroundColor(.secondary)
+                        .multilineTextAlignment(.center)
+                }
+                .padding(.vertical, 20)
+                .frame(maxWidth: .infinity)
+                .background(Color(UIColor.secondarySystemBackground))
+                .cornerRadius(12)
+            } else {
+                // Friends who listened preview
+                ScrollView(.horizontal, showsIndicators: false) {
+                    HStack(spacing: 12) {
+                        ForEach(friendsWhoListened.prefix(5)) { friend in
+                            FriendListenedPreview(friend: friend)
+                                .onTapGesture {
+                                    showingFriendComparison = true
+                                }
+                        }
+                        
+                        if friendsWhoListened.count > 5 {
+                            Button(action: {
+                                showingFriendComparison = true
+                            }) {
+                                VStack(spacing: 8) {
+                                    ZStack {
+                                        Circle()
+                                            .fill(Color.gray.opacity(0.3))
+                                            .frame(width: 50, height: 50)
+                                        
+                                        Text("+\(friendsWhoListened.count - 5)")
+                                            .font(.caption)
+                                            .fontWeight(.bold)
+                                            .foregroundColor(.primary)
+                                    }
+                                    
+                                    Text("more")
+                                        .font(.caption2)
+                                        .foregroundColor(.secondary)
+                                }
+                            }
+                        }
+                    }
+                    .padding(.horizontal)
+                }
+                
+                // Summary text
+                Text("\(friendsWhoListened.count) friend\(friendsWhoListened.count == 1 ? "" : "s") listened to this album")
+                    .font(.caption)
+                    .foregroundColor(.secondary)
+                    .frame(maxWidth: .infinity, alignment: .leading)
+            }
+        }
+    }
+    
     private var actionButtonsSection: some View {
         HStack(spacing: 12) {
             // Pin button
@@ -313,6 +412,33 @@ struct AlbumDetailView: View {
         }
     }
     
+    private func loadFriendsWhoListened() async {
+        guard let userId = AuthManager.shared.user?.id else {
+            print("No user ID available for loading friends who listened")
+            return
+        }
+        
+        let friends = await friendComparisonCache.getFriendsWhoListenedTo(
+            itemType: "album",
+            itemId: album.album.id,
+            userId: userId
+        )
+        
+        await MainActor.run {
+            self.friendsWhoListened = friends
+        }
+        
+        // Preload friend times for the first 5 friends for better performance
+        let firstFiveFriends = friends.prefix(5).map { $0.friendId }
+        if !firstFiveFriends.isEmpty {
+            await friendComparisonCache.loadFriendTimesForItem(
+                itemType: "album",
+                itemId: album.album.id,
+                friendIds: firstFiveFriends
+            )
+        }
+    }
+    
     // MARK: - Actions
     
     private func togglePin() {
@@ -328,7 +454,6 @@ struct AlbumDetailView: View {
         }
     }
 }
-
 
 // MARK: - Album Track Row
 

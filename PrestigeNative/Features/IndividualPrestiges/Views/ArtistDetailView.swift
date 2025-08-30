@@ -21,6 +21,10 @@ struct ArtistDetailView: View {
     @State private var ratedAlbumsResponse: ArtistAlbumsWithRankingsResponse?
     @State private var isLoadingAlbums = false
     @State private var showAllAlbums = true
+    @StateObject private var friendComparisonCache = FriendComparisonCache.shared
+    @StateObject private var friendsService = FriendsService()
+    @State private var friendsWhoListened: [FriendResponse] = []
+    @State private var showingFriendComparison = false
     
     var body: some View {
         NavigationView {
@@ -37,6 +41,9 @@ struct ArtistDetailView: View {
                     
                     // Rated Albums Section
                     ratedAlbumsSection
+                    
+                    // Friend comparison section
+                    friendComparisonSection
                     
                     // Rating Section
                     ratingSection
@@ -60,6 +67,17 @@ struct ArtistDetailView: View {
                 RatingModal()
                     .environmentObject(ratingViewModel)
             }
+            .sheet(isPresented: $showingFriendComparison) {
+                FriendComparisonSheet(
+                    item: PrestigeItem(
+                        id: item.spotifyId,
+                        name: item.name,
+                        imageUrl: item.imageUrl,
+                        itemType: .artist
+                    ),
+                    friends: friendsWhoListened
+                )
+            }
         }
         .onAppear {
             Task {
@@ -68,6 +86,7 @@ struct ArtistDetailView: View {
                 
                 await loadItemRating()
                 await loadRatedAlbums()
+                await loadFriendsWhoListened()
                 await pinService.loadPinnedItems()
             }
             isPinned = pinService.isItemPinned(itemId: item.spotifyId, itemType: item.contentType)
@@ -262,6 +281,86 @@ struct ArtistDetailView: View {
                 .frame(maxWidth: .infinity)
                 .background(Color(UIColor.tertiarySystemBackground))
                 .cornerRadius(12)
+            }
+        }
+    }
+    
+    private var friendComparisonSection: some View {
+        VStack(spacing: 16) {
+            HStack {
+                Text("Friends")
+                    .font(.headline)
+                    .fontWeight(.bold)
+                
+                Spacer()
+                
+                if !friendsWhoListened.isEmpty {
+                    Button("Compare") {
+                        showingFriendComparison = true
+                    }
+                    .font(.subheadline)
+                    .foregroundColor(.blue)
+                }
+            }
+            
+            if friendsWhoListened.isEmpty {
+                // Empty state
+                VStack(spacing: 12) {
+                    Image(systemName: "person.2")
+                        .font(.largeTitle)
+                        .foregroundColor(.gray.opacity(0.3))
+                    
+                    Text("None of your friends have listened to this artist yet")
+                        .font(.subheadline)
+                        .foregroundColor(.secondary)
+                        .multilineTextAlignment(.center)
+                }
+                .padding(.vertical, 20)
+                .frame(maxWidth: .infinity)
+                .background(Color(UIColor.secondarySystemBackground))
+                .cornerRadius(12)
+            } else {
+                // Friends who listened preview
+                ScrollView(.horizontal, showsIndicators: false) {
+                    HStack(spacing: 12) {
+                        ForEach(friendsWhoListened.prefix(5)) { friend in
+                            FriendListenedPreview(friend: friend)
+                                .onTapGesture {
+                                    showingFriendComparison = true
+                                }
+                        }
+                        
+                        if friendsWhoListened.count > 5 {
+                            Button(action: {
+                                showingFriendComparison = true
+                            }) {
+                                VStack(spacing: 8) {
+                                    ZStack {
+                                        Circle()
+                                            .fill(Color.gray.opacity(0.3))
+                                            .frame(width: 50, height: 50)
+                                        
+                                        Text("+\(friendsWhoListened.count - 5)")
+                                            .font(.caption)
+                                            .fontWeight(.bold)
+                                            .foregroundColor(.primary)
+                                    }
+                                    
+                                    Text("more")
+                                        .font(.caption2)
+                                        .foregroundColor(.secondary)
+                                }
+                            }
+                        }
+                    }
+                    .padding(.horizontal)
+                }
+                
+                // Summary text
+                Text("\(friendsWhoListened.count) friend\(friendsWhoListened.count == 1 ? "" : "s") listened to this artist")
+                    .font(.caption)
+                    .foregroundColor(.secondary)
+                    .frame(maxWidth: .infinity, alignment: .leading)
             }
         }
     }
@@ -491,6 +590,33 @@ struct ArtistDetailView: View {
         }
     }
     
+    private func loadFriendsWhoListened() async {
+        guard let userId = AuthManager.shared.user?.id else {
+            print("No user ID available for loading friends who listened")
+            return
+        }
+        
+        let friends = await friendComparisonCache.getFriendsWhoListenedTo(
+            itemType: "artist",
+            itemId: item.spotifyId,
+            userId: userId
+        )
+        
+        await MainActor.run {
+            self.friendsWhoListened = friends
+        }
+        
+        // Preload friend times for the first 5 friends for better performance
+        let firstFiveFriends = friends.prefix(5).map { $0.friendId }
+        if !firstFiveFriends.isEmpty {
+            await friendComparisonCache.loadFriendTimesForItem(
+                itemType: "artist",
+                itemId: item.spotifyId,
+                friendIds: firstFiveFriends
+            )
+        }
+    }
+    
     // MARK: - Rating Properties and Methods
     
     private var currentRating: Rating? {
@@ -588,8 +714,10 @@ struct ArtistDetailView: View {
         
         let percentage = tierRange > 0 ? (progressInCurrentTier / tierRange) * 100 : 0
         
+        let safePercentage = percentage.isNaN || percentage.isInfinite ? 0 : min(max(percentage, 0), 100)
+        
         return (
-            percentage: min(max(percentage, 0), 100),
+            percentage: safePercentage,
             nextTier: nextTierInfo.nextLevel,
             remainingTime: formatTime(Double(nextTierInfo.minutesNeeded))
         )
@@ -619,6 +747,40 @@ struct ArtistDetailView: View {
 }
 
 // MARK: - Supporting Views
+
+/// Small friend preview for friends who listened section (reused from AlbumDetailView)
+struct FriendListenedPreview: View {
+    let friend: FriendResponse
+    
+    var body: some View {
+        VStack(spacing: 8) {
+            // Profile picture
+            if let profilePicUrl = friend.profilePicUrl {
+                CachedAsyncImage(
+                    url: profilePicUrl,
+                    placeholder: Image(systemName: "person.crop.circle.fill")
+                )
+                .artistImage(size: 50)
+            } else {
+                Circle()
+                    .fill(Color.gray.opacity(0.3))
+                    .frame(width: 50, height: 50)
+                    .overlay(
+                        Image(systemName: "person.crop.circle.fill")
+                            .font(.title2)
+                            .foregroundColor(.gray)
+                    )
+            }
+            
+            // Name
+            Text(friend.nickname ?? friend.name)
+                .font(.caption2)
+                .fontWeight(.medium)
+                .lineLimit(1)
+                .frame(width: 60)
+        }
+    }
+}
 
 struct RatedAlbumRow: View {
     let album: ArtistAlbumWithRating

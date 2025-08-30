@@ -16,6 +16,8 @@ class FriendsService: ObservableObject {
     
     @Published var friends: [FriendResponse] = []
     @Published var searchResults: [UserResponse] = []
+    @Published var incomingFriendRequests: [FriendRequestResponse] = []
+    @Published var outgoingFriendRequests: [FriendRequestResponse] = []
     @Published var isLoading = false
     @Published var error: APIError?
     @Published var socialDiscoveryResults: [String: [FriendResponse]] = [:] // itemId -> friends
@@ -55,6 +57,11 @@ class FriendsService: ObservableObject {
                 print("❌ Network error fetching friends: \(error.localizedDescription)")
             }
         }
+    }
+    
+    /// Get the current friends count without making an API call
+    func getFriendsCount() async -> Int {
+        return friends.count
     }
     
     /// Search for users to add as friends
@@ -272,11 +279,223 @@ class FriendsService: ObservableObject {
         }
     }
     
+    // MARK: - Friend Request Management
+    
+    /// Send a friend request to another user
+    func sendFriendRequest(friendId: String) async -> Bool {
+        // Check if already sent or are friends
+        if isFriend(userId: friendId) || hasSentRequestTo(friendId: friendId) {
+            return false
+        }
+        
+        await MainActor.run { isLoading = true }
+        
+        do {
+            // Check for auto-accept (test users)
+            if shouldAutoAccept(friendId: friendId) {
+                let newFriend = try await apiClient.addFriend(friendId: friendId)
+                await MainActor.run {
+                    self.friends.append(newFriend)
+                    // Remove from search results if present
+                    self.searchResults.removeAll { $0.id == friendId }
+                    self.isLoading = false
+                    self.error = nil
+                    print("✅ Auto-accepted friend: \(newFriend.name) (\(newFriend.friendId))")
+                }
+            } else {
+                let friendRequest = try await apiClient.sendFriendRequest(friendId: friendId)
+                await MainActor.run {
+                    // Add to outgoing requests (convert FriendResponse to FriendRequestResponse)
+                    let outgoingRequest = FriendRequestResponse(
+                        id: UUID().uuidString,
+                        fromUserId: authManager.user?.id ?? "",
+                        toUserId: friendId,
+                        fromUserName: authManager.user?.nickname ?? "",
+                        fromUserNickname: authManager.user?.nickname,
+                        fromUserProfilePicUrl: authManager.user?.profilePictureUrl,
+                        toUserName: friendRequest.name,
+                        toUserNickname: friendRequest.nickname,
+                        toUserProfilePicUrl: friendRequest.profilePicUrl,
+                        status: .pending,
+                        createdAt: Date(),
+                        updatedAt: nil
+                    )
+                    self.outgoingFriendRequests.append(outgoingRequest)
+                    // Remove from search results if present
+                    self.searchResults.removeAll { $0.id == friendId }
+                    self.isLoading = false
+                    self.error = nil
+                    print("✅ Friend request sent: \(friendRequest.name) (\(friendRequest.friendId))")
+                }
+            }
+            return true
+        } catch let apiError as APIError {
+            await MainActor.run {
+                self.error = apiError
+                self.isLoading = false
+                print("❌ Failed to send friend request: \(apiError.localizedDescription)")
+            }
+            return false
+        } catch {
+            await MainActor.run {
+                self.error = .networkError(error)
+                self.isLoading = false
+                print("❌ Network error sending friend request: \(error.localizedDescription)")
+            }
+            return false
+        }
+    }
+    
+    /// Accept an incoming friend request
+    func acceptFriendRequest(request: FriendRequestResponse) async -> Bool {
+        await MainActor.run { isLoading = true }
+        
+        do {
+            let newFriend = try await apiClient.acceptFriendRequest(friendId: request.fromUserId)
+            await MainActor.run {
+                self.friends.append(newFriend)
+                self.incomingFriendRequests.removeAll { $0.id == request.id }
+                self.isLoading = false
+                self.error = nil
+                print("✅ Friend request accepted: \(newFriend.name) (\(newFriend.friendId))")
+            }
+            return true
+        } catch let apiError as APIError {
+            await MainActor.run {
+                self.error = apiError
+                self.isLoading = false
+                print("❌ Failed to accept friend request: \(apiError.localizedDescription)")
+            }
+            return false
+        } catch {
+            await MainActor.run {
+                self.error = .networkError(error)
+                self.isLoading = false
+                print("❌ Network error accepting friend request: \(error.localizedDescription)")
+            }
+            return false
+        }
+    }
+    
+    /// Decline an incoming friend request
+    func declineFriendRequest(request: FriendRequestResponse) async -> Bool {
+        await MainActor.run { isLoading = true }
+        
+        do {
+            try await apiClient.declineFriendRequest(friendId: request.fromUserId)
+            await MainActor.run {
+                self.incomingFriendRequests.removeAll { $0.id == request.id }
+                self.isLoading = false
+                self.error = nil
+                print("✅ Friend request declined: \(request.fromUserName)")
+            }
+            return true
+        } catch let apiError as APIError {
+            await MainActor.run {
+                self.error = apiError
+                self.isLoading = false
+                print("❌ Failed to decline friend request: \(apiError.localizedDescription)")
+            }
+            return false
+        } catch {
+            await MainActor.run {
+                self.error = .networkError(error)
+                self.isLoading = false
+                print("❌ Network error declining friend request: \(error.localizedDescription)")
+            }
+            return false
+        }
+    }
+    
+    /// Fetch incoming friend requests
+    func fetchIncomingFriendRequests() async {
+        await MainActor.run { isLoading = true }
+        
+        do {
+            let requests = try await apiClient.getIncomingFriendRequests()
+            await MainActor.run {
+                self.incomingFriendRequests = requests
+                self.isLoading = false
+                self.error = nil
+                print("📦 Incoming friend requests loaded: \(requests.count) requests")
+            }
+        } catch let apiError as APIError {
+            await MainActor.run {
+                self.error = apiError
+                self.isLoading = false
+                print("❌ Failed to fetch incoming friend requests: \(apiError.localizedDescription)")
+            }
+        } catch {
+            await MainActor.run {
+                self.error = .networkError(error)
+                self.isLoading = false
+                print("❌ Network error fetching incoming friend requests: \(error.localizedDescription)")
+            }
+        }
+    }
+    
+    /// Fetch outgoing friend requests
+    func fetchOutgoingFriendRequests() async {
+        await MainActor.run { isLoading = true }
+        
+        do {
+            let requests = try await apiClient.getOutgoingFriendRequests()
+            await MainActor.run {
+                self.outgoingFriendRequests = requests
+                self.isLoading = false
+                self.error = nil
+                print("📦 Outgoing friend requests loaded: \(requests.count) requests")
+            }
+        } catch let apiError as APIError {
+            await MainActor.run {
+                self.error = apiError
+                self.isLoading = false
+                print("❌ Failed to fetch outgoing friend requests: \(apiError.localizedDescription)")
+            }
+        } catch {
+            await MainActor.run {
+                self.error = .networkError(error)
+                self.isLoading = false
+                print("❌ Network error fetching outgoing friend requests: \(error.localizedDescription)")
+            }
+        }
+    }
+    
+    /// Check if user has already sent a request to this friend
+    func hasSentRequestTo(friendId: String) -> Bool {
+        return outgoingFriendRequests.contains { $0.toUserId == friendId && $0.status == .pending }
+    }
+    
+    /// Check if should auto-accept friend requests from test/dummy users
+    /// This matches the backend logic in FriendshipServices.cs
+    private func shouldAutoAccept(friendId: String) -> Bool {
+        // Check specific dummy user ID first
+        if friendId == "dummy_spotify_user_12345" {
+            return true
+        }
+        
+        // Check user search results for name/nickname patterns
+        guard let testUser = searchResults.first(where: { $0.id == friendId }) else {
+            return false
+        }
+        
+        let name = testUser.name.lowercased()
+        let nickname = testUser.nickname.lowercased()
+        
+        // Match backend logic exactly:
+        return name.contains("dummy") ||
+               nickname.contains("dummy") ||
+               name.contains("test") ||
+               nickname.contains("buddy")
+    }
+    
     // MARK: - Cache Management
     
-    /// Force refresh friends data from server
+    /// Force refresh all friends data from server
     func refreshFriendsData() async {
         await fetchFriends(forceRefresh: true)
+        await fetchIncomingFriendRequests()
+        await fetchOutgoingFriendRequests()
     }
     
     /// Clear all friends cache

@@ -109,7 +109,7 @@ struct ProfileView: View {
             Text(viewModel.error?.localizedDescription ?? "An error occurred")
         }
         .onChange(of: viewModel.error) { _, error in
-            if let error = error {
+            if error != nil {
                 // Add a small delay to avoid showing flash errors during loading
                 DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
                     // Only show error if it's still present after delay

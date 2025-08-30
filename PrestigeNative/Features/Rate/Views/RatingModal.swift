@@ -7,7 +7,9 @@
 //
 
 import SwiftUI
+#if canImport(UIKit)
 import UIKit
+#endif
 
 struct RatingModal: View {
     @EnvironmentObject var viewModel: RatingViewModel

@@ -11,6 +11,11 @@ struct PrestigeGridCard: View {
     let item: PrestigeDisplayItem
     let rank: Int
     
+    @StateObject private var friendComparisonCache = FriendComparisonCache.shared
+    @State private var friendsWhoListened: [FriendResponse] = []
+    @State private var showingFriendComparison = false
+    @State private var isLoadingFriends = false
+    
     init(item: PrestigeDisplayItem, rank: Int) {
         self.item = item
         self.rank = rank
@@ -106,9 +111,41 @@ struct PrestigeGridCard: View {
                     .clipShape(RoundedRectangle(cornerRadius: 8))
                     .shadow(color: .black.opacity(0.2), radius: 2, x: 0, y: 1)
                     
-                    // Prestige badge
-                    PrestigeBadge(tier: item.prestigeLevel)
-                        .scaleEffect(0.8)
+                    // Prestige badge and friend count
+                    HStack(spacing: 4) {
+                        PrestigeBadge(tier: item.prestigeLevel)
+                            .scaleEffect(0.8)
+                        
+                        // Friend indicator
+                        if !friendsWhoListened.isEmpty {
+                            Button(action: {
+                                showingFriendComparison = true
+                            }) {
+                                HStack(spacing: 2) {
+                                    Image(systemName: "person.2.fill")
+                                        .font(.caption2)
+                                    Text("\(friendsWhoListened.count)")
+                                        .font(.caption2)
+                                        .fontWeight(.semibold)
+                                }
+                                .foregroundColor(.white)
+                                .padding(.horizontal, 6)
+                                .padding(.vertical, 3)
+                                .background(Color.blue.opacity(0.8))
+                                .cornerRadius(8)
+                            }
+                        } else if isLoadingFriends {
+                            HStack(spacing: 2) {
+                                ProgressView()
+                                    .scaleEffect(0.6)
+                                    .tint(.white)
+                            }
+                            .padding(.horizontal, 6)
+                            .padding(.vertical, 3)
+                            .background(Color.gray.opacity(0.8))
+                            .cornerRadius(8)
+                        }
+                    }
                 }
                 .padding(8)
             }
@@ -133,6 +170,27 @@ struct PrestigeGridCard: View {
                     .foregroundColor(Color(hex: item.prestigeLevel.color) ?? .blue)
             }
         }
+        .onAppear {
+            // Only load friend data if user actually has friends
+            Task {
+                let friendsService = FriendsService()
+                let hasFriends = await friendsService.getFriendsCount() > 0
+                if hasFriends {
+                    loadFriendsWhoListened()
+                }
+            }
+        }
+        .sheet(isPresented: $showingFriendComparison) {
+            FriendComparisonSheet(
+                item: PrestigeItem(
+                    id: item.spotifyId,
+                    name: item.name,
+                    imageUrl: item.imageUrl,
+                    itemType: getPrestigeItemType()
+                ),
+                friends: friendsWhoListened
+            )
+        }
     }
     
     private func getIconForType() -> String {
@@ -142,6 +200,49 @@ struct PrestigeGridCard: View {
             return "square.stack"
         } else {
             return "music.note"
+        }
+    }
+    
+    private func getPrestigeItemType() -> PrestigeItem.PrestigeItemType {
+        switch item.contentType {
+        case .tracks:
+            return .track
+        case .albums:
+            return .album
+        case .artists:
+            return .artist
+        }
+    }
+    
+    private func loadFriendsWhoListened() {
+        guard let userId = AuthManager.shared.user?.id else {
+            print("No user ID available for loading friends who listened")
+            return
+        }
+        
+        Task {
+            isLoadingFriends = true
+            
+            let itemTypeString: String
+            switch item.contentType {
+            case .tracks:
+                itemTypeString = "track"
+            case .albums:
+                itemTypeString = "album"
+            case .artists:
+                itemTypeString = "artist"
+            }
+            
+            let friends = await friendComparisonCache.getFriendsWhoListenedTo(
+                itemType: itemTypeString,
+                itemId: item.spotifyId,
+                userId: userId
+            )
+            
+            await MainActor.run {
+                self.friendsWhoListened = friends
+                self.isLoadingFriends = false
+            }
         }
     }
 }

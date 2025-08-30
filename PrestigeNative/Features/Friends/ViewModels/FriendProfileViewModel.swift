@@ -39,31 +39,25 @@ class FriendProfileViewModel: ObservableObject {
         isLoading = true
         error = nil
         
-        do {
-            // Load detailed friend profile with caching
-            if let friendProfile = await friendsService.getFriendProfile(
-                friendId: friendId,
-                forceRefresh: forceRefresh
-            ) {
-                self.friend = friendProfile
-                
-                // Extract rich profile data if available
-                self.topTracks = friendProfile.topTracks ?? []
-                self.topAlbums = friendProfile.topAlbums ?? []
-                self.topArtists = friendProfile.topArtists ?? []
-                self.favoriteTracks = friendProfile.favoriteTracks ?? []
-                self.favoriteAlbums = friendProfile.favoriteAlbums ?? []
-                self.favoriteArtists = friendProfile.favoriteArtists ?? []
-                
-                print("✅ Friend profile loaded: \(friendProfile.name) with \(topTracks.count) top tracks")
-            } else {
-                self.error = "Failed to load friend profile"
-                print("❌ Failed to load friend profile for: \(friendId)")
-            }
+        // Load detailed friend profile with caching
+        if let friendProfile = await friendsService.getFriendProfile(
+            friendId: friendId,
+            forceRefresh: forceRefresh
+        ) {
+            self.friend = friendProfile
             
-        } catch {
-            self.error = error.localizedDescription
-            print("❌ Error loading friend profile: \(error)")
+            // Extract rich profile data if available
+            self.topTracks = friendProfile.topTracks ?? []
+            self.topAlbums = friendProfile.topAlbums ?? []
+            self.topArtists = friendProfile.topArtists ?? []
+            self.favoriteTracks = friendProfile.favoriteTracks ?? []
+            self.favoriteAlbums = friendProfile.favoriteAlbums ?? []
+            self.favoriteArtists = friendProfile.favoriteArtists ?? []
+            
+            print("✅ Friend profile loaded: \(friendProfile.name) with \(topTracks.count) top tracks")
+        } else {
+            self.error = "Failed to load friend profile"
+            print("❌ Failed to load friend profile for: \(friendId)")
         }
         
         isLoading = false

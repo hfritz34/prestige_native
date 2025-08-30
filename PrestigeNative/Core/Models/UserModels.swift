@@ -42,12 +42,12 @@ struct NicknameRequest: Codable {
 /// Enhanced friend response matching web app functionality
 struct FriendResponse: Codable, Identifiable {
     let id: String
-    let friendId: String
     let name: String
     let nickname: String?
     let profilePicUrl: String?
     let friendshipDate: Date?
     let mutualFriends: Int?
+    let status: Int?
     
     // Rich profile data from web app
     let favoriteTracks: [UserTrackResponse]?
@@ -57,8 +57,13 @@ struct FriendResponse: Codable, Identifiable {
     let topAlbums: [UserAlbumResponse]?
     let topArtists: [UserArtistResponse]?
     
+    // Computed property to maintain compatibility with existing code
+    var friendId: String {
+        return id
+    }
+    
     enum CodingKeys: String, CodingKey {
-        case id, friendId, name, nickname, profilePicUrl, friendshipDate, mutualFriends
+        case id, name, nickname, profilePicUrl, friendshipDate, mutualFriends, status
         case favoriteTracks, favoriteAlbums, favoriteArtists
         case topTracks, topAlbums, topArtists
     }
@@ -67,15 +72,20 @@ struct FriendResponse: Codable, Identifiable {
 /// Simplified friend response for lists (without detailed profile data)
 struct FriendSummaryResponse: Codable, Identifiable {
     let id: String
-    let friendId: String
     let name: String
     let nickname: String?
     let profilePicUrl: String?
     let friendshipDate: Date?
     let mutualFriends: Int?
+    let status: Int?
+    
+    // Computed property to maintain compatibility with existing code
+    var friendId: String {
+        return id
+    }
     
     enum CodingKeys: String, CodingKey {
-        case id, friendId, name, nickname, profilePicUrl, friendshipDate, mutualFriends
+        case id, name, nickname, profilePicUrl, friendshipDate, mutualFriends, status
     }
 }
 
@@ -85,6 +95,48 @@ struct AddFriendRequest: Codable {
     
     enum CodingKeys: String, CodingKey {
         case friendId
+    }
+}
+
+/// Friend request response for incoming/outgoing requests
+struct FriendRequestResponse: Codable, Identifiable {
+    let id: String
+    let fromUserId: String
+    let toUserId: String
+    let fromUserName: String
+    let fromUserNickname: String?
+    let fromUserProfilePicUrl: String?
+    let toUserName: String
+    let toUserNickname: String?
+    let toUserProfilePicUrl: String?
+    let status: FriendRequestStatus
+    let createdAt: Date
+    let updatedAt: Date?
+    
+    enum CodingKeys: String, CodingKey {
+        case id, fromUserId, toUserId, fromUserName, fromUserNickname, fromUserProfilePicUrl
+        case toUserName, toUserNickname, toUserProfilePicUrl, status, createdAt, updatedAt
+    }
+}
+
+/// Friend request status enum
+enum FriendRequestStatus: String, Codable, CaseIterable {
+    case pending = "pending"
+    case accepted = "accepted" 
+    case declined = "declined"
+    case blocked = "blocked"
+    
+    var displayName: String {
+        switch self {
+        case .pending:
+            return "Pending"
+        case .accepted:
+            return "Accepted"
+        case .declined:
+            return "Declined"
+        case .blocked:
+            return "Blocked"
+        }
     }
 }
 
@@ -142,4 +194,28 @@ struct AlbumFavoritesResponse: FavoritesResponse {
 
 struct ArtistFavoritesResponse: FavoritesResponse {
     let artists: [UserArtistResponse]
+}
+
+// MARK: - Friend Comparison Models
+
+/// Simplified item model for friend comparisons
+struct PrestigeItem: Identifiable {
+    let id: String
+    let name: String
+    let imageUrl: String
+    let itemType: PrestigeItemType
+    
+    enum PrestigeItemType: String, CaseIterable {
+        case track = "track"
+        case album = "album"
+        case artist = "artist"
+        
+        var displayName: String {
+            switch self {
+            case .track: return "Track"
+            case .album: return "Album"
+            case .artist: return "Artist"
+            }
+        }
+    }
 }

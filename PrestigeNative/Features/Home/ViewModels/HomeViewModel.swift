@@ -59,6 +59,10 @@ class HomeViewModel: ObservableObject {
             .sink { [weak self] (timeRange: PrestigeTimeRange) in
                 guard let self = self, let userId = self.currentUserId else { return }
                 Task {
+                    // Set loading state immediately when time range changes
+                    await MainActor.run {
+                        self.loadingState = .loading(progress: 0.1)
+                    }
                     await self.loadAllData(for: userId, forceRefresh: false)
                 }
             }

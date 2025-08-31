@@ -80,7 +80,7 @@ struct PrestigeGridCard: View {
                         }
                     }
                     
-                    // Album artwork with rank overlay
+                    // Album artwork without rank overlay
                     CachedAsyncImage(
                         url: item.imageUrl,
                         placeholder: Image(systemName: getIconForType()),
@@ -90,22 +90,6 @@ struct PrestigeGridCard: View {
                     )
                     .clipShape(RoundedRectangle(cornerRadius: 8))
                     .shadow(color: .black.opacity(0.2), radius: 2, x: 0, y: 1)
-                    .overlay(
-                        // Rank number overlay on top left
-                        VStack {
-                            HStack {
-                                Text("\(rank)")
-                                    .font(.caption)
-                                    .fontWeight(.bold)
-                                    .foregroundColor(.white)
-                                    .frame(width: 22, height: 22)
-                                    .background(Circle().fill(Color.black.opacity(0.8)))
-                                    .padding(6)
-                                Spacer()
-                            }
-                            Spacer()
-                        }
-                    )
                     
                     // Prestige badge and friend count
                     HStack(spacing: 4) {
@@ -149,7 +133,7 @@ struct PrestigeGridCard: View {
             
             // Title and subtitle
             VStack(spacing: 2) {
-                Text(item.name)
+                Text("\(rank). \(item.name)")
                     .font(.caption)
                     .fontWeight(.semibold)
                     .lineLimit(1)

@@ -68,10 +68,27 @@ struct HomeView: View {
                         .padding(.vertical, 20)
                     }
                     
-                    // Beat visualizer loading overlay
+                    // Beat visualizer loading overlay for initial loads
                     if viewModel.isLoading && !viewModel.hasInitiallyLoaded {
                         BeatVisualizerLoadingView(message: viewModel.loadingMessage)
                             .transition(.opacity.combined(with: .scale(scale: 0.95)))
+                    }
+                    
+                    // Subtle loading overlay for content switches when we already have content
+                    if viewModel.isLoading && viewModel.hasInitiallyLoaded && hasContent {
+                        Color.black.opacity(0.3)
+                            .overlay(
+                                VStack {
+                                    ProgressView()
+                                        .scaleEffect(1.2)
+                                        .tint(.white)
+                                    Text("Loading...")
+                                        .font(.caption)
+                                        .foregroundColor(.white)
+                                        .padding(.top, 8)
+                                }
+                            )
+                            .transition(.opacity)
                     }
                 }
                 .refreshable {

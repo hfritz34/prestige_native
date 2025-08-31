@@ -174,13 +174,22 @@ struct RateView: View {
                     itemType: itemType,
                     isSelected: viewModel.selectedItemType == itemType,
                     action: {
+                        // Clear cache immediately to prevent showing stale data
+                        cachedTopRatedItems = []
+                        cachedAllRatedItems = []
+                        isCacheReady = false
+                        
+                        // Set selected type and trigger loading
                         viewModel.selectedItemType = itemType
-                        // Immediately update cached content for new item type
-                        updateCachedRatings()
+                        
                         Task {
                             await viewModel.loadUserRatings()
                             await viewModel.loadUnratedItems()
                             await viewModel.ensureMetadataLoaded()
+                            
+                            // Update cached content for new item type
+                            updateCachedRatings()
+                            
                             // Preload images for new item type
                             await MainActor.run {
                                 preloadRatingImages()
@@ -248,12 +257,12 @@ struct RateView: View {
                 }
             }
             
-            // Loading overlay - show until cache is ready or initial load is complete
-            if viewModel.isLoading && !hasInitialLoad {
-                BeatVisualizerLoadingView(message: viewModel.loadingMessage.isEmpty ? nil : viewModel.loadingMessage)
+            // Loading overlay - show during initial load or category switches
+            if (viewModel.isLoading && !hasInitialLoad) || (!isCacheReady && hasInitialLoad) {
+                BeatVisualizerLoadingView(message: !isCacheReady && hasInitialLoad ? "Switching categories..." : (viewModel.loadingMessage.isEmpty ? "Preparing your library..." : viewModel.loadingMessage))
                     .background(Color(UIColor.systemBackground).opacity(0.9))
             } else if !isCacheReady && !hasInitialLoad {
-                // Keep showing loading if cache isn't ready yet
+                // Keep showing loading if cache isn't ready yet on initial load
                 BeatVisualizerLoadingView(message: "Preparing your library...")
                     .background(Color(UIColor.systemBackground).opacity(0.9))
             }

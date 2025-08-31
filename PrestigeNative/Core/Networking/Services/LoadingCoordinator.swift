@@ -70,7 +70,8 @@ class LoadingCoordinator: ObservableObject {
     // Cache for different time ranges
     private var cachedContent: [PrestigeTimeRange: PrestigeContentBundle] = [:]
     private var lastFetchTime: [PrestigeTimeRange: Date] = [:]
-    private let cacheValidityDuration: TimeInterval = 60 // 1 minute
+    private let cacheValidityDuration: TimeInterval = 60 // 1 minute for most content
+    private let recentlyUpdatedCacheDuration: TimeInterval = 3600 // 1 hour for recently updated
     
     init(apiClient: APIClient = .shared, profileService: ProfileService = ProfileService()) {
         self.apiClient = apiClient
@@ -313,10 +314,17 @@ class LoadingCoordinator: ObservableObject {
     
     private func getCachedContent(for timeRange: PrestigeTimeRange) -> PrestigeContentBundle? {
         guard let cached = cachedContent[timeRange],
-              let fetchTime = lastFetchTime[timeRange],
-              Date().timeIntervalSince(fetchTime) < cacheValidityDuration else {
+              let fetchTime = lastFetchTime[timeRange] else {
             return nil
         }
+        
+        // Use longer cache duration for recently updated content
+        let cacheDuration = timeRange == .recentlyUpdated ? recentlyUpdatedCacheDuration : cacheValidityDuration
+        
+        guard Date().timeIntervalSince(fetchTime) < cacheDuration else {
+            return nil
+        }
+        
         return cached
     }
     

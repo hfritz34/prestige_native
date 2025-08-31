@@ -32,9 +32,24 @@ struct StatCard: View {
         .frame(maxWidth: .infinity)
         .padding(.vertical, 16)
         .background(
-            RoundedRectangle(cornerRadius: 12)
-                .fill(color.opacity(0.1))
+            ZStack {
+                // Glass background
+                Color(UIColor.systemBackground)
+                    .opacity(0.7)
+                
+                // Color tint
+                color.opacity(0.08)
+                
+                // Glass shimmer
+                Color.white.opacity(0.05)
+            }
         )
+        .overlay(
+            RoundedRectangle(cornerRadius: 12)
+                .stroke(color.opacity(0.2), lineWidth: 0.5)
+        )
+        .cornerRadius(12)
+        .shadow(color: color.opacity(0.1), radius: 4, x: 0, y: 2)
     }
 }
 

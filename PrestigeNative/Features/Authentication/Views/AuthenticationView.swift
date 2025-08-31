@@ -124,7 +124,7 @@ struct MainTabView: View {
                     Text("Profile")
                 }
         }
-        .tint(Color(hex: "#5167FC") ?? .purple)
+        .tint(.primary)
     }
 }
 

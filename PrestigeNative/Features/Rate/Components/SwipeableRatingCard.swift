@@ -218,11 +218,12 @@ struct SwipeableRatingCard: View {
                             } else {
                                 // Delete action - smooth slide out with fade
                                 isDeleting = true
-                                withAnimation(.spring(response: 0.4, dampingFraction: 0.9)) {
-                                    offset = -UIScreen.main.bounds.width
-                                }
                                 UINotificationFeedbackGenerator().notificationOccurred(.warning)
-                                DispatchQueue.main.asyncAfter(deadline: .now() + 0.3) {
+                                withAnimation(.easeOut(duration: 0.25)) {
+                                    offset = -UIScreen.main.bounds.width * 1.2
+                                }
+                                // Call delete immediately after animation starts
+                                DispatchQueue.main.asyncAfter(deadline: .now() + 0.2) {
                                     onDelete?()
                                 }
                             }

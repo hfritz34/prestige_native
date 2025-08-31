@@ -179,8 +179,19 @@ struct PrestigeDetailView: View {
                         .foregroundColor(.secondary)
                 }
                 .padding()
-                .background(Color(UIColor.secondarySystemBackground))
+                .background(
+                    ZStack {
+                        Color(UIColor.systemBackground)
+                            .opacity(0.8)
+                        Color.white.opacity(0.05)
+                    }
+                )
+                .overlay(
+                    RoundedRectangle(cornerRadius: 12)
+                        .stroke(Color.gray.opacity(0.15), lineWidth: 0.5)
+                )
                 .cornerRadius(12)
+                .shadow(color: Theme.shadowLight, radius: 3, x: 0, y: 2)
             }
         }
     }
@@ -273,8 +284,19 @@ struct PrestigeDetailView: View {
                 Spacer()
             }
             .padding()
-            .background(Color(UIColor.secondarySystemBackground))
+            .background(
+                ZStack {
+                    Color(UIColor.systemBackground)
+                        .opacity(0.8)
+                    Color.white.opacity(0.1)
+                }
+            )
+            .overlay(
+                RoundedRectangle(cornerRadius: 12)
+                    .stroke(Color.gray.opacity(0.2), lineWidth: 0.5)
+            )
             .cornerRadius(12)
+            .shadow(color: Theme.shadowLight, radius: 4, x: 0, y: 2)
             
             // Action buttons
             HStack(spacing: 12) {
@@ -284,10 +306,11 @@ struct PrestigeDetailView: View {
                     }
                 }
                 .font(.subheadline)
-                .foregroundColor(Theme.primary)
+                .fontWeight(.medium)
+                .foregroundColor(.primary)
                 .padding(.horizontal, 20)
                 .padding(.vertical, 10)
-                .background(Theme.primary.opacity(0.12))
+                .background(Color(UIColor.tertiarySystemBackground))
                 .cornerRadius(8)
                 
                 Button("Remove Rating") {
@@ -296,10 +319,11 @@ struct PrestigeDetailView: View {
                     }
                 }
                 .font(.subheadline)
-                .foregroundColor(.red)
+                .fontWeight(.medium)
+                .foregroundColor(Theme.deleteRed)
                 .padding(.horizontal, 20)
                 .padding(.vertical, 10)
-                .background(Color.red.opacity(0.1))
+                .background(Theme.deleteRed.opacity(0.1))
                 .cornerRadius(8)
             }
         }
@@ -318,14 +342,22 @@ struct PrestigeDetailView: View {
             .frame(maxWidth: .infinity)
             .padding()
             .background(
-                LinearGradient(
-                    colors: [Color.blue, Color.purple],
-                    startPoint: .leading,
-                    endPoint: .trailing
-                )
+                ZStack {
+                    LinearGradient(
+                        colors: [Theme.primary.opacity(0.9), Theme.primary.opacity(0.7)],
+                        startPoint: .leading,
+                        endPoint: .trailing
+                    )
+                    Color.white.opacity(0.1)
+                }
+            )
+            .overlay(
+                RoundedRectangle(cornerRadius: 12)
+                    .stroke(Theme.primary.opacity(0.3), lineWidth: 0.5)
             )
             .foregroundColor(.white)
             .cornerRadius(12)
+            .shadow(color: Theme.primary.opacity(0.2), radius: 8, x: 0, y: 4)
         }
     }
     
@@ -345,9 +377,26 @@ struct PrestigeDetailView: View {
                     }
                     .frame(maxWidth: .infinity)
                     .padding(.vertical, 12)
-                    .background(isPinned ? Color.yellow : Color(UIColor.secondarySystemBackground))
-                    .foregroundColor(isPinned ? .black : .primary)
+                    .background(
+                        ZStack {
+                            if isPinned {
+                                Theme.primarySoft
+                            } else {
+                                Color(UIColor.systemBackground)
+                                    .opacity(0.7)
+                            }
+                            
+                            // Glass effect
+                            Color.white.opacity(0.1)
+                        }
+                    )
+                    .overlay(
+                        RoundedRectangle(cornerRadius: 10)
+                            .stroke(isPinned ? Theme.primary.opacity(0.3) : Color.gray.opacity(0.2), lineWidth: 0.5)
+                    )
+                    .foregroundColor(isPinned ? Theme.primary : .primary)
                     .cornerRadius(10)
+                    .shadow(color: Theme.shadowLight, radius: 4, x: 0, y: 2)
                 }
                 
                 // Compare with friends (for all content types)
@@ -362,9 +411,20 @@ struct PrestigeDetailView: View {
                     }
                     .frame(maxWidth: .infinity)
                     .padding(.vertical, 12)
-                    .background(Color.blue)
-                    .foregroundColor(.white)
+                    .background(
+                        ZStack {
+                            Color(UIColor.systemBackground)
+                                .opacity(0.7)
+                            Color.white.opacity(0.1)
+                        }
+                    )
+                    .overlay(
+                        RoundedRectangle(cornerRadius: 10)
+                            .stroke(Color.gray.opacity(0.2), lineWidth: 0.5)
+                    )
+                    .foregroundColor(.primary)
                     .cornerRadius(10)
+                    .shadow(color: Theme.shadowLight, radius: 4, x: 0, y: 2)
                 }
                 
                 // Context-specific third button
@@ -381,9 +441,20 @@ struct PrestigeDetailView: View {
                         }
                         .frame(maxWidth: .infinity)
                         .padding(.vertical, 12)
-                        .background(Color.green)
-                        .foregroundColor(.white)
+                        .background(
+                            ZStack {
+                                Color(UIColor.systemBackground)
+                                    .opacity(0.7)
+                                Color.white.opacity(0.1)
+                            }
+                        )
+                        .overlay(
+                            RoundedRectangle(cornerRadius: 10)
+                                .stroke(Color.gray.opacity(0.2), lineWidth: 0.5)
+                        )
+                        .foregroundColor(.primary)
                         .cornerRadius(10)
+                        .shadow(color: Theme.shadowLight, radius: 4, x: 0, y: 2)
                     }
                 } else if item.contentType == .albums {
                     // View tracks for albums
@@ -401,9 +472,20 @@ struct PrestigeDetailView: View {
                         }
                         .frame(maxWidth: .infinity)
                         .padding(.vertical, 12)
-                        .background(Color.purple)
-                        .foregroundColor(.white)
+                        .background(
+                            ZStack {
+                                Color(UIColor.systemBackground)
+                                    .opacity(0.7)
+                                Color.white.opacity(0.1)
+                            }
+                        )
+                        .overlay(
+                            RoundedRectangle(cornerRadius: 10)
+                                .stroke(Color.gray.opacity(0.2), lineWidth: 0.5)
+                        )
+                        .foregroundColor(.primary)
                         .cornerRadius(10)
+                        .shadow(color: Theme.shadowLight, radius: 4, x: 0, y: 2)
                     }
                 } else if item.contentType == .artists {
                     // View albums for artists
@@ -421,9 +503,20 @@ struct PrestigeDetailView: View {
                         }
                         .frame(maxWidth: .infinity)
                         .padding(.vertical, 12)
-                        .background(Color.green)
-                        .foregroundColor(.white)
+                        .background(
+                            ZStack {
+                                Color(UIColor.systemBackground)
+                                    .opacity(0.7)
+                                Color.white.opacity(0.1)
+                            }
+                        )
+                        .overlay(
+                            RoundedRectangle(cornerRadius: 10)
+                                .stroke(Color.gray.opacity(0.2), lineWidth: 0.5)
+                        )
+                        .foregroundColor(.primary)
                         .cornerRadius(10)
+                        .shadow(color: Theme.shadowLight, radius: 4, x: 0, y: 2)
                     }
                 }
             }
@@ -459,9 +552,20 @@ struct PrestigeDetailView: View {
                 }
                 .frame(maxWidth: .infinity)
                 .padding()
-                .background(Color(UIColor.secondarySystemBackground))
+                .background(
+                    ZStack {
+                        Color(UIColor.systemBackground)
+                            .opacity(0.7)
+                        Color.white.opacity(0.1)
+                    }
+                )
+                .overlay(
+                    RoundedRectangle(cornerRadius: 12)
+                        .stroke(Color.gray.opacity(0.2), lineWidth: 0.5)
+                )
                 .foregroundColor(.primary)
                 .cornerRadius(12)
+                .shadow(color: Theme.shadowLight, radius: 4, x: 0, y: 2)
             }
         }
     }
@@ -625,12 +729,12 @@ struct PrestigeDetailView: View {
                         Text(showAllTracks ? "Hide Tracks" : "Show All Tracks")
                             .font(.subheadline)
                             .fontWeight(.medium)
-                            .foregroundColor(.purple)
+                            .foregroundColor(.primary)
                             .padding(.horizontal, 16)
                             .padding(.vertical, 8)
                             .background(
                                 Capsule()
-                                    .fill(Color.purple.opacity(0.15))
+                                    .fill(Color(UIColor.tertiarySystemBackground))
                             )
                     }
                 }
@@ -640,7 +744,7 @@ struct PrestigeDetailView: View {
                 HStack(spacing: 12) {
                     ProgressView()
                         .scaleEffect(0.8)
-                        .progressViewStyle(CircularProgressViewStyle(tint: .purple))
+                        .progressViewStyle(CircularProgressViewStyle(tint: Theme.primary))
                     
                     Text("Loading album tracks...")
                         .font(.subheadline)
@@ -657,7 +761,7 @@ struct PrestigeDetailView: View {
                                 Text("🏆 #\(ranking)")
                                     .font(.caption)
                                     .fontWeight(.bold)
-                                    .foregroundColor(.purple)
+                                    .foregroundColor(Theme.primary)
                                     .frame(width: 40, alignment: .leading)
                             } else {
                                 Text("\(track.trackNumber)")
@@ -716,7 +820,7 @@ struct PrestigeDetailView: View {
                     HStack(spacing: 12) {
                         Image(systemName: "music.note")
                             .font(.title3)
-                            .foregroundColor(Color(hex: "#5167FC") ?? .purple)
+                            .foregroundColor(Theme.primary)
                         
                         VStack(alignment: .leading, spacing: 2) {
                             Text("Show All Tracks")
@@ -732,7 +836,7 @@ struct PrestigeDetailView: View {
                         
                         Image(systemName: "chevron.down.circle.fill")
                             .font(.title2)
-                            .foregroundColor(Color(hex: "#5167FC") ?? .purple)
+                            .foregroundColor(Theme.primary)
                     }
                     .foregroundColor(.primary)
                     .padding()
@@ -741,7 +845,7 @@ struct PrestigeDetailView: View {
                             .fill(Color(UIColor.secondarySystemBackground))
                             .overlay(
                                 RoundedRectangle(cornerRadius: 12)
-                                    .stroke((Color(hex: "#5167FC") ?? .purple).opacity(0.3), lineWidth: 1)
+                                    .stroke(Theme.primary.opacity(0.2), lineWidth: 1)
                             )
                     )
                 }
@@ -770,12 +874,12 @@ struct PrestigeDetailView: View {
                         Text(showAllAlbums ? "Hide Albums" : "Show Rated Albums")
                             .font(.subheadline)
                             .fontWeight(.medium)
-                            .foregroundColor(.purple)
+                            .foregroundColor(.primary)
                             .padding(.horizontal, 16)
                             .padding(.vertical, 8)
                             .background(
                                 Capsule()
-                                    .fill(Color.purple.opacity(0.15))
+                                    .fill(Color(UIColor.tertiarySystemBackground))
                             )
                     }
                 }
@@ -785,7 +889,7 @@ struct PrestigeDetailView: View {
                 HStack(spacing: 12) {
                     ProgressView()
                         .scaleEffect(0.8)
-                        .progressViewStyle(CircularProgressViewStyle(tint: .purple))
+                        .progressViewStyle(CircularProgressViewStyle(tint: Theme.primary))
                     
                     Text("Loading rated albums...")
                         .font(.subheadline)
@@ -800,7 +904,7 @@ struct PrestigeDetailView: View {
                             Text("#\(index + 1)")
                                 .font(.caption)
                                 .fontWeight(.bold)
-                                .foregroundColor(.purple)
+                                .foregroundColor(Theme.primary)
                                 .frame(width: 24, alignment: .center)
                             
                             // Album artwork

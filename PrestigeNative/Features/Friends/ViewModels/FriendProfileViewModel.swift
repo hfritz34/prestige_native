@@ -16,6 +16,7 @@ class FriendProfileViewModel: ObservableObject {
     @Published var favoriteAlbums: [UserAlbumResponse] = []
     @Published var favoriteArtists: [UserArtistResponse] = []
     @Published var recentTracks: [TrackResponse] = []
+    @Published var currentRatings: [RatedItem] = []
     @Published var isLoading = false
     @Published var error: String?
     

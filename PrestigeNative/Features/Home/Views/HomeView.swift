@@ -8,12 +8,6 @@
 
 import SwiftUI
 
-struct PrestigeSelection: Identifiable {
-    let id = UUID()
-    let item: PrestigeDisplayItem
-    let rank: Int
-}
-
 struct HomeView: View {
     @StateObject private var viewModel = HomeViewModel()
     @EnvironmentObject var authManager: AuthManager

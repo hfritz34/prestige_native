@@ -110,7 +110,7 @@ struct FriendsView: View {
                                 .background(Circle().fill(Color.red))
                         }
                     }
-                    .foregroundColor(selectedTab == tab ? .purple : .secondary)
+                    .foregroundColor(selectedTab == tab ? .white : .secondary)
                     .frame(maxWidth: .infinity)
                     .padding(.vertical, 12)
                     .background(

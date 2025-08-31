@@ -288,7 +288,10 @@ struct FriendProfileView: View {
                     } else {
                         // Display rated items
                         ForEach(Array(viewModel.currentRatings.prefix(25).enumerated()), id: \.element.id) { index, ratedItem in
-                            RatedItemCard(ratedItem: ratedItem)
+                            RatedItemCard(
+                                ratedItem: ratedItem,
+                                prestigeLevel: getPrestigeLevelForRatedItem(ratedItem)
+                            )
                                 .onTapGesture {
                                     selectedPrestige = PrestigeSelection(
                                         item: convertRatedItemToPrestigeDisplayItem(ratedItem),
@@ -365,7 +368,10 @@ struct FriendProfileView: View {
                 favoriteEmptyState
             } else {
                 ForEach(Array(viewModel.favoriteAlbums.prefix(25).enumerated()), id: \.element.album.id) { index, album in
-                    FavoriteAlbumCard(album: album.album)
+                    FavoriteAlbumCard(
+                        album: album.album,
+                        prestigeLevel: getPrestigeLevelForAlbum(album.album.id)
+                    )
                         .onTapGesture {
                             selectedPrestige = PrestigeSelection(
                                 item: PrestigeDisplayItem.fromAlbum(album),
@@ -379,7 +385,10 @@ struct FriendProfileView: View {
                 favoriteEmptyState
             } else {
                 ForEach(Array(viewModel.favoriteTracks.prefix(25).enumerated()), id: \.element.track.id) { index, track in
-                    FavoriteItemCard(track: track.track)
+                    FavoriteItemCard(
+                        track: track.track,
+                        prestigeLevel: getPrestigeLevelForTrack(track.track.id)
+                    )
                         .onTapGesture {
                             selectedPrestige = PrestigeSelection(
                                 item: PrestigeDisplayItem.fromTrack(track),
@@ -393,7 +402,10 @@ struct FriendProfileView: View {
                 favoriteEmptyState
             } else {
                 ForEach(Array(viewModel.favoriteArtists.prefix(25).enumerated()), id: \.element.artist.id) { index, artist in
-                    FavoriteArtistCard(artist: artist.artist)
+                    FavoriteArtistCard(
+                        artist: artist.artist,
+                        prestigeLevel: getPrestigeLevelForArtist(artist.artist.id)
+                    )
                         .onTapGesture {
                             selectedPrestige = PrestigeSelection(
                                 item: PrestigeDisplayItem.fromArtist(artist),
@@ -470,5 +482,30 @@ struct FriendProfileView: View {
             albumId: ratedItem.itemData.albumId,
             albumName: ratedItem.itemData.albumName
         )
+    }
+    
+    // MARK: - Prestige Level Helpers
+    
+    private func getPrestigeLevelForTrack(_ trackId: String) -> PrestigeLevel {
+        return viewModel.topTracks.first { $0.track.id == trackId }?.prestigeLevel ?? .none
+    }
+    
+    private func getPrestigeLevelForAlbum(_ albumId: String) -> PrestigeLevel {
+        return viewModel.topAlbums.first { $0.album.id == albumId }?.prestigeLevel ?? .none
+    }
+    
+    private func getPrestigeLevelForArtist(_ artistId: String) -> PrestigeLevel {
+        return viewModel.topArtists.first { $0.artist.id == artistId }?.prestigeLevel ?? .none
+    }
+    
+    private func getPrestigeLevelForRatedItem(_ ratedItem: RatedItem) -> PrestigeLevel {
+        switch ratedItem.itemData.itemType {
+        case .track:
+            return getPrestigeLevelForTrack(ratedItem.itemData.id)
+        case .album:
+            return getPrestigeLevelForAlbum(ratedItem.itemData.id)
+        case .artist:
+            return getPrestigeLevelForArtist(ratedItem.itemData.id)
+        }
     }
 }

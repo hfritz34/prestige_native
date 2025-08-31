@@ -9,16 +9,17 @@ import SwiftUI
 
 struct RatedItemCard: View {
     let ratedItem: RatedItem
+    let prestigeLevel: PrestigeLevel
     
     var body: some View {
-        VStack(spacing: 8) {
-            // Item image
+        VStack(spacing: 4) {
+            // Item image with rating overlay
             CachedAsyncImage(
                 url: ratedItem.imageUrl,
                 placeholder: Image(systemName: getIconForType()),
                 contentMode: .fill,
-                maxWidth: 120,
-                maxHeight: 120
+                maxWidth: 130,
+                maxHeight: 130
             )
             .clipShape(RoundedRectangle(cornerRadius: 8))
             .overlay(
@@ -37,15 +38,16 @@ struct RatedItemCard: View {
                             .cornerRadius(4)
                     }
                 }
-                .padding(4)
+                .padding(6)
             )
             
-            // Item details
-            VStack(spacing: 2) {
+            // Item details with prestige badge - invisible container for better centering
+            VStack(spacing: 1) {
                 Text(ratedItem.displayTitle)
                     .font(.caption)
                     .fontWeight(.medium)
-                    .lineLimit(2)
+                    .lineLimit(1)
+                    .foregroundColor(.primary)
                     .multilineTextAlignment(.center)
                 
                 if !ratedItem.displaySubtitle.isEmpty {
@@ -53,11 +55,18 @@ struct RatedItemCard: View {
                         .font(.caption2)
                         .foregroundColor(.secondary)
                         .lineLimit(1)
+                        .multilineTextAlignment(.center)
                 }
                 
+                // Prestige badge at bottom
+                if prestigeLevel != .none {
+                    PrestigeBadge(tier: prestigeLevel)
+                        .scaleEffect(0.6)
+                }
             }
+            .frame(maxWidth: .infinity)
         }
-        .frame(width: 120)
+        .frame(width: 130)
     }
     
     private func getIconForType() -> String {
@@ -99,6 +108,6 @@ struct RatedItemCard: View {
         itemData: sampleItemData
     )
     
-    RatedItemCard(ratedItem: sampleRatedItem)
+    RatedItemCard(ratedItem: sampleRatedItem, prestigeLevel: .gold)
         .padding()
 }

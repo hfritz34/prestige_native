@@ -97,23 +97,61 @@ struct PrestigeDetailView: View {
     
     private var headerSection: some View {
         VStack(spacing: 16) {
-            // Artwork
-            AsyncImage(url: URL(string: item.imageUrl)) { image in
-                image
-                    .resizable()
-                    .aspectRatio(contentMode: .fit)
-            } placeholder: {
-                RoundedRectangle(cornerRadius: 12)
-                    .fill(Color.gray.opacity(0.3))
+            // Artwork with prestige background
+            ZStack {
+                // Background container with prestige theme
+                RoundedRectangle(cornerRadius: 14)
+                    .fill(Color.clear)
                     .overlay(
-                        Image(systemName: item.contentType.iconName)
-                            .font(.largeTitle)
-                            .foregroundColor(.gray)
+                        Group {
+                            // Prestige tier background image - made bigger to fill border better
+                            if item.prestigeLevel != .none && !item.prestigeLevel.imageName.isEmpty {
+                                Image(item.prestigeLevel.imageName)
+                                    .resizable()
+                                    .aspectRatio(contentMode: .fill)
+                                    .scaleEffect(1.2)
+                                    .opacity(0.6)
+                            }
+                            
+                            // Color overlay for better contrast
+                            LinearGradient(
+                                colors: [
+                                    Color(hex: item.prestigeLevel.color)?.opacity(0.4) ?? Color.gray.opacity(0.4),
+                                    Color(hex: item.prestigeLevel.color)?.opacity(0.2) ?? Color.gray.opacity(0.2)
+                                ],
+                                startPoint: .topLeading,
+                                endPoint: .bottomTrailing
+                            )
+                        }
                     )
+                    .clipShape(RoundedRectangle(cornerRadius: 14))
+                    .overlay(
+                        RoundedRectangle(cornerRadius: 14)
+                            .stroke(
+                                Color(hex: item.prestigeLevel.color) ?? Color.gray,
+                                lineWidth: 3
+                            )
+                    )
+                
+                // Main artwork
+                AsyncImage(url: URL(string: item.imageUrl)) { image in
+                    image
+                        .resizable()
+                        .aspectRatio(contentMode: .fit)
+                } placeholder: {
+                    RoundedRectangle(cornerRadius: 14)
+                        .fill(Color.gray.opacity(0.3))
+                        .overlay(
+                            Image(systemName: item.contentType.iconName)
+                                .font(.largeTitle)
+                                .foregroundColor(.gray)
+                        )
+                }
+                .frame(width: 180, height: 180)
+                .cornerRadius(14)
+                .shadow(radius: 8)
             }
-            .frame(width: 200, height: 200)
-            .cornerRadius(12)
-            .shadow(radius: 8)
+            .frame(width: 220, height: 220)
             
             // Title and subtitle
             VStack(spacing: 8) {

@@ -270,7 +270,10 @@ struct ProfileView: View {
                     } else {
                         // Display rated items
                         ForEach(Array(getCurrentRatingItems().prefix(25).enumerated()), id: \.element.id) { index, ratedItem in
-                            RatedItemCard(ratedItem: ratedItem)
+                            RatedItemCard(
+                                ratedItem: ratedItem,
+                                prestigeLevel: getPrestigeLevelForRatedItem(ratedItem)
+                            )
                                 .onTapGesture {
                                     selectedPrestige = PrestigeSelection(
                                         item: convertRatedItemToPrestigeDisplayItem(ratedItem),
@@ -347,7 +350,10 @@ struct ProfileView: View {
                 favoriteEmptyState
             } else {
                 ForEach(Array(viewModel.favoriteAlbums.prefix(25).enumerated()), id: \.element.id) { index, album in
-                    FavoriteAlbumCard(album: album)
+                    FavoriteAlbumCard(
+                        album: album,
+                        prestigeLevel: getPrestigeLevelForAlbum(album.id)
+                    )
                         .onTapGesture {
                             // Convert AlbumResponse to UserAlbumResponse for PrestigeDisplayItem
                             let userAlbum = UserAlbumResponse(
@@ -367,7 +373,10 @@ struct ProfileView: View {
                 favoriteEmptyState
             } else {
                 ForEach(Array(viewModel.favoriteTracks.prefix(25).enumerated()), id: \.element.id) { index, track in
-                    FavoriteItemCard(track: track)
+                    FavoriteItemCard(
+                        track: track,
+                        prestigeLevel: getPrestigeLevelForTrack(track.id)
+                    )
                         .onTapGesture {
                             // Convert TrackResponse to UserTrackResponse for PrestigeDisplayItem
                             let userTrack = UserTrackResponse(
@@ -387,7 +396,10 @@ struct ProfileView: View {
                 favoriteEmptyState
             } else {
                 ForEach(Array(viewModel.favoriteArtists.prefix(25).enumerated()), id: \.element.id) { index, artist in
-                    FavoriteArtistCard(artist: artist)
+                    FavoriteArtistCard(
+                        artist: artist,
+                        prestigeLevel: getPrestigeLevelForArtist(artist.id)
+                    )
                         .onTapGesture {
                             // Convert ArtistResponse to UserArtistResponse for PrestigeDisplayItem
                             let userArtist = UserArtistResponse(
@@ -536,6 +548,31 @@ struct ProfileView: View {
             albumId: nil, // Recent tracks don't have album ID in this context
             albumName: nil // Recent tracks don't have album name in this context
         )
+    }
+    
+    // MARK: - Prestige Level Helpers
+    
+    private func getPrestigeLevelForTrack(_ trackId: String) -> PrestigeLevel {
+        return viewModel.topTracks.first { $0.track.id == trackId }?.prestigeLevel ?? .none
+    }
+    
+    private func getPrestigeLevelForAlbum(_ albumId: String) -> PrestigeLevel {
+        return viewModel.topAlbums.first { $0.album.id == albumId }?.prestigeLevel ?? .none
+    }
+    
+    private func getPrestigeLevelForArtist(_ artistId: String) -> PrestigeLevel {
+        return viewModel.topArtists.first { $0.artist.id == artistId }?.prestigeLevel ?? .none
+    }
+    
+    private func getPrestigeLevelForRatedItem(_ ratedItem: RatedItem) -> PrestigeLevel {
+        switch ratedItem.itemData.itemType {
+        case .track:
+            return getPrestigeLevelForTrack(ratedItem.itemData.id)
+        case .album:
+            return getPrestigeLevelForAlbum(ratedItem.itemData.id)
+        case .artist:
+            return getPrestigeLevelForArtist(ratedItem.itemData.id)
+        }
     }
     
 }

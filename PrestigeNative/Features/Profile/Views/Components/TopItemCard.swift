@@ -31,7 +31,7 @@ struct TopItemCard: View {
     }
     
     var body: some View {
-        VStack(alignment: .leading, spacing: 8) {
+        VStack(spacing: 4) {
             // Image
             AsyncImage(url: URL(string: imageUrl)) { image in
                 image
@@ -41,35 +41,40 @@ struct TopItemCard: View {
                 Rectangle()
                     .fill(Color.gray.opacity(0.3))
             }
-            .frame(width: 120, height: 120)
+            .frame(width: 130, height: 130)
             .clipShape(RoundedRectangle(cornerRadius: 8))
-            .overlay(
-                RoundedRectangle(cornerRadius: 8)
-                    .stroke(Color.gray.opacity(0.2), lineWidth: 0.5)
-            )
             
-            // Title and subtitle
-            VStack(alignment: .leading, spacing: 2) {
+            // Title, subtitle, and prestige badge - invisible container for better centering
+            VStack(spacing: 1) {
                 Text(title)
-                    .font(.subheadline)
+                    .font(.caption)
                     .fontWeight(.medium)
-                    .lineLimit(2)
-                    .fixedSize(horizontal: false, vertical: true)
+                    .lineLimit(1)
+                    .foregroundColor(.primary)
+                    .multilineTextAlignment(.center)
                 
                 Text(subtitle)
-                    .font(.caption)
+                    .font(.caption2)
                     .foregroundColor(.secondary)
                     .lineLimit(1)
+                    .multilineTextAlignment(.center)
                 
                 Text(listeningTime)
                     .font(.caption2)
                     .foregroundColor(.secondary)
+                    .multilineTextAlignment(.center)
+                
+                // Prestige badge at bottom
+                if prestigeLevel != .none {
+                    PrestigeBadge(tier: prestigeLevel)
+                        .scaleEffect(0.6)
+                }
             }
-            .frame(height: 60)
+            .frame(maxWidth: .infinity, minHeight: 50, alignment: .top)
             
             Spacer(minLength: 0)
         }
-        .frame(width: 120, height: 188)
+        .frame(width: 130)
     }
     
     private var imageUrl: String {
@@ -119,6 +124,17 @@ struct TopItemCard: View {
         
         // Convert seconds to milliseconds for TimeFormatter (API sends seconds)
         return TimeFormatter.formatListeningTime(totalTime * 1000)
+    }
+    
+    private var prestigeLevel: PrestigeLevel {
+        if let track = track {
+            return track.prestigeLevel
+        } else if let album = album {
+            return album.prestigeLevel
+        } else if let artist = artist {
+            return artist.prestigeLevel
+        }
+        return .none
     }
 }
 

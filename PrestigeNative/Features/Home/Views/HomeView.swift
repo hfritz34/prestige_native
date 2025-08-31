@@ -181,7 +181,6 @@ struct HomeView: View {
                             .fontWeight(viewModel.selectedTimeRange == range ? .semibold : .medium)
                             .foregroundColor(viewModel.selectedTimeRange == range ? .white : .secondary)
                             .lineLimit(1)
-                            .minimumScaleFactor(0.7)
                         
                         Rectangle()
                             .frame(height: 2)

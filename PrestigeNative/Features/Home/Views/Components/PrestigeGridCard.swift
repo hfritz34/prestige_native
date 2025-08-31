@@ -59,32 +59,12 @@ struct PrestigeGridCard: View {
                     )
                 
                 VStack(spacing: 8) {
-                    // Rank badge and rating/position
+                    // Rating badge for albums/artists only (no trophy pins for tracks)
                     HStack {
-                        Text("\(rank)")
-                            .font(.caption)
-                            .fontWeight(.bold)
-                            .foregroundColor(.white)
-                            .frame(width: 20, height: 20)
-                            .background(Circle().fill(Color.black.opacity(0.7)))
-                        
                         Spacer()
                         
-                        // Show album position for tracks, rating for albums/artists
-                        if item.contentType == .tracks, let position = item.albumPosition {
-                            HStack(spacing: 2) {
-                                Text("🏆")
-                                    .font(.caption2)
-                                Text("#\(position)")
-                                    .font(.caption)
-                                    .fontWeight(.bold)
-                            }
-                            .foregroundColor(.yellow)
-                            .padding(.horizontal, 6)
-                            .padding(.vertical, 2)
-                            .background(Color.black.opacity(0.7))
-                            .cornerRadius(4)
-                        } else if item.contentType != .tracks, let rating = item.rating {
+                        // Show rating for albums/artists only
+                        if item.contentType != .tracks, let rating = item.rating {
                             HStack(spacing: 2) {
                                 Image(systemName: rating >= 7 ? "star.fill" : rating >= 4 ? "hand.thumbsup.fill" : "hand.thumbsdown.fill")
                                     .font(.caption2)
@@ -100,16 +80,32 @@ struct PrestigeGridCard: View {
                         }
                     }
                     
-                    // Album artwork  
+                    // Album artwork with rank overlay
                     CachedAsyncImage(
                         url: item.imageUrl,
                         placeholder: Image(systemName: getIconForType()),
                         contentMode: .fill,
-                        maxWidth: 100,
-                        maxHeight: 100
+                        maxWidth: 120,
+                        maxHeight: 120
                     )
                     .clipShape(RoundedRectangle(cornerRadius: 8))
                     .shadow(color: .black.opacity(0.2), radius: 2, x: 0, y: 1)
+                    .overlay(
+                        // Rank number overlay on top left
+                        VStack {
+                            HStack {
+                                Text("\(rank)")
+                                    .font(.caption)
+                                    .fontWeight(.bold)
+                                    .foregroundColor(.white)
+                                    .frame(width: 22, height: 22)
+                                    .background(Circle().fill(Color.black.opacity(0.8)))
+                                    .padding(6)
+                                Spacer()
+                            }
+                            Spacer()
+                        }
+                    )
                     
                     // Prestige badge and friend count
                     HStack(spacing: 4) {

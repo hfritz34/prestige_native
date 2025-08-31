@@ -145,7 +145,7 @@ enum PrestigeTimeRange: CaseIterable {
     var displayName: String {
         switch self {
         case .allTime: return "All Time"
-        case .recentlyUpdated: return "Recently Updated"
+        case .recentlyUpdated: return "Recent"
         case .pinned: return "Pinned Items"
         }
     }

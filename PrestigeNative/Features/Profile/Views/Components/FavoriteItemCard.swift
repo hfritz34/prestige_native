@@ -9,10 +9,11 @@ import SwiftUI
 
 struct FavoriteItemCard: View {
     let track: TrackResponse
+    let prestigeLevel: PrestigeLevel
     
     var body: some View {
-        VStack(alignment: .leading, spacing: 8) {
-            // Track image
+        VStack(spacing: 4) {
+            // Track image with heart overlay
             AsyncImage(url: URL(string: track.album.images.first?.url ?? "")) { image in
                 image
                     .resizable()
@@ -21,31 +22,47 @@ struct FavoriteItemCard: View {
                 Rectangle()
                     .fill(Color.gray.opacity(0.3))
             }
-            .frame(width: 120, height: 120)
+            .frame(width: 130, height: 130)
             .clipShape(RoundedRectangle(cornerRadius: 8))
+            .overlay(
+                // Heart icon overlay on bottom right
+                VStack {
+                    Spacer()
+                    HStack {
+                        Spacer()
+                        Image(systemName: "heart.fill")
+                            .font(.caption)
+                            .foregroundColor(.red)
+                            .padding(6)
+                    }
+                }
+            )
             
-            // Track info
-            VStack(alignment: .leading, spacing: 2) {
+            // Track info with prestige badge - invisible container for better centering
+            VStack(spacing: 1) {
                 Text(track.name)
-                    .font(.subheadline)
+                    .font(.caption)
                     .fontWeight(.medium)
-                    .lineLimit(2)
+                    .lineLimit(1)
+                    .foregroundColor(.primary)
+                    .multilineTextAlignment(.center)
                 
                 Text(track.artists.first?.name ?? "Unknown Artist")
-                    .font(.caption)
+                    .font(.caption2)
                     .foregroundColor(.secondary)
                     .lineLimit(1)
+                    .multilineTextAlignment(.center)
+                
+                // Prestige badge at bottom
+                if prestigeLevel != .none {
+                    PrestigeBadge(tier: prestigeLevel)
+                        .scaleEffect(0.6)
+                }
             }
+            .frame(maxWidth: .infinity)
             
-            // Favorite indicator
-            HStack {
-                Image(systemName: "heart.fill")
-                    .font(.caption)
-                    .foregroundColor(.red)
-                Spacer()
-            }
         }
-        .frame(width: 120)
+        .frame(width: 130)
     }
 }
 
@@ -57,7 +74,8 @@ struct FavoriteItemCard: View {
             duration_ms: 180000,
             album: .init(id: "album_id", name: "Favorite Album", images: []),
             artists: [.init(id: "artist_id", name: "Favorite Artist")]
-        )
+        ),
+        prestigeLevel: .gold
     )
     .padding()
 }

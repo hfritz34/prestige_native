@@ -100,13 +100,13 @@ struct PrestigeGridCard: View {
                         }
                     }
                     
-                    // Album artwork
+                    // Album artwork  
                     CachedAsyncImage(
                         url: item.imageUrl,
                         placeholder: Image(systemName: getIconForType()),
                         contentMode: .fill,
-                        maxWidth: 80,
-                        maxHeight: 80
+                        maxWidth: 100,
+                        maxHeight: 100
                     )
                     .clipShape(RoundedRectangle(cornerRadius: 8))
                     .shadow(color: .black.opacity(0.2), radius: 2, x: 0, y: 1)

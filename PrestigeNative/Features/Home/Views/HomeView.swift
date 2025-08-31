@@ -20,26 +20,36 @@ struct HomeView: View {
     var body: some View {
         NavigationView {
             VStack(spacing: 0) {
-                // App Logo
-                Image("prestige_purple")
-                    .resizable()
-                    .scaledToFit()
-                    .frame(height: 40)
-                    .padding(.top, 20)
-                    .padding(.bottom, 16)
+                // Header with crown logo and title
+                HStack(alignment: .center, spacing: 8) {
+                    Image("white_logo_clear")
+                        .resizable()
+                        .scaledToFit()
+                        .frame(width: 32, height: 32)
+                    
+                    Text("Your Prestiges")
+                        .font(.title2)
+                        .fontWeight(.bold)
+                        .foregroundColor(.white)
+                        .offset(y: 2)
+                    
+                    Spacer()
+                }
+                .padding(.horizontal)
+                .padding(.top, 20)
+                .padding(.bottom, 16)
                 
                 // Content Type Buttons
-                contentTypeButtons
-                    .padding(.horizontal)
-                    .opacity(showContentButtons ? 1 : 0)
-                    .animation(.easeInOut(duration: 0.3), value: showContentButtons)
-                
-                // Time Filter
-                timeFilterSelector
-                    .padding(.horizontal)
-                    .padding(.top, 20)
-                    .opacity(showContentButtons ? 1 : 0)
-                    .animation(.easeInOut(duration: 0.3).delay(0.1), value: showContentButtons)
+                if showContentButtons {
+                    contentTypeButtons
+                        .padding(.horizontal)
+                        .transition(.move(edge: .top).combined(with: .opacity))
+                    
+                    // Time Filter Tabs
+                    timeFilterTabs
+                        .padding(.top, 20)
+                        .transition(.move(edge: .top).combined(with: .opacity).animation(.easeInOut(duration: 0.3).delay(0.1)))
+                }
                 
                 // Content
                 ZStack {
@@ -136,7 +146,7 @@ struct HomeView: View {
         HStack(spacing: 12) {
             ForEach(ContentType.allCases, id: \.self) { type in
                 Button(action: {
-                    withAnimation(.easeInOut(duration: 0.2)) {
+                    withAnimation(.easeInOut(duration: 0.15)) {
                         viewModel.selectedContentType = type
                     }
                 }) {
@@ -157,41 +167,32 @@ struct HomeView: View {
         }
     }
     
-    private var timeFilterSelector: some View {
-        Menu {
+    private var timeFilterTabs: some View {
+        HStack(spacing: 0) {
             ForEach(PrestigeTimeRange.allCases, id: \.self) { range in
                 Button(action: {
-                    withAnimation {
+                    withAnimation(.easeInOut(duration: 0.2)) {
                         viewModel.selectedTimeRange = range
                     }
                 }) {
-                    HStack {
+                    VStack(spacing: 4) {
                         Text(range.displayName)
-                        if viewModel.selectedTimeRange == range {
-                            Image(systemName: "checkmark")
-                        }
+                            .font(.subheadline)
+                            .fontWeight(viewModel.selectedTimeRange == range ? .semibold : .medium)
+                            .foregroundColor(viewModel.selectedTimeRange == range ? .white : .secondary)
+                            .lineLimit(1)
+                            .minimumScaleFactor(0.7)
+                        
+                        Rectangle()
+                            .frame(height: 2)
+                            .foregroundColor(viewModel.selectedTimeRange == range ? .white : .clear)
                     }
                 }
+                .frame(maxWidth: .infinity)
             }
-        } label: {
-            HStack {
-                Image(systemName: "line.3.horizontal.decrease.circle")
-                    .font(.subheadline)
-                Text(viewModel.selectedTimeRange.displayName)
-                    .font(.subheadline)
-                Image(systemName: "chevron.down")
-                    .font(.caption2)
-            }
-            .foregroundColor(.primary)
-            .padding(.horizontal, 12)
-            .padding(.vertical, 8)
-            .background(Color.gray.opacity(0.15))
-            .cornerRadius(8)
-            .overlay(
-                RoundedRectangle(cornerRadius: 8)
-                    .stroke(Color.gray.opacity(0.3), lineWidth: 1)
-            )
         }
+        .padding(.horizontal)
+        .padding(.top, 8)
     }
     
     @ViewBuilder
@@ -240,18 +241,14 @@ struct HomeView: View {
     
     private var prestigeGridSection: some View {
         VStack(alignment: .leading, spacing: 16) {
-            Text("Your Top Prestiges")
-                .font(.title2)
-                .fontWeight(.bold)
-                .padding(.horizontal)
             
             LazyVGrid(
-                columns: Array(repeating: GridItem(.flexible(), spacing: 12), count: 3),
-                spacing: 16
+                columns: Array(repeating: GridItem(.flexible(), spacing: 8), count: 3),
+                spacing: 12
             ) {
                 prestigeGridContent
             }
-            .padding(.horizontal)
+            .padding(.horizontal, 8)
         }
     }
     

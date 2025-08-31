@@ -9,10 +9,11 @@ struct GridRatingCard: View {
     let itemData: RatingItemData
     let rating: Rating?
     let onTap: () -> Void
+    let onDelete: (() -> Void)?
     
     var body: some View {
         Button(action: onTap) {
-            VStack(spacing: 8) {
+            VStack(spacing: 4) {
                 // Artwork
                 CachedAsyncImage(
                     url: itemData.imageUrl,
@@ -21,8 +22,10 @@ struct GridRatingCard: View {
                     maxWidth: nil,
                     maxHeight: nil
                 )
-                .aspectRatio(1, contentMode: .fit)
-                .clipShape(RoundedRectangle(cornerRadius: 8))
+                .aspectRatio(1, contentMode: .fill)
+                .frame(width: 130, height: 130)
+                .clipped()
+                .modifier(ImageShapeModifier(itemType: itemData.itemType))
                 .overlay(
                     // Rating badge overlay
                     Group {
@@ -40,7 +43,7 @@ struct GridRatingCard: View {
                 )
                 
                 // Title and subtitle
-                VStack(alignment: .leading, spacing: 2) {
+                VStack(alignment: .leading, spacing: 1) {
                     Text(itemData.name)
                         .font(.caption)
                         .fontWeight(.medium)
@@ -54,22 +57,9 @@ struct GridRatingCard: View {
                             .foregroundColor(.secondary)
                     }
                 }
-                .frame(maxWidth: .infinity, alignment: .leading)
+                .frame(maxWidth: .infinity, minHeight: 28, alignment: .topLeading)
             }
-            .padding(8)
-            .background(
-                ZStack {
-                    Color(UIColor.systemBackground)
-                        .opacity(0.8)
-                    Color.white.opacity(0.05)
-                }
-            )
-            .overlay(
-                RoundedRectangle(cornerRadius: 12)
-                    .stroke(Color.gray.opacity(0.15), lineWidth: 0.5)
-            )
-            .cornerRadius(12)
-            .shadow(color: Theme.shadowLight, radius: 2, x: 0, y: 1)
+            .frame(maxWidth: .infinity)
         }
         .buttonStyle(PlainButtonStyle())
         .contextMenu {
@@ -78,11 +68,10 @@ struct GridRatingCard: View {
                     Label("Rate Again", systemImage: "star.circle")
                 }
                 
-                Button(role: .destructive) {
-                    // Note: We'd need to pass in the delete action for this to work
-                    Label("Remove Rating", systemImage: "trash")
-                } label: {
-                    Label("Remove Rating", systemImage: "trash")
+                if let onDelete = onDelete {
+                    Button(role: .destructive, action: onDelete) {
+                        Label("Remove Rating", systemImage: "trash")
+                    }
                 }
             } else {
                 Button(action: onTap) {
@@ -108,6 +97,18 @@ struct GridRatingCard: View {
             return itemData.artists?.joined(separator: ", ")
         case .artist:
             return "Artist"
+        }
+    }
+}
+
+struct ImageShapeModifier: ViewModifier {
+    let itemType: RatingItemType
+    
+    func body(content: Content) -> some View {
+        if itemType == .artist {
+            content.clipShape(Circle())
+        } else {
+            content.clipShape(RoundedRectangle(cornerRadius: 6))
         }
     }
 }
@@ -139,7 +140,8 @@ struct GridRatingCard: View {
                 rankWithinAlbum: nil,
                 isNewRating: false
             ),
-            onTap: {}
+            onTap: {},
+            onDelete: {}
         )
         
         GridRatingCard(
@@ -153,7 +155,8 @@ struct GridRatingCard: View {
                 itemType: .album
             ),
             rating: nil,
-            onTap: {}
+            onTap: {},
+            onDelete: nil
         )
     }
     .padding()

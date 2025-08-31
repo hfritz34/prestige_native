@@ -17,8 +17,8 @@ struct RatedItemCard: View {
                 url: ratedItem.imageUrl,
                 placeholder: Image(systemName: getIconForType()),
                 contentMode: .fill,
-                maxWidth: 100,
-                maxHeight: 100
+                maxWidth: 120,
+                maxHeight: 120
             )
             .clipShape(RoundedRectangle(cornerRadius: 8))
             .overlay(

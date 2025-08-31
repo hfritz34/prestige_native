@@ -14,6 +14,7 @@ struct ProfileView: View {
     @StateObject private var imagePreloader = ImagePreloader.shared
     @State private var showingError = false
     @State private var selectedTopType: ContentType = .albums
+    @State private var selectedContentType: ContentType = .albums
     @State private var showingSettings = false
     @State private var selectedPrestige: PrestigeSelection?
     @State private var hasInitiallyLoaded = false
@@ -26,6 +27,9 @@ struct ProfileView: View {
                     VStack(spacing: 24) {
                         // Profile Header
                         profileHeaderSection
+                        
+                        // Unified Content Type Tabs
+                        contentTypeTabs
                         
                         // Top Section
                         topSection
@@ -166,41 +170,46 @@ struct ProfileView: View {
         .padding(.horizontal)
     }
     
+    private var contentTypeTabs: some View {
+        HStack(spacing: 0) {
+            ForEach([ContentType.albums, ContentType.tracks, ContentType.artists], id: \.self) { type in
+                Button(action: {
+                    withAnimation(.easeInOut(duration: 0.15)) {
+                        selectedContentType = type
+                        // Update all the individual section types
+                        selectedTopType = type
+                        viewModel.changeFavoriteType(to: type)
+                        if type != .tracks {
+                            viewModel.changeRatingType(to: type == .albums ? .album : .artist)
+                        }
+                    }
+                }) {
+                    VStack(spacing: 4) {
+                        Text(type.displayName)
+                            .font(.subheadline)
+                            .fontWeight(selectedContentType == type ? .semibold : .medium)
+                            .foregroundColor(selectedContentType == type ? .white : .secondary)
+                            .lineLimit(1)
+                            .minimumScaleFactor(0.7)
+                        
+                        Rectangle()
+                            .frame(height: 2)
+                            .foregroundColor(selectedContentType == type ? .white : .clear)
+                    }
+                }
+                .frame(maxWidth: .infinity)
+            }
+        }
+        .padding(.horizontal)
+        .padding(.top, 8)
+    }
+    
     private var topSection: some View {
         VStack(alignment: .leading, spacing: 16) {
-            HStack {
-                Text("Top")
-                    .font(.title2)
-                    .fontWeight(.bold)
-                
-                Spacer()
-                
-                // Type selector for Top section
-                Menu {
-                    Button("Albums") {
-                        selectedTopType = .albums
-                    }
-                    Button("Tracks") {
-                        selectedTopType = .tracks
-                    }
-                    Button("Artists") {
-                        selectedTopType = .artists
-                    }
-                } label: {
-                    HStack {
-                        Text(selectedTopType.displayName)
-                            .foregroundColor(.white)
-                        Image(systemName: "chevron.down")
-                            .foregroundColor(.white)
-                            .font(.caption)
-                    }
-                    .padding(.horizontal, 12)
-                    .padding(.vertical, 6)
-                    .background(Color.gray.opacity(0.8))
-                    .cornerRadius(6)
-                }
-            }
-            .padding(.horizontal)
+            Text("Top")
+                .font(.title2)
+                .fontWeight(.bold)
+                .padding(.horizontal)
             
             // Top items carousel
             ScrollView(.horizontal, showsIndicators: false) {
@@ -215,39 +224,10 @@ struct ProfileView: View {
     
     private var favoritesSection: some View {
         VStack(alignment: .leading, spacing: 16) {
-            HStack {
-                Text("Favorites")
-                    .font(.title2)
-                    .fontWeight(.bold)
-                
-                Spacer()
-                
-                // Type selector for Favorites section
-                Menu {
-                    Button("Albums") {
-                        viewModel.changeFavoriteType(to: .albums)
-                    }
-                    Button("Songs") {
-                        viewModel.changeFavoriteType(to: .tracks)
-                    }
-                    Button("Artists") {
-                        viewModel.changeFavoriteType(to: .artists)
-                    }
-                } label: {
-                    HStack {
-                        Text(viewModel.selectedFavoriteType.displayName)
-                            .foregroundColor(.white)
-                        Image(systemName: "chevron.down")
-                            .foregroundColor(.white)
-                            .font(.caption)
-                    }
-                    .padding(.horizontal, 12)
-                    .padding(.vertical, 6)
-                    .background(Color.red.opacity(0.8))
-                    .cornerRadius(6)
-                }
-            }
-            .padding(.horizontal)
+            Text("Favorites")
+                .font(.title2)
+                .fontWeight(.bold)
+                .padding(.horizontal)
             
             ScrollView(.horizontal, showsIndicators: false) {
                 HStack(alignment: .top, spacing: 12) {
@@ -261,41 +241,15 @@ struct ProfileView: View {
     
     private var ratingsSection: some View {
         VStack(alignment: .leading, spacing: 16) {
-            HStack {
-                Text("Ratings")
-                    .font(.title2)
-                    .fontWeight(.bold)
-                
-                Spacer()
-                
-                // Type selector for Ratings section (Albums and Artists only)
-                Menu {
-                    Button("Albums") {
-                        viewModel.changeRatingType(to: .album)
-                    }
-                    Button("Artists") {
-                        viewModel.changeRatingType(to: .artist)
-                    }
-                } label: {
-                    HStack {
-                        Text(viewModel.selectedRatingType.displayName)
-                            .foregroundColor(.white)
-                        Image(systemName: "chevron.down")
-                            .foregroundColor(.white)
-                            .font(.caption)
-                    }
-                    .padding(.horizontal, 12)
-                    .padding(.vertical, 6)
-                    .background(Color.orange.opacity(0.8))
-                    .cornerRadius(6)
-                }
-            }
-            .padding(.horizontal)
+            Text("Ratings")
+                .font(.title2)
+                .fontWeight(.bold)
+                .padding(.horizontal)
             
             // Ratings carousel
             ScrollView(.horizontal, showsIndicators: false) {
                 HStack(alignment: .top, spacing: 12) {
-                    if viewModel.currentRatings.isEmpty {
+                    if getCurrentRatingItems().isEmpty {
                         // Empty state
                         VStack {
                             RoundedRectangle(cornerRadius: 12)
@@ -315,7 +269,7 @@ struct ProfileView: View {
                         }
                     } else {
                         // Display rated items
-                        ForEach(Array(viewModel.currentRatings.prefix(25).enumerated()), id: \.element.id) { index, ratedItem in
+                        ForEach(Array(getCurrentRatingItems().prefix(25).enumerated()), id: \.element.id) { index, ratedItem in
                             RatedItemCard(ratedItem: ratedItem)
                                 .onTapGesture {
                                     selectedPrestige = PrestigeSelection(
@@ -522,6 +476,49 @@ struct ProfileView: View {
             albumId: ratedItem.itemData.albumId,
             albumName: ratedItem.itemData.albumName
         )
+    }
+    
+    private func preloadProfileImages() {
+        // Preload images from all profile sections
+        let topImageUrls: [String] = {
+            switch selectedTopType {
+            case .albums: return viewModel.topAlbums.compactMap { $0.album.images.first?.url }
+            case .tracks: return viewModel.topTracks.compactMap { $0.track.album.images.first?.url }
+            case .artists: return viewModel.topArtists.compactMap { $0.artist.images.first?.url }
+            }
+        }()
+        
+        let favoriteImageUrls: [String] = {
+            switch viewModel.selectedFavoriteType {
+            case .albums: return viewModel.favoriteAlbums.compactMap { $0.images.first?.url }
+            case .tracks: return viewModel.favoriteTracks.compactMap { $0.album.images.first?.url }
+            case .artists: return viewModel.favoriteArtists.compactMap { $0.images.first?.url }
+            }
+        }()
+        
+        let ratingImageUrls = viewModel.currentRatings.compactMap { $0.imageUrl }
+        let recentImageUrls = viewModel.recentlyPlayed.compactMap { $0.imageUrl }
+        
+        let allImageUrls = topImageUrls + favoriteImageUrls + ratingImageUrls + recentImageUrls
+        
+        // Preload images
+        for imageUrl in allImageUrls.prefix(40) { // Limit to first 40 to avoid overwhelming
+            imagePreloader.preloadImage(imageUrl)
+        }
+    }
+    
+    private func getCurrentRatingItems() -> [RatedItem] {
+        switch selectedContentType {
+        case .tracks:
+            // For tracks, we need to implement proper track ratings organized by album and position
+            // For now, return empty since ProfileViewModel doesn't support track ratings yet
+            // TODO: Implement track ratings in ProfileViewModel with album grouping and positional sorting
+            return []
+        case .albums:
+            return viewModel.ratedAlbums
+        case .artists:
+            return viewModel.ratedArtists
+        }
     }
     
     private func convertRecentTrackToPrestigeDisplayItem(_ track: RecentlyPlayedResponse) -> PrestigeDisplayItem {

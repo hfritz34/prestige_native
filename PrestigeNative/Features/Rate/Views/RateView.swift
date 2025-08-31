@@ -10,6 +10,7 @@ import SwiftUI
 
 struct RateView: View {
     @StateObject private var viewModel = RatingViewModel()
+    @StateObject private var imagePreloader = ImagePreloader.shared
     @State private var searchText = ""
     @State private var selectedTab: RatingTab = .unrated
     @EnvironmentObject var authManager: AuthManager
@@ -17,7 +18,7 @@ struct RateView: View {
     @State private var topRatedLimit: Int = 50
     @State private var yourRatingsLimit: Int = 50
     @State private var searchLimit: Int = 50
-    @State private var isGridView: Bool = false
+    @State private var isGridView: Bool = true
     
     // Performance optimization: Cache computed properties
     @State private var cachedTopRatedItems: [RatedItem] = []
@@ -43,6 +44,22 @@ struct RateView: View {
             }
             .navigationBarHidden(true)
             .background(Color(UIColor.systemBackground))
+            .onAppear {
+                // Preload images for better performance
+                Task {
+                    await MainActor.run {
+                        preloadRatingImages()
+                    }
+                }
+            }
+            .onChange(of: viewModel.selectedItemType) { _, _ in
+                // Preload images when item type changes
+                Task {
+                    await MainActor.run {
+                        preloadRatingImages()
+                    }
+                }
+            }
             .sheet(
                 isPresented: Binding<Bool>(
                     get: { viewModel.showRatingModal },
@@ -164,6 +181,10 @@ struct RateView: View {
                                 await viewModel.loadUserRatings()
                                 await viewModel.loadUnratedItems()
                                 await viewModel.ensureMetadataLoaded()
+                                // Preload images for new item type
+                                await MainActor.run {
+                                    preloadRatingImages()
+                                }
                             }
                         }
                     )
@@ -178,7 +199,7 @@ struct RateView: View {
         HStack(spacing: 0) {
             ForEach(RatingTab.allCases, id: \.self) { tab in
                 Button(action: {
-                    withAnimation(.easeInOut(duration: 0.2)) {
+                    withAnimation(.easeInOut(duration: 0.15)) {
                         selectedTab = tab
                     }
                 }) {
@@ -186,11 +207,11 @@ struct RateView: View {
                         Text(tab.title)
                             .font(.subheadline)
                             .fontWeight(selectedTab == tab ? .semibold : .medium)
-                            .foregroundColor(selectedTab == tab ? Theme.primary : .secondary)
+                            .foregroundColor(selectedTab == tab ? .white : .secondary)
                         
                         Rectangle()
                             .frame(height: 2)
-                            .foregroundColor(selectedTab == tab ? Theme.primary : .clear)
+                            .foregroundColor(selectedTab == tab ? .white : .clear)
                     }
                 }
                 .frame(maxWidth: .infinity)
@@ -251,18 +272,21 @@ struct RateView: View {
                 if isGridView {
                     // Grid layout
                     LazyVGrid(columns: [
-                        GridItem(.flexible(), spacing: 12),
-                        GridItem(.flexible(), spacing: 12)
-                    ], spacing: 12) {
+                        GridItem(.flexible(), spacing: 1),
+                        GridItem(.flexible(), spacing: 1),
+                        GridItem(.flexible(), spacing: 1)
+                    ], spacing: 2) {
                         ForEach(items, id: \.id) { item in
                             GridRatingCard(
                                 itemData: item,
-                                rating: nil
-                            ) {
-                                Task {
-                                    await viewModel.startRating(for: item)
-                                }
-                            }
+                                rating: nil,
+                                onTap: {
+                                    Task {
+                                        await viewModel.startRating(for: item)
+                                    }
+                                },
+                                onDelete: nil
+                            )
                             .onAppear {
                                 if item.id == items.last?.id, unratedLimit < filteredUnratedItems.count {
                                     unratedLimit += 50
@@ -316,18 +340,25 @@ struct RateView: View {
                 if isGridView {
                     // Grid layout
                     LazyVGrid(columns: [
-                        GridItem(.flexible(), spacing: 12),
-                        GridItem(.flexible(), spacing: 12)
-                    ], spacing: 12) {
+                        GridItem(.flexible(), spacing: 1),
+                        GridItem(.flexible(), spacing: 1),
+                        GridItem(.flexible(), spacing: 1)
+                    ], spacing: 2) {
                         ForEach(Array(items.enumerated()), id: \.element.id) { _, item in
                             GridRatingCard(
                                 itemData: item.itemData,
-                                rating: item.rating
-                            ) {
-                                Task {
-                                    await viewModel.startRating(for: item.itemData)
+                                rating: item.rating,
+                                onTap: {
+                                    Task {
+                                        await viewModel.startRating(for: item.itemData)
+                                    }
+                                },
+                                onDelete: {
+                                    Task {
+                                        await viewModel.deleteRating(item.rating)
+                                    }
                                 }
-                            }
+                            )
                             .onAppear {
                                 if item.id == items.last?.id, topRatedLimit < topRatedItems.count {
                                     topRatedLimit += 50
@@ -388,18 +419,25 @@ struct RateView: View {
                 if isGridView {
                     // Grid layout
                     LazyVGrid(columns: [
-                        GridItem(.flexible(), spacing: 12),
-                        GridItem(.flexible(), spacing: 12)
-                    ], spacing: 12) {
+                        GridItem(.flexible(), spacing: 1),
+                        GridItem(.flexible(), spacing: 1),
+                        GridItem(.flexible(), spacing: 1)
+                    ], spacing: 2) {
                         ForEach(items, id: \.id) { item in
                             GridRatingCard(
                                 itemData: item.itemData,
-                                rating: item.rating
-                            ) {
-                                Task {
-                                    await viewModel.startRating(for: item.itemData)
+                                rating: item.rating,
+                                onTap: {
+                                    Task {
+                                        await viewModel.startRating(for: item.itemData)
+                                    }
+                                },
+                                onDelete: {
+                                    Task {
+                                        await viewModel.deleteRating(item.rating)
+                                    }
                                 }
-                            }
+                            )
                             .onAppear {
                                 if item.id == items.last?.id, yourRatingsLimit < allRatedItems.count {
                                     yourRatingsLimit += 50
@@ -541,6 +579,30 @@ struct RateView: View {
     
     private var allRatedItems: [RatedItem] {
         return cachedAllRatedItems
+    }
+    
+    // MARK: - Image Preloading
+    
+    private func preloadRatingImages() {
+        // Preload images from all current rating data
+        let unratedItems = viewModel.unratedItems
+        let topRated = topRatedItems
+        let allRated = allRatedItems
+        
+        // Extract image URLs from unrated items  
+        let unratedImageUrls = unratedItems.compactMap { $0.imageUrl }
+        
+        // Extract image URLs from rated items
+        let topRatedImageUrls = topRated.compactMap { $0.itemData.imageUrl }
+        let allRatedImageUrls = allRated.compactMap { $0.itemData.imageUrl }
+        
+        // Combine all URLs
+        let allImageUrls = unratedImageUrls + topRatedImageUrls + allRatedImageUrls
+        
+        // Preload images
+        for imageUrl in allImageUrls.prefix(50) { // Limit to first 50 to avoid overwhelming
+            imagePreloader.preloadImage(imageUrl)
+        }
     }
     
     // MARK: - Cache Update Methods

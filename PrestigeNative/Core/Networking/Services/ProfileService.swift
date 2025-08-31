@@ -275,10 +275,10 @@ class ProfileService: ObservableObject {
     /// Fetch recently updated items from hourly batch processing
     func fetchRecentlyUpdated(userId: String) async -> RecentlyUpdatedResponse {
         do {
-            // Get items updated in the last hour (matching web implementation)
-            let oneHourAgo = Calendar.current.date(byAdding: .hour, value: -1, to: Date()) ?? Date()
+            // Get items updated in the last 24 hours for better results
+            let oneDayAgo = Calendar.current.date(byAdding: .day, value: -1, to: Date()) ?? Date()
             let formatter = ISO8601DateFormatter()
-            let sinceParam = formatter.string(from: oneHourAgo)
+            let sinceParam = formatter.string(from: oneDayAgo)
 
             let endpoint = APIEndpoints.recentlyUpdated(userId: userId, since: sinceParam)
 

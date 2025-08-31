@@ -23,7 +23,7 @@ struct FavoriteArtistCard: View {
                     .fill(Color.gray.opacity(0.3))
             }
             .frame(width: 130, height: 130)
-            .clipShape(Circle())
+            .clipShape(RoundedRectangle(cornerRadius: 8))
             .overlay(
                 // Heart icon overlay on bottom right
                 VStack {

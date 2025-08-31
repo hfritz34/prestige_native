@@ -25,6 +25,7 @@ class ProfileViewModel: ObservableObject {
     @Published var ratedArtists: [RatedItem] = []
     @Published var selectedRatingType: RatingItemType = .album
     @Published var isLoading = false
+    @Published var ratingsLoaded = false
     @Published var error: APIError?
     @Published var selectedTimeRange: TimeRange = .allTime
     
@@ -106,8 +107,12 @@ class ProfileViewModel: ObservableObject {
         print("🔵 ProfileViewModel: Loading data for user: \(actualUserId)")
         
         Task {
-            await profileService.loadAllProfileData(userId: actualUserId)
-            await loadRatingsData()
+            // Load profile data and ratings in parallel
+            async let profileTask = profileService.loadAllProfileData(userId: actualUserId)
+            async let ratingsTask = loadRatingsData()
+            
+            // Wait for both to complete
+            let _ = await (profileTask, ratingsTask)
         }
     }
     
@@ -161,14 +166,17 @@ class ProfileViewModel: ObservableObject {
             let (loadedTracks, loadedAlbums, loadedArtists) = try await (tracks, albums, artists)
             
             await MainActor.run {
-                self.ratedTracks = loadedTracks
-                self.ratedAlbums = loadedAlbums
-                self.ratedArtists = loadedArtists
+                // Sort by score to ensure we show top rated items first
+                self.ratedTracks = loadedTracks.sorted { $0.rating.personalScore > $1.rating.personalScore }
+                self.ratedAlbums = loadedAlbums.sorted { $0.rating.personalScore > $1.rating.personalScore }
+                self.ratedArtists = loadedArtists.sorted { $0.rating.personalScore > $1.rating.personalScore }
+                self.ratingsLoaded = true
                 print("✅ ProfileViewModel: Loaded \(loadedTracks.count) track ratings, \(loadedAlbums.count) album ratings, \(loadedArtists.count) artist ratings")
             }
         } catch {
             await MainActor.run {
                 self.error = error as? APIError ?? .networkError(error)
+                self.ratingsLoaded = true // Set to true even on error so UI can proceed
             }
             print("❌ ProfileViewModel: Failed to load ratings data: \(error)")
         }

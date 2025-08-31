@@ -25,6 +25,7 @@ struct RateView: View {
     @State private var cachedAllRatedItems: [RatedItem] = []
     @State private var lastRatingsUpdateTime: Date = Date()
     @State private var isCacheReady = false
+    @State private var hasInitialLoad = false
     
     var body: some View {
         NavigationView {
@@ -167,32 +168,30 @@ struct RateView: View {
     }
     
     private var itemTypeFilter: some View {
-        ScrollView(.horizontal, showsIndicators: false) {
-            HStack(spacing: 12) {
-                ForEach(RatingItemType.allCases, id: \.self) { itemType in
-                    ItemTypeButton(
-                        itemType: itemType,
-                        isSelected: viewModel.selectedItemType == itemType,
-                        action: {
-                            viewModel.selectedItemType = itemType
-                            // Immediately update cached content for new item type
-                            updateCachedRatings()
-                            Task {
-                                await viewModel.loadUserRatings()
-                                await viewModel.loadUnratedItems()
-                                await viewModel.ensureMetadataLoaded()
-                                // Preload images for new item type
-                                await MainActor.run {
-                                    preloadRatingImages()
-                                }
+        HStack(spacing: 12) {
+            ForEach(RatingItemType.allCases, id: \.self) { itemType in
+                ItemTypeButton(
+                    itemType: itemType,
+                    isSelected: viewModel.selectedItemType == itemType,
+                    action: {
+                        viewModel.selectedItemType = itemType
+                        // Immediately update cached content for new item type
+                        updateCachedRatings()
+                        Task {
+                            await viewModel.loadUserRatings()
+                            await viewModel.loadUnratedItems()
+                            await viewModel.ensureMetadataLoaded()
+                            // Preload images for new item type
+                            await MainActor.run {
+                                preloadRatingImages()
                             }
                         }
-                    )
-                }
+                    }
+                )
             }
-            .padding(.horizontal)
-            .padding(.vertical, 8)
         }
+        .padding(.horizontal)
+        .padding(.vertical, 8)
     }
     
     private var tabSelector: some View {
@@ -249,9 +248,13 @@ struct RateView: View {
                 }
             }
             
-            // Loading overlay that doesn't change layout height
-            if viewModel.isLoading || !isCacheReady {
+            // Loading overlay - show until cache is ready or initial load is complete
+            if viewModel.isLoading && !hasInitialLoad {
                 BeatVisualizerLoadingView(message: viewModel.loadingMessage.isEmpty ? nil : viewModel.loadingMessage)
+                    .background(Color(UIColor.systemBackground).opacity(0.9))
+            } else if !isCacheReady && !hasInitialLoad {
+                // Keep showing loading if cache isn't ready yet
+                BeatVisualizerLoadingView(message: "Preparing your library...")
                     .background(Color(UIColor.systemBackground).opacity(0.9))
             }
         }
@@ -259,14 +262,14 @@ struct RateView: View {
     
     private var unratedContent: some View {
         Group {
-            if filteredUnratedItems.isEmpty {
+            if filteredUnratedItems.isEmpty && isCacheReady && hasInitialLoad {
                 EmptyStateView(
                     icon: "music.note",
                     title: "All Caught Up!",
                     subtitle: "You've rated all your \(viewModel.selectedItemType.displayName.lowercased())"
                 )
                 .padding(.top, 60)
-            } else {
+            } else if !filteredUnratedItems.isEmpty {
                 let items = Array(filteredUnratedItems.prefix(unratedLimit))
                 
                 if isGridView {
@@ -327,14 +330,14 @@ struct RateView: View {
     
     private var topRatedContent: some View {
         Group {
-            if topRatedItems.isEmpty {
+            if topRatedItems.isEmpty && isCacheReady && hasInitialLoad {
                 EmptyStateView(
                     icon: "star.fill",
                     title: "No Top Ratings Yet",
                     subtitle: "Rate some \(viewModel.selectedItemType.displayName.lowercased()) to see your favorites here"
                 )
                 .padding(.top, 60)
-            } else {
+            } else if !topRatedItems.isEmpty {
                 let items = Array(topRatedItems.prefix(topRatedLimit))
                 
                 if isGridView {
@@ -406,14 +409,14 @@ struct RateView: View {
     
     private var yourRatingsContent: some View {
         Group {
-            if allRatedItems.isEmpty {
+            if allRatedItems.isEmpty && isCacheReady && hasInitialLoad {
                 EmptyStateView(
                     icon: "heart",
                     title: "No Ratings Yet",
                     subtitle: "Start rating \(viewModel.selectedItemType.displayName.lowercased()) to build your collection"
                 )
                 .padding(.top, 60)
-            } else {
+            } else if !allRatedItems.isEmpty {
                 let items = Array(allRatedItems.prefix(yourRatingsLimit))
                 
                 if isGridView {
@@ -649,6 +652,11 @@ struct RateView: View {
                 
                 lastRatingsUpdateTime = Date()
                 isCacheReady = true
+                
+                // Mark initial load as complete after first cache update
+                if !hasInitialLoad {
+                    hasInitialLoad = true
+                }
             }
         }
     }

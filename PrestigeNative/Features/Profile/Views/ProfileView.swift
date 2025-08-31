@@ -74,8 +74,8 @@ struct ProfileView: View {
             .opacity(hasInitiallyLoaded ? 1 : 0)
             .animation(.easeInOut(duration: 0.3), value: hasInitiallyLoaded)
             
-            // Full-screen loading overlay - show until both data is loaded AND minimum time elapsed
-            if (viewModel.isLoading || !minimumLoadingTime) && !hasInitiallyLoaded {
+            // Full-screen loading overlay - show until all data (including ratings) is loaded AND minimum time elapsed
+            if (viewModel.isLoading || !viewModel.ratingsLoaded || !minimumLoadingTime) && !hasInitiallyLoaded {
                 BeatVisualizerLoadingView(message: "Loading your profile...")
                     .transition(.opacity.combined(with: .scale(scale: 0.95)))
             }
@@ -100,6 +100,9 @@ struct ProfileView: View {
             checkIfReadyToShow()
         }
         .onChange(of: minimumLoadingTime) { _, _ in
+            checkIfReadyToShow()
+        }
+        .onChange(of: viewModel.ratingsLoaded) { _, _ in
             checkIfReadyToShow()
         }
         .preloadAlbumImages(viewModel.topAlbums)
@@ -457,9 +460,12 @@ struct ProfileView: View {
     
     // MARK: - Helper Functions
     
-    /// Check if ready to show content (both data loaded and minimum time elapsed)
+    /// Check if ready to show content (data loaded, ratings ready, and minimum time elapsed)
     private func checkIfReadyToShow() {
-        if !viewModel.isLoading && minimumLoadingTime && !hasInitiallyLoaded {
+        // Check if all data including ratings have been loaded
+        let allDataReady = !viewModel.isLoading && viewModel.ratingsLoaded
+        
+        if allDataReady && minimumLoadingTime && !hasInitiallyLoaded {
             withAnimation(.easeInOut(duration: 0.5)) {
                 hasInitiallyLoaded = true
             }

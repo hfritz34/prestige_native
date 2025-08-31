@@ -9,6 +9,7 @@ struct FriendProfileView: View {
     let friendId: String
     @StateObject private var viewModel = FriendProfileViewModel()
     @Environment(\.dismiss) private var dismiss
+    @State private var selectedContentType: ContentType = .albums
     @State private var selectedTopType: ContentType = .albums
     @State private var selectedFavoriteType: ContentType = .albums
     @State private var selectedRatingType: RatingItemType = .album
@@ -23,6 +24,9 @@ struct FriendProfileView: View {
                     VStack(spacing: 24) {
                         // Profile Header
                         profileHeaderSection
+                        
+                        // Unified Content Type Tabs
+                        contentTypeTabs
                         
                         // Top Section
                         topSection
@@ -88,6 +92,39 @@ struct FriendProfileView: View {
     
     // MARK: - View Components
     
+    private var contentTypeTabs: some View {
+        HStack(spacing: 0) {
+            ForEach([ContentType.albums, ContentType.tracks, ContentType.artists], id: \.self) { type in
+                Button(action: {
+                    withAnimation(.easeInOut(duration: 0.15)) {
+                        selectedContentType = type
+                        // Update all the individual section types
+                        selectedTopType = type
+                        selectedFavoriteType = type
+                        if type != .tracks {
+                            selectedRatingType = type == .albums ? .album : .artist
+                        }
+                    }
+                }) {
+                    VStack(spacing: 4) {
+                        Text(type.displayName)
+                            .font(.subheadline)
+                            .fontWeight(selectedContentType == type ? .semibold : .medium)
+                            .foregroundColor(selectedContentType == type ? .white : .secondary)
+                            .lineLimit(1)
+                        
+                        Rectangle()
+                            .frame(height: 2)
+                            .foregroundColor(selectedContentType == type ? .white : .clear)
+                    }
+                }
+                .frame(maxWidth: .infinity)
+            }
+        }
+        .padding(.horizontal)
+        .padding(.top, 8)
+    }
+    
     private var profileHeaderSection: some View {
         VStack(spacing: 16) {
             // Profile Picture
@@ -140,39 +177,10 @@ struct FriendProfileView: View {
     
     private var topSection: some View {
         VStack(alignment: .leading, spacing: 16) {
-            HStack {
-                Text("Top")
-                    .font(.title2)
-                    .fontWeight(.bold)
-                
-                Spacer()
-                
-                // Type selector for Top section
-                Menu {
-                    Button("Albums") {
-                        selectedTopType = .albums
-                    }
-                    Button("Tracks") {
-                        selectedTopType = .tracks
-                    }
-                    Button("Artists") {
-                        selectedTopType = .artists
-                    }
-                } label: {
-                    HStack {
-                        Text(selectedTopType.displayName)
-                            .foregroundColor(.white)
-                        Image(systemName: "chevron.down")
-                            .foregroundColor(.white)
-                            .font(.caption)
-                    }
-                    .padding(.horizontal, 12)
-                    .padding(.vertical, 6)
-                    .background(Color.gray.opacity(0.8))
-                    .cornerRadius(6)
-                }
-            }
-            .padding(.horizontal)
+            Text("Top")
+                .font(.title2)
+                .fontWeight(.bold)
+                .padding(.horizontal)
             
             // Top items carousel
             ScrollView(.horizontal, showsIndicators: false) {
@@ -187,39 +195,10 @@ struct FriendProfileView: View {
     
     private var favoritesSection: some View {
         VStack(alignment: .leading, spacing: 16) {
-            HStack {
-                Text("Favorites")
-                    .font(.title2)
-                    .fontWeight(.bold)
-                
-                Spacer()
-                
-                // Type selector for Favorites section
-                Menu {
-                    Button("Albums") {
-                        selectedFavoriteType = .albums
-                    }
-                    Button("Songs") {
-                        selectedFavoriteType = .tracks
-                    }
-                    Button("Artists") {
-                        selectedFavoriteType = .artists
-                    }
-                } label: {
-                    HStack {
-                        Text(selectedFavoriteType.displayName)
-                            .foregroundColor(.white)
-                        Image(systemName: "chevron.down")
-                            .foregroundColor(.white)
-                            .font(.caption)
-                    }
-                    .padding(.horizontal, 12)
-                    .padding(.vertical, 6)
-                    .background(Color.red.opacity(0.8))
-                    .cornerRadius(6)
-                }
-            }
-            .padding(.horizontal)
+            Text("Favorites")
+                .font(.title2)
+                .fontWeight(.bold)
+                .padding(.horizontal)
             
             ScrollView(.horizontal, showsIndicators: false) {
                 HStack(alignment: .top, spacing: 12) {
@@ -233,36 +212,10 @@ struct FriendProfileView: View {
     
     private var ratingsSection: some View {
         VStack(alignment: .leading, spacing: 16) {
-            HStack {
-                Text("Ratings")
-                    .font(.title2)
-                    .fontWeight(.bold)
-                
-                Spacer()
-                
-                // Type selector for Ratings section (Albums and Artists only)
-                Menu {
-                    Button("Albums") {
-                        selectedRatingType = .album
-                    }
-                    Button("Artists") {
-                        selectedRatingType = .artist
-                    }
-                } label: {
-                    HStack {
-                        Text(selectedRatingType.displayName)
-                            .foregroundColor(.white)
-                        Image(systemName: "chevron.down")
-                            .foregroundColor(.white)
-                            .font(.caption)
-                    }
-                    .padding(.horizontal, 12)
-                    .padding(.vertical, 6)
-                    .background(Color.orange.opacity(0.8))
-                    .cornerRadius(6)
-                }
-            }
-            .padding(.horizontal)
+            Text("Ratings")
+                .font(.title2)
+                .fontWeight(.bold)
+                .padding(.horizontal)
             
             // Ratings carousel
             ScrollView(.horizontal, showsIndicators: false) {

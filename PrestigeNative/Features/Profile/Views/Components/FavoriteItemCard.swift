@@ -22,7 +22,7 @@ struct FavoriteItemCard: View {
                 Rectangle()
                     .fill(Color.gray.opacity(0.3))
             }
-            .frame(width: 130, height: 130)
+            .frame(width: 160, height: 160)
             .clipShape(RoundedRectangle(cornerRadius: 8))
             .overlay(
                 // Heart icon overlay on bottom right
@@ -62,7 +62,7 @@ struct FavoriteItemCard: View {
             .frame(maxWidth: .infinity)
             
         }
-        .frame(width: 130)
+        .frame(width: 160)
     }
 }
 

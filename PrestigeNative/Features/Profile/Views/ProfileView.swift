@@ -24,7 +24,7 @@ struct ProfileView: View {
         ZStack {
             NavigationView {
                 ScrollView {
-                    VStack(spacing: 24) {
+                    VStack(spacing: 14) {
                         // Profile Header
                         profileHeaderSection
                         
@@ -46,7 +46,7 @@ struct ProfileView: View {
                     .padding(.vertical)
                 }
                 .navigationTitle("Profile")
-                .navigationBarTitleDisplayMode(.large)
+                .navigationBarTitleDisplayMode(.inline)
                 .toolbar {
                     ToolbarItem(placement: .navigationBarTrailing) {
                         Button {
@@ -133,44 +133,93 @@ struct ProfileView: View {
     // MARK: - View Components
     
     private var profileHeaderSection: some View {
-        VStack(spacing: 16) {
-            // Profile Picture
-            AsyncImage(url: URL(string: viewModel.userProfile?.profilePictureUrl ?? "")) { image in
-                image
-                    .resizable()
-                    .aspectRatio(contentMode: .fill)
-            } placeholder: {
-                Image(systemName: "person.circle.fill")
-                    .font(.system(size: 80))
-                    .foregroundColor(.gray)
-            }
-            .frame(width: 100, height: 100)
-            .clipShape(Circle())
-            
-            // User Info
-            VStack(spacing: 4) {
-                if let name = viewModel.userProfile?.name {
-                    Text(name)
-                        .font(.title2)
-                        .fontWeight(.bold)
-                } else if let nickname = viewModel.userProfile?.nickname {
-                    Text(nickname)
-                        .font(.title2)
-                        .fontWeight(.bold)
-                } else if viewModel.isLoading {
-                    Text("Loading...")
-                        .font(.title2)
-                        .fontWeight(.bold)
-                        .foregroundColor(.secondary)
-                } else {
-                    Text("User")
-                        .font(.title2)
-                        .fontWeight(.bold)
+        VStack(spacing: 12) {
+            // Compact Profile Header
+            HStack(alignment: .top, spacing: 14) {
+                // LEFT: name, handle, bio
+                VStack(alignment: .leading, spacing: 4) {
+                    // Display name
+                    if let name = viewModel.userProfile?.name {
+                        Text(name)
+                            .font(.system(size: 28, weight: .bold))
+                            .lineLimit(1)
+                            .minimumScaleFactor(0.85)
+                            .foregroundColor(.white)
+                    } else if let nickname = viewModel.userProfile?.nickname {
+                        Text(nickname)
+                            .font(.system(size: 28, weight: .bold))
+                            .lineLimit(1)
+                            .minimumScaleFactor(0.85)
+                            .foregroundColor(.white)
+                    } else if viewModel.isLoading {
+                        Text("Loading...")
+                            .font(.system(size: 28, weight: .bold))
+                            .foregroundColor(.secondary)
+                    } else {
+                        Text("User")
+                            .font(.system(size: 28, weight: .bold))
+                            .foregroundColor(.white)
+                    }
+
+                    // Spotify handle (placeholder for now)
+                    Text("@spotifyuser")
+                        .font(.subheadline)
+                        .foregroundStyle(.secondary)
+                        .lineLimit(1)
+
+                    // Bio (placeholder for now)
+                    Text("Music lover exploring sound")
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                        .lineLimit(2)
                 }
-                
+                .frame(maxWidth: .infinity, alignment: .leading)
+
+                // RIGHT: avatar
+                AsyncImage(url: URL(string: viewModel.userProfile?.profilePictureUrl ?? "")) { phase in
+                    switch phase {
+                    case .success(let img):
+                        img.resizable().scaledToFill()
+                    default:
+                        Circle().fill(Color.secondary.opacity(0.2))
+                    }
+                }
+                .frame(width: 80, height: 80)
+                .clipShape(Circle())
+                .overlay(
+                    Circle().strokeBorder(.white.opacity(0.2), lineWidth: 1)
+                )
+                .contentShape(Circle())
             }
+            .padding(.horizontal, 20)
+            .padding(.top, 8)
+            
+            // Profile Actions
+            HStack(spacing: 12) {
+                Button(action: {
+                    // TODO: Edit profile action
+                }) {
+                    Text("Edit profile")
+                        .font(.subheadline)
+                        .frame(maxWidth: .infinity)
+                        .padding(.vertical, 10)
+                }
+                .buttonStyle(.borderedProminent)
+                .tint(.purple)
+
+                Button(action: {
+                    // TODO: Share profile action
+                }) {
+                    Text("Share profile")
+                        .font(.subheadline)
+                        .frame(maxWidth: .infinity)
+                        .padding(.vertical, 10)
+                }
+                .buttonStyle(.bordered)
+                .tint(.secondary)
+            }
+            .padding(.horizontal, 20)
         }
-        .padding(.horizontal)
     }
     
     private var contentTypeTabs: some View {
@@ -208,7 +257,7 @@ struct ProfileView: View {
     }
     
     private var topSection: some View {
-        VStack(alignment: .leading, spacing: 16) {
+        VStack(alignment: .leading, spacing: 8) {
             Text("Top")
                 .font(.title2)
                 .fontWeight(.bold)
@@ -216,7 +265,7 @@ struct ProfileView: View {
             
             // Top items carousel
             ScrollView(.horizontal, showsIndicators: false) {
-                HStack(alignment: .top, spacing: 12) {
+                HStack(alignment: .top, spacing: 6) {
                     topCarouselContent
                 }
                 .padding(.horizontal)
@@ -226,14 +275,14 @@ struct ProfileView: View {
     }
     
     private var favoritesSection: some View {
-        VStack(alignment: .leading, spacing: 16) {
+        VStack(alignment: .leading, spacing: 8) {
             Text("Favorites")
                 .font(.title2)
                 .fontWeight(.bold)
                 .padding(.horizontal)
             
             ScrollView(.horizontal, showsIndicators: false) {
-                HStack(alignment: .top, spacing: 12) {
+                HStack(alignment: .top, spacing: 6) {
                     favoritesCarouselContent
                 }
                 .padding(.horizontal)
@@ -243,7 +292,7 @@ struct ProfileView: View {
     }
     
     private var ratingsSection: some View {
-        VStack(alignment: .leading, spacing: 16) {
+        VStack(alignment: .leading, spacing: 8) {
             Text("Ratings")
                 .font(.title2)
                 .fontWeight(.bold)
@@ -251,7 +300,7 @@ struct ProfileView: View {
             
             // Ratings carousel
             ScrollView(.horizontal, showsIndicators: false) {
-                HStack(alignment: .top, spacing: 12) {
+                HStack(alignment: .top, spacing: 6) {
                     if getCurrentRatingItems().isEmpty {
                         // Empty state
                         VStack {
@@ -293,7 +342,7 @@ struct ProfileView: View {
     }
     
     private var recentlyPlayedSection: some View {
-        VStack(alignment: .leading, spacing: 16) {
+        VStack(alignment: .leading, spacing: 8) {
             Text("Recently Played")
                 .font(.title2)
                 .fontWeight(.bold)

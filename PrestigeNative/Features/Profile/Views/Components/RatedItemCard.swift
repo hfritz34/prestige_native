@@ -18,8 +18,8 @@ struct RatedItemCard: View {
                 url: ratedItem.imageUrl,
                 placeholder: Image(systemName: getIconForType()),
                 contentMode: .fill,
-                maxWidth: 130,
-                maxHeight: 130
+                maxWidth: 160,
+                maxHeight: 160
             )
             .clipShape(RoundedRectangle(cornerRadius: 8))
             .overlay(
@@ -66,7 +66,7 @@ struct RatedItemCard: View {
             }
             .frame(maxWidth: .infinity)
         }
-        .frame(width: 130)
+        .frame(width: 160)
     }
     
     private func getIconForType() -> String {

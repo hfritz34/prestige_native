@@ -41,7 +41,7 @@ struct TopItemCard: View {
                 Rectangle()
                     .fill(Color.gray.opacity(0.3))
             }
-            .frame(width: 130, height: 130)
+            .frame(width: 160, height: 160)
             .clipShape(RoundedRectangle(cornerRadius: 8))
             
             // Title, subtitle, and prestige badge - invisible container for better centering
@@ -74,7 +74,7 @@ struct TopItemCard: View {
             
             Spacer(minLength: 0)
         }
-        .frame(width: 130)
+        .frame(width: 160)
     }
     
     private var imageUrl: String {

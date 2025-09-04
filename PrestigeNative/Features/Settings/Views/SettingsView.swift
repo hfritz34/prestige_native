@@ -15,6 +15,7 @@ struct SettingsView: View {
     @EnvironmentObject var authManager: AuthManager
     @Environment(\.dismiss) var dismiss
     @State private var showingLogoutAlert = false
+    @StateObject private var tutorialManager = TutorialManager.shared
     
     var body: some View {
         NavigationView {
@@ -48,6 +49,14 @@ struct SettingsView: View {
                 
                 // Information Section
                 Section {
+                    Button {
+                        tutorialManager.resetTutorial()
+                        dismiss()
+                    } label: {
+                        Label("Show App Tutorial", systemImage: "play.circle")
+                            .foregroundColor(.primary)
+                    }
+                    
                     NavigationLink(destination: HowWeTrackPrestigeView()) {
                         Label("How We Track Prestige", systemImage: "info.circle")
                     }

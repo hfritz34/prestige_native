@@ -17,6 +17,7 @@ struct HomeView: View {
     @State private var selectedPrestige: PrestigeSelection?
     @State private var showContentButtons = false
     @State private var gridColumnCount: Int = 3 // Default: 3 columns
+    @StateObject private var tutorialManager = TutorialManager.shared
     
     var body: some View {
         NavigationView {
@@ -117,6 +118,9 @@ struct HomeView: View {
                         showContentButtons = true
                     }
                 }
+                
+                // Check if tutorial should be shown
+                tutorialManager.checkIfShouldShowTutorial()
             }
         }
         .alert("Error", isPresented: $showingError) {
@@ -144,6 +148,12 @@ struct HomeView: View {
                 item: selection.item,
                 rank: selection.rank
             )
+        }
+        .sheet(isPresented: $tutorialManager.shouldShowTutorial) {
+            OnboardingTutorialView()
+                .onDisappear {
+                    tutorialManager.markTutorialAsCompleted()
+                }
         }
     }
     

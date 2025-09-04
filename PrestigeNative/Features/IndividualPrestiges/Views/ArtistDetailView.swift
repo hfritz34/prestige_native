@@ -154,6 +154,7 @@ struct ArtistDetailView: View {
             PrestigeBadge(
                 tier: item.prestigeLevel
             )
+            .scaleEffect(1.3)
             
             // Progress to next tier
             if let progress = progressToNextTier {

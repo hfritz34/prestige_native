@@ -91,34 +91,17 @@ struct FriendPrestigeDetailView: View {
                     .fill(Color.clear)
                     .overlay(
                         Group {
-                            // Prestige tier background image - made bigger to fill border better
+                            // Prestige tier background image - full opacity with minimal transparency
                             if friendPrestigeItem.prestigeLevel != .none && !friendPrestigeItem.prestigeLevel.imageName.isEmpty {
                                 Image(friendPrestigeItem.prestigeLevel.imageName)
                                     .resizable()
                                     .aspectRatio(contentMode: .fill)
                                     .scaleEffect(1.2)
-                                    .opacity(0.6)
+                                    .opacity(0.8)
                             }
-                            
-                            // Color overlay for better contrast
-                            LinearGradient(
-                                colors: [
-                                    Color(hex: friendPrestigeItem.prestigeLevel.color)?.opacity(0.4) ?? Color.gray.opacity(0.4),
-                                    Color(hex: friendPrestigeItem.prestigeLevel.color)?.opacity(0.2) ?? Color.gray.opacity(0.2)
-                                ],
-                                startPoint: .topLeading,
-                                endPoint: .bottomTrailing
-                            )
                         }
                     )
                     .clipShape(RoundedRectangle(cornerRadius: 14))
-                    .overlay(
-                        RoundedRectangle(cornerRadius: 14)
-                            .stroke(
-                                Color(hex: friendPrestigeItem.prestigeLevel.color) ?? Color.gray,
-                                lineWidth: 3
-                            )
-                    )
                 
                 // Main artwork
                 CachedAsyncImage(
@@ -182,6 +165,7 @@ struct FriendPrestigeDetailView: View {
             PrestigeBadge(
                 tier: friendPrestigeItem.prestigeLevel
             )
+            .scaleEffect(1.3)
             
             // Progress to next tier - IDENTICAL to PrestigeDetailView
             if let progress = progressToNextTier {

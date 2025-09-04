@@ -13,13 +13,14 @@ struct PrestigeTrackRow: View {
     
     var body: some View {
         ZStack {
-            // Background prestige tier image
+            // Background prestige tier image - properly contained
             if track.prestigeLevel != .none && !track.prestigeLevel.imageName.isEmpty {
                 Image(track.prestigeLevel.imageName)
                     .resizable()
                     .aspectRatio(contentMode: .fill)
-                    .opacity(0.35)
-                    .clipped()
+                    .opacity(0.8)
+                    .scaleEffect(1.1)
+                    .clipShape(RoundedRectangle(cornerRadius: 12))
             }
             
             // Content overlay
@@ -40,7 +41,7 @@ struct PrestigeTrackRow: View {
                     Rectangle()
                         .fill(Color.gray.opacity(0.3))
                 }
-                .frame(width: 60, height: 60)
+                .frame(width: 70, height: 70)
                 .clipShape(RoundedRectangle(cornerRadius: 8))
                 .shadow(color: .black.opacity(0.2), radius: 2, x: 0, y: 1)
                 
@@ -83,7 +84,7 @@ struct PrestigeTrackRow: View {
                                 .fill(Color.purple.opacity(0.2))
                         )
                     } else {
-                        PrestigeBadge(tier: track.prestigeLevel)
+                        PrestigeBadge(tier: track.prestigeLevel, showText: false)
                     }
                 }
             }

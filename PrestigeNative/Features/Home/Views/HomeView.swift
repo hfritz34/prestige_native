@@ -16,6 +16,7 @@ struct HomeView: View {
     @State private var showingError = false
     @State private var selectedPrestige: PrestigeSelection?
     @State private var showContentButtons = false
+    @State private var gridColumnCount: Int = 3 // Default: 3 columns
     
     var body: some View {
         NavigationView {
@@ -181,6 +182,22 @@ struct HomeView: View {
                         .cornerRadius(20)
                 }
             }
+            
+            Spacer()
+            
+            // Grid toggle button
+            Button(action: {
+                withAnimation(.easeInOut(duration: 0.15)) {
+                    toggleGridSize()
+                }
+            }) {
+                Image(systemName: gridIconName)
+                    .font(.title2)
+                    .foregroundColor(.purple)
+                    .padding(8)
+                    .background(Color.gray.opacity(0.2))
+                    .clipShape(Circle())
+            }
         }
     }
     
@@ -259,8 +276,8 @@ struct HomeView: View {
         VStack(alignment: .leading, spacing: 16) {
             
             LazyVGrid(
-                columns: Array(repeating: GridItem(.flexible(), spacing: 8), count: 3),
-                spacing: 12
+                columns: Array(repeating: GridItem(.flexible(), spacing: gridItemSpacing), count: gridColumnCount),
+                spacing: gridRowSpacing
             ) {
                 prestigeGridContent
             }
@@ -275,7 +292,8 @@ struct HomeView: View {
             ForEach(Array(viewModel.topAlbums.enumerated()), id: \.element.album.id) { index, album in
                 PrestigeGridCard(
                     item: PrestigeDisplayItem.fromAlbum(album),
-                    rank: index + 1
+                    rank: index + 1,
+                    gridColumnCount: gridColumnCount
                 )
                 .onTapGesture {
                     selectedPrestige = PrestigeSelection(
@@ -288,7 +306,8 @@ struct HomeView: View {
             ForEach(Array(viewModel.topTracks.enumerated()), id: \.element.track.id) { index, track in
                 PrestigeGridCard(
                     item: PrestigeDisplayItem.fromTrack(track),
-                    rank: index + 1
+                    rank: index + 1,
+                    gridColumnCount: gridColumnCount
                 )
                 .onTapGesture {
                     selectedPrestige = PrestigeSelection(
@@ -301,7 +320,8 @@ struct HomeView: View {
             ForEach(Array(viewModel.topArtists.enumerated()), id: \.element.artist.id) { index, artist in
                 PrestigeGridCard(
                     item: PrestigeDisplayItem.fromArtist(artist),
-                    rank: index + 1
+                    rank: index + 1,
+                    gridColumnCount: gridColumnCount
                 )
                 .onTapGesture {
                     selectedPrestige = PrestigeSelection(
@@ -358,6 +378,61 @@ struct HomeView: View {
                     subtitle: "Explore artists to build prestige"
                 )
             }
+        }
+    }
+    
+    // MARK: - Grid Toggle Functionality
+    
+    private func toggleGridSize() {
+        switch gridColumnCount {
+        case 3:
+            gridColumnCount = 4
+        case 4:
+            gridColumnCount = 2
+        case 2:
+            gridColumnCount = 3
+        default:
+            gridColumnCount = 3
+        }
+    }
+    
+    private var gridIconName: String {
+        switch gridColumnCount {
+        case 2:
+            return "square.grid.2x2"
+        case 3:
+            return "square.grid.3x2"
+        case 4:
+            return "square.grid.4x3.fill"
+        default:
+            return "square.grid.3x2"
+        }
+    }
+    
+    // Dynamic spacing based on grid size
+    private var gridItemSpacing: CGFloat {
+        switch gridColumnCount {
+        case 2:
+            return 4   // Very tight spacing for 2 columns
+        case 3:
+            return 8   // Perfect spacing (reference)
+        case 4:
+            return 4   // Less spacing for 4 columns to prevent overlap
+        default:
+            return 8
+        }
+    }
+    
+    private var gridRowSpacing: CGFloat {
+        switch gridColumnCount {
+        case 2:
+            return 6   // Very tight spacing for 2 columns
+        case 3:
+            return 10  // Perfect spacing (reference)
+        case 4:
+            return 6   // Less spacing for 4 columns to prevent overlap
+        default:
+            return 10
         }
     }
 }

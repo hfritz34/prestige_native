@@ -9,25 +9,33 @@ import SwiftUI
 
 struct PrestigeBadge: View {
     let tier: PrestigeLevel
+    let showText: Bool
+    
+    init(tier: PrestigeLevel, showText: Bool = true) {
+        self.tier = tier
+        self.showText = showText
+    }
     
     var body: some View {
         HStack(spacing: 4) {
-            if tier != .none {
+            if tier != .none && showText {
                 Circle()
                     .fill(tierColor)
                     .frame(width: 8, height: 8)
             }
             
-            Text(tier.displayName)
-                .font(.caption2)
-                .fontWeight(.semibold)
-                .foregroundColor(tierColor)
+            if showText {
+                Text(tier.displayName)
+                    .font(.caption2)
+                    .fontWeight(.semibold)
+                    .foregroundColor(tierColor)
+            }
         }
-        .padding(.horizontal, 8)
-        .padding(.vertical, 4)
+        .padding(.horizontal, showText ? 8 : 0)
+        .padding(.vertical, showText ? 4 : 0)
         .background(
             Capsule()
-                .fill(tierColor.opacity(0.1))
+                .fill(showText ? tierColor.opacity(0.1) : Color.clear)
         )
     }
     

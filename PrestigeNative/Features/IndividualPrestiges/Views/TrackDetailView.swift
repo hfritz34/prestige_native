@@ -56,7 +56,7 @@ struct TrackDetailView: View {
         VStack(spacing: 16) {
             // Prestige background with album artwork
             ZStack {
-                // Prestige tier background
+                // Prestige tier background - full opacity with minimal transparency
                 if track.prestigeLevel != .none && !track.prestigeLevel.imageName.isEmpty {
                     Image(track.prestigeLevel.imageName)
                         .resizable()

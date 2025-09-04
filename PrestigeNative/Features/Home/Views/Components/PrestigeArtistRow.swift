@@ -13,13 +13,14 @@ struct PrestigeArtistRow: View {
     
     var body: some View {
         ZStack {
-            // Background prestige tier image
+            // Background prestige tier image - properly contained
             if artist.prestigeLevel != .none && !artist.prestigeLevel.imageName.isEmpty {
                 Image(artist.prestigeLevel.imageName)
                     .resizable()
                     .aspectRatio(contentMode: .fill)
-                    .opacity(0.35)
-                    .clipped()
+                    .opacity(0.8)
+                    .scaleEffect(1.1)
+                    .clipShape(RoundedRectangle(cornerRadius: 12))
             }
             
             // Content overlay
@@ -40,7 +41,7 @@ struct PrestigeArtistRow: View {
                     Circle()
                         .fill(Color.gray.opacity(0.3))
                 }
-                .frame(width: 60, height: 60)
+                .frame(width: 70, height: 70)
                 .clipShape(Circle())
                 .shadow(color: .black.opacity(0.2), radius: 2, x: 0, y: 1)
                 
@@ -65,7 +66,7 @@ struct PrestigeArtistRow: View {
                 Spacer()
                 
                 // Prestige badge
-                PrestigeBadge(tier: artist.prestigeLevel)
+                PrestigeBadge(tier: artist.prestigeLevel, showText: false)
             }
             .padding(.horizontal, 16)
             .padding(.vertical, 8)

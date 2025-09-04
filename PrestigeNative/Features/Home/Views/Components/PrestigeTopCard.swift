@@ -13,17 +13,13 @@ struct PrestigeTopCard: View {
     
     var body: some View {
         ZStack {
-            // Background prestige tier image
+            // Background prestige tier image - properly contained with padding
             if item.prestigeLevel != .none && !item.prestigeLevel.imageName.isEmpty {
                 Image(item.prestigeLevel.imageName)
                     .resizable()
                     .aspectRatio(contentMode: .fill)
-                    .frame(width: 200, height: 280)
-                    .clipped()
-                    .opacity(0.3)
-            } else {
-                // No background for items without prestige
-                EmptyView()
+                    .opacity(0.8)
+                    .clipShape(RoundedRectangle(cornerRadius: 16))
             }
             
             // Content overlay
@@ -49,7 +45,7 @@ struct PrestigeTopCard: View {
                     Rectangle()
                         .fill(Color.gray.opacity(0.3))
                 }
-                .frame(width: 120, height: 120)
+                .frame(width: 110, height: 110)
                 .clipShape(RoundedRectangle(cornerRadius: 12))
                 .shadow(color: .black.opacity(0.3), radius: 4, x: 0, y: 2)
                 

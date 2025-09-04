@@ -104,34 +104,17 @@ struct PrestigeDetailView: View {
                     .fill(Color.clear)
                     .overlay(
                         Group {
-                            // Prestige tier background image - made bigger to fill border better
+                            // Prestige tier background image - full opacity with minimal transparency
                             if item.prestigeLevel != .none && !item.prestigeLevel.imageName.isEmpty {
                                 Image(item.prestigeLevel.imageName)
                                     .resizable()
                                     .aspectRatio(contentMode: .fill)
                                     .scaleEffect(1.2)
-                                    .opacity(0.6)
+                                    .opacity(0.8)
                             }
-                            
-                            // Color overlay for better contrast
-                            LinearGradient(
-                                colors: [
-                                    Color(hex: item.prestigeLevel.color)?.opacity(0.4) ?? Color.gray.opacity(0.4),
-                                    Color(hex: item.prestigeLevel.color)?.opacity(0.2) ?? Color.gray.opacity(0.2)
-                                ],
-                                startPoint: .topLeading,
-                                endPoint: .bottomTrailing
-                            )
                         }
                     )
                     .clipShape(RoundedRectangle(cornerRadius: 14))
-                    .overlay(
-                        RoundedRectangle(cornerRadius: 14)
-                            .stroke(
-                                Color(hex: item.prestigeLevel.color) ?? Color.gray,
-                                lineWidth: 3
-                            )
-                    )
                 
                 // Main artwork
                 AsyncImage(url: URL(string: item.imageUrl)) { image in
@@ -193,6 +176,7 @@ struct PrestigeDetailView: View {
             PrestigeBadge(
                 tier: item.prestigeLevel
             )
+            .scaleEffect(1.3)
             
             // Progress to next tier
             if let progress = progressToNextTier {

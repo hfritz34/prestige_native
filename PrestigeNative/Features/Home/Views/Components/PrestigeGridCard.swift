@@ -10,53 +10,32 @@ import SwiftUI
 struct PrestigeGridCard: View {
     let item: PrestigeDisplayItem
     let rank: Int
+    let gridColumnCount: Int
     
     @StateObject private var friendComparisonCache = FriendComparisonCache.shared
     @State private var friendsWhoListened: [FriendResponse] = []
     @State private var showingFriendComparison = false
     @State private var isLoadingFriends = false
     
-    init(item: PrestigeDisplayItem, rank: Int) {
+    init(item: PrestigeDisplayItem, rank: Int, gridColumnCount: Int = 3) {
         self.item = item
         self.rank = rank
+        self.gridColumnCount = gridColumnCount
     }
     
     var body: some View {
         VStack(spacing: 8) {
             // Main card with artwork and prestige frame
             ZStack {
-                // Background container with proper clipping
-                RoundedRectangle(cornerRadius: 12)
-                    .fill(Color.clear)
-                    .overlay(
-                        Group {
-                            // Prestige tier background image
-                            if item.prestigeLevel != .none && !item.prestigeLevel.imageName.isEmpty {
-                                Image(item.prestigeLevel.imageName)
-                                    .resizable()
-                                    .aspectRatio(contentMode: .fill)
-                                    .opacity(0.35)
-                            }
-                            
-                            // Color overlay for better contrast
-                            LinearGradient(
-                                colors: [
-                                    Color(hex: item.prestigeLevel.color)?.opacity(0.3) ?? Color.gray.opacity(0.3),
-                                    Color(hex: item.prestigeLevel.color)?.opacity(0.1) ?? Color.gray.opacity(0.1)
-                                ],
-                                startPoint: .topLeading,
-                                endPoint: .bottomTrailing
-                            )
-                        }
-                    )
-                    .clipShape(RoundedRectangle(cornerRadius: 12))
-                    .overlay(
-                        RoundedRectangle(cornerRadius: 12)
-                            .stroke(
-                                Color(hex: item.prestigeLevel.color) ?? Color.gray,
-                                lineWidth: 2
-                            )
-                    )
+                // Prestige tier background image - properly contained with padding
+                if item.prestigeLevel != .none && !item.prestigeLevel.imageName.isEmpty {
+                    Image(item.prestigeLevel.imageName)
+                        .resizable()
+                        .aspectRatio(contentMode: .fill)
+                        .opacity(0.8)
+                        .scaleEffect(prestigeBackgroundScale)
+                        .clipShape(RoundedRectangle(cornerRadius: 12))
+                }
                 
                 VStack(spacing: 8) {
                     // Rating badge for albums/artists only (no trophy pins for tracks)
@@ -85,15 +64,15 @@ struct PrestigeGridCard: View {
                         url: item.imageUrl,
                         placeholder: Image(systemName: getIconForType()),
                         contentMode: .fill,
-                        maxWidth: 120,
-                        maxHeight: 120
+                        maxWidth: spotifyImageSize,
+                        maxHeight: spotifyImageSize
                     )
                     .clipShape(RoundedRectangle(cornerRadius: 8))
                     .shadow(color: .black.opacity(0.2), radius: 2, x: 0, y: 1)
                     
                     // Prestige badge and friend count
                     HStack(spacing: 4) {
-                        PrestigeBadge(tier: item.prestigeLevel)
+                        PrestigeBadge(tier: item.prestigeLevel, showText: false)
                             .scaleEffect(0.8)
                         
                         // Friend indicator
@@ -223,6 +202,34 @@ struct PrestigeGridCard: View {
                 self.friendsWhoListened = friends
                 self.isLoadingFriends = false
             }
+        }
+    }
+    
+    // MARK: - Dynamic Sizing Based on Grid Columns
+    
+    private var prestigeBackgroundScale: CGFloat {
+        switch gridColumnCount {
+        case 2:
+            return 1.4  // Scale up for 2 columns
+        case 3:
+            return 1.1  // Perfect scale (reference)
+        case 4:
+            return 0.9  // Scale down for 4 columns to prevent overlap
+        default:
+            return 1.1
+        }
+    }
+    
+    private var spotifyImageSize: CGFloat {
+        switch gridColumnCount {
+        case 2:
+            return 180  // Larger test size for 2 columns
+        case 3:
+            return 110  // Perfect size (reference)
+        case 4:
+            return 85   // Scale down for 4 columns
+        default:
+            return 110
         }
     }
 }

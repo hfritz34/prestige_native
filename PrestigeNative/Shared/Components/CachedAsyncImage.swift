@@ -79,8 +79,7 @@ struct EnhancedAsyncImageView: View {
                     )
                     
             @unknown default:
-                placeholder
-                    .foregroundColor(.gray.opacity(0.3))
+                ErrorPlaceholder(placeholder: placeholder)
                     .frame(
                         maxWidth: maxWidth,
                         maxHeight: maxHeight
@@ -106,8 +105,10 @@ struct LoadingPlaceholder: View {
             .fill(Color.gray.opacity(0.2))
             .overlay(
                 Image(systemName: "photo")
+                    .font(.system(size: 30, weight: .light))
                     .foregroundColor(.gray.opacity(0.5))
-                    .scaleEffect(isAnimating ? 1.1 : 1.0)
+                    .scaleEffect(isAnimating ? 0.7 : 0.6) // Consistent scaling with ErrorPlaceholder
+                    .aspectRatio(contentMode: .fit)
                     .animation(
                         .easeInOut(duration: 1.0).repeatForever(autoreverses: true),
                         value: isAnimating
@@ -127,7 +128,10 @@ struct ErrorPlaceholder: View {
             .fill(Color.gray.opacity(0.1))
             .overlay(
                 placeholder
+                    .font(.system(size: 30, weight: .light))
                     .foregroundColor(.gray.opacity(0.5))
+                    .scaleEffect(0.6) // Scale down to fit nicely in the container
+                    .aspectRatio(contentMode: .fit)
             )
     }
 }

@@ -123,7 +123,7 @@ struct PrestigeInlineLoader: View {
         PrestigeSpinner.large()
     }
     .padding()
-    .background(Color(UIColor.systemBackground))
+    .background(Color(red: 1.0, green: 1.0, blue: 1.0))
 }
 
 #Preview("Loading Views") {
@@ -140,5 +140,5 @@ struct PrestigeInlineLoader: View {
         )
     }
     .padding()
-    .background(Color(UIColor.systemBackground))
+    .background(Color(red: 1.0, green: 1.0, blue: 1.0))
 }

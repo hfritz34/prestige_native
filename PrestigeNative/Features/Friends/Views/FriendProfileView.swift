@@ -16,6 +16,7 @@ struct FriendProfileView: View {
     @State private var selectedPrestige: PrestigeSelection?
     @State private var hasInitiallyLoaded = false
     @State private var minimumLoadingTime = false
+    @State private var selectedFriendItem: FriendNavigationItem?
     
     var body: some View {
         ZStack {
@@ -58,6 +59,14 @@ struct FriendProfileView: View {
                     PrestigeDetailView(
                         item: selection.item,
                         rank: selection.rank
+                    )
+                }
+                .sheet(item: $selectedFriendItem) { friendItem in
+                    FriendPrestigeDetailView(
+                        friendPrestigeItem: friendItem.prestigeItem,
+                        friendName: friendItem.friendName,
+                        friendId: friendItem.friendId,
+                        rank: friendItem.rank
                     )
                 }
             }
@@ -283,30 +292,65 @@ struct FriendProfileView: View {
                 ForEach(Array(viewModel.topAlbums.prefix(25).enumerated()), id: \.element.album.id) { index, album in
                     TopItemCard(album: album)
                         .onTapGesture {
-                            selectedPrestige = PrestigeSelection(
-                                item: PrestigeDisplayItem.fromAlbum(album),
-                                rank: index + 1
-                            )
+                            // Navigate to friend's album context instead of user's
+                            Task {
+                                if let friendPrestigeItem = await viewModel.navigateToFriendAlbum(
+                                    albumId: album.album.id,
+                                    albumName: album.album.name,
+                                    imageUrl: album.album.images.first?.url ?? "",
+                                    artistName: album.album.artists.first?.name
+                                ) {
+                                    selectedFriendItem = FriendNavigationItem(
+                                        prestigeItem: friendPrestigeItem,
+                                        friendName: viewModel.friend?.nickname ?? viewModel.friend?.name ?? "Friend",
+                                        friendId: viewModel.friend?.friendId ?? "",
+                                        rank: index + 1
+                                    )
+                                }
+                            }
                         }
                 }
             case .tracks:
                 ForEach(Array(viewModel.topTracks.prefix(25).enumerated()), id: \.element.totalTime) { index, track in
                     TopItemCard(track: track)
                         .onTapGesture {
-                            selectedPrestige = PrestigeSelection(
-                                item: PrestigeDisplayItem.fromTrack(track),
-                                rank: index + 1
-                            )
+                            // Navigate to friend's track context instead of user's
+                            Task {
+                                if let friendPrestigeItem = await viewModel.navigateToFriendTrack(
+                                    trackId: track.track.id,
+                                    trackName: track.track.name,
+                                    imageUrl: track.track.album.images.first?.url ?? "",
+                                    artistName: track.track.artists.first?.name
+                                ) {
+                                    selectedFriendItem = FriendNavigationItem(
+                                        prestigeItem: friendPrestigeItem,
+                                        friendName: viewModel.friend?.nickname ?? viewModel.friend?.name ?? "Friend",
+                                        friendId: viewModel.friend?.friendId ?? "",
+                                        rank: index + 1
+                                    )
+                                }
+                            }
                         }
                 }
             case .artists:
                 ForEach(Array(viewModel.topArtists.prefix(25).enumerated()), id: \.element.artist.id) { index, artist in
                     TopItemCard(artist: artist)
                         .onTapGesture {
-                            selectedPrestige = PrestigeSelection(
-                                item: PrestigeDisplayItem.fromArtist(artist),
-                                rank: index + 1
-                            )
+                            // Navigate to friend's artist context instead of user's
+                            Task {
+                                if let friendPrestigeItem = await viewModel.navigateToFriendArtist(
+                                    artistId: artist.artist.id,
+                                    artistName: artist.artist.name,
+                                    imageUrl: artist.artist.images.first?.url ?? ""
+                                ) {
+                                    selectedFriendItem = FriendNavigationItem(
+                                        prestigeItem: friendPrestigeItem,
+                                        friendName: viewModel.friend?.nickname ?? viewModel.friend?.name ?? "Friend",
+                                        friendId: viewModel.friend?.friendId ?? "",
+                                        rank: index + 1
+                                    )
+                                }
+                            }
                         }
                 }
             }
@@ -326,10 +370,22 @@ struct FriendProfileView: View {
                         prestigeLevel: getPrestigeLevelForAlbum(album.album.id)
                     )
                         .onTapGesture {
-                            selectedPrestige = PrestigeSelection(
-                                item: PrestigeDisplayItem.fromAlbum(album),
-                                rank: index + 1
-                            )
+                            // Navigate to friend's favorite album context
+                            Task {
+                                if let friendPrestigeItem = await viewModel.navigateToFriendAlbum(
+                                    albumId: album.album.id,
+                                    albumName: album.album.name,
+                                    imageUrl: album.album.images.first?.url ?? "",
+                                    artistName: album.album.artists.first?.name
+                                ) {
+                                    selectedFriendItem = FriendNavigationItem(
+                                        prestigeItem: friendPrestigeItem,
+                                        friendName: viewModel.friend?.nickname ?? viewModel.friend?.name ?? "Friend",
+                                        friendId: viewModel.friend?.friendId ?? "",
+                                        rank: index + 1
+                                    )
+                                }
+                            }
                         }
                 }
             }
@@ -343,10 +399,22 @@ struct FriendProfileView: View {
                         prestigeLevel: getPrestigeLevelForTrack(track.track.id)
                     )
                         .onTapGesture {
-                            selectedPrestige = PrestigeSelection(
-                                item: PrestigeDisplayItem.fromTrack(track),
-                                rank: index + 1
-                            )
+                            // Navigate to friend's favorite track context
+                            Task {
+                                if let friendPrestigeItem = await viewModel.navigateToFriendTrack(
+                                    trackId: track.track.id,
+                                    trackName: track.track.name,
+                                    imageUrl: track.track.album.images.first?.url ?? "",
+                                    artistName: track.track.artists.first?.name
+                                ) {
+                                    selectedFriendItem = FriendNavigationItem(
+                                        prestigeItem: friendPrestigeItem,
+                                        friendName: viewModel.friend?.nickname ?? viewModel.friend?.name ?? "Friend",
+                                        friendId: viewModel.friend?.friendId ?? "",
+                                        rank: index + 1
+                                    )
+                                }
+                            }
                         }
                 }
             }
@@ -360,10 +428,21 @@ struct FriendProfileView: View {
                         prestigeLevel: getPrestigeLevelForArtist(artist.artist.id)
                     )
                         .onTapGesture {
-                            selectedPrestige = PrestigeSelection(
-                                item: PrestigeDisplayItem.fromArtist(artist),
-                                rank: index + 1
-                            )
+                            // Navigate to friend's favorite artist context
+                            Task {
+                                if let friendPrestigeItem = await viewModel.navigateToFriendArtist(
+                                    artistId: artist.artist.id,
+                                    artistName: artist.artist.name,
+                                    imageUrl: artist.artist.images.first?.url ?? ""
+                                ) {
+                                    selectedFriendItem = FriendNavigationItem(
+                                        prestigeItem: friendPrestigeItem,
+                                        friendName: viewModel.friend?.nickname ?? viewModel.friend?.name ?? "Friend",
+                                        friendId: viewModel.friend?.friendId ?? "",
+                                        rank: index + 1
+                                    )
+                                }
+                            }
                         }
                 }
             }

@@ -4,6 +4,7 @@
 //
 
 import SwiftUI
+import UIKit
 
 enum Theme {
     // Primary brand color - use sparingly as accent

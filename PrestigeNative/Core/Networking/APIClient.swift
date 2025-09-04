@@ -874,4 +874,46 @@ extension APIClient {
         let endpoint = "prestige/\(userId)/pinned"
         return try await get(endpoint, responseType: PinnedItemsResponse.self)
     }
+    
+    // MARK: - Friend Context Methods
+    
+    func getFriendTrackDetails(userId: String, friendId: String, trackId: String) async throws -> FriendItemDetailsResponse {
+        let endpoint = APIEndpoints.friendTrackDetails(userId: userId, friendId: friendId, trackId: trackId)
+        return try await get(endpoint, responseType: FriendItemDetailsResponse.self)
+    }
+    
+    func getFriendAlbumDetails(userId: String, friendId: String, albumId: String) async throws -> FriendItemDetailsResponse {
+        let endpoint = APIEndpoints.friendAlbumDetails(userId: userId, friendId: friendId, albumId: albumId)
+        return try await get(endpoint, responseType: FriendItemDetailsResponse.self)
+    }
+    
+    func getFriendArtistDetails(userId: String, friendId: String, artistId: String) async throws -> FriendItemDetailsResponse {
+        let endpoint = APIEndpoints.friendArtistDetails(userId: userId, friendId: friendId, artistId: artistId)
+        return try await get(endpoint, responseType: FriendItemDetailsResponse.self)
+    }
+    
+    func getFriendAlbumTrackRankings(userId: String, friendId: String, albumId: String) async throws -> [FriendTrackRankingResponse] {
+        let endpoint = APIEndpoints.friendAlbumTrackRankings(userId: userId, friendId: friendId, albumId: albumId)
+        return try await get(endpoint, responseType: [FriendTrackRankingResponse].self)
+    }
+    
+    func getFriendArtistAlbumRankings(userId: String, friendId: String, artistId: String) async throws -> [FriendAlbumRatingResponse] {
+        let endpoint = APIEndpoints.friendArtistAlbumRankings(userId: userId, friendId: friendId, artistId: artistId)
+        return try await get(endpoint, responseType: [FriendAlbumRatingResponse].self)
+    }
+    
+    func getEnhancedTrackComparison(userId: String, trackId: String, friendId: String) async throws -> EnhancedItemComparisonResponse {
+        let endpoint = APIEndpoints.enhancedCompareTrack(userId: userId, trackId: trackId, friendId: friendId)
+        return try await get(endpoint, responseType: EnhancedItemComparisonResponse.self)
+    }
+    
+    func getEnhancedAlbumComparison(userId: String, albumId: String, friendId: String) async throws -> EnhancedItemComparisonResponse {
+        let endpoint = APIEndpoints.enhancedCompareAlbum(userId: userId, albumId: albumId, friendId: friendId)
+        return try await get(endpoint, responseType: EnhancedItemComparisonResponse.self)
+    }
+    
+    func getEnhancedArtistComparison(userId: String, artistId: String, friendId: String) async throws -> EnhancedItemComparisonResponse {
+        let endpoint = APIEndpoints.enhancedCompareArtist(userId: userId, artistId: artistId, friendId: friendId)
+        return try await get(endpoint, responseType: EnhancedItemComparisonResponse.self)
+    }
 }

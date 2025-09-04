@@ -174,25 +174,50 @@ struct RateView: View {
                     itemType: itemType,
                     isSelected: viewModel.selectedItemType == itemType,
                     action: {
+                        // Don't do anything if already selected
+                        guard itemType != viewModel.selectedItemType else { return }
+                        
+                        // Immediately update UI state for instant feedback
+                        withAnimation(.easeInOut(duration: 0.15)) {
+                            viewModel.selectedItemType = itemType
+                            viewModel.isLoading = true
+                            viewModel.loadingMessage = "Loading \(itemType.displayName.lowercased())..."
+                            print("🔄 Setting loading state: isLoading=\(viewModel.isLoading), message=\(viewModel.loadingMessage)")
+                        }
+                        
                         // Clear cache immediately to prevent showing stale data
                         cachedTopRatedItems = []
                         cachedAllRatedItems = []
                         isCacheReady = false
                         
-                        // Set selected type and trigger loading
-                        viewModel.selectedItemType = itemType
-                        
                         Task {
+                            print("📥 Starting data load for \(itemType.displayName)")
+                            
+                            // Load data for the new type (without changing selectedItemType again)
                             await viewModel.loadUserRatings()
+                            print("✅ loadUserRatings complete")
+                            
                             await viewModel.loadUnratedItems()
+                            print("✅ loadUnratedItems complete: \(viewModel.unratedItems.count) items")
+                            
                             await viewModel.ensureMetadataLoaded()
+                            print("✅ ensureMetadataLoaded complete")
                             
-                            // Update cached content for new item type
-                            updateCachedRatings()
-                            
-                            // Preload images for new item type
+                            // Complete loading and update UI
                             await MainActor.run {
+                                print("🔄 Updating cache and finalizing...")
+                                
+                                // Update cached content for new item type WITHOUT setting isCacheReady yet
+                                updateCachedRatingsWithoutMarkingReady()
+                                
+                                // Preload images for new item type
                                 preloadRatingImages()
+                                
+                                // NOW we can mark as ready and clear loading state
+                                print("✅ All done, manually setting isCacheReady = true and clearing loading state")
+                                isCacheReady = true
+                                viewModel.isLoading = false
+                                viewModel.loadingMessage = ""
                             }
                         }
                     }
@@ -257,14 +282,17 @@ struct RateView: View {
                 }
             }
             
-            // Loading overlay - show during initial load or category switches
-            if (viewModel.isLoading && !hasInitialLoad) || (!isCacheReady && hasInitialLoad) {
-                BeatVisualizerLoadingView(message: !isCacheReady && hasInitialLoad ? "Switching categories..." : (viewModel.loadingMessage.isEmpty ? "Preparing your library..." : viewModel.loadingMessage))
+            // Loading overlay - show during any loading state or when cache is not ready
+            if viewModel.isLoading || !isCacheReady {
+                BeatVisualizerLoadingView(message: viewModel.loadingMessage.isEmpty ? "Loading..." : viewModel.loadingMessage)
                     .background(Color(UIColor.systemBackground).opacity(0.9))
-            } else if !isCacheReady && !hasInitialLoad {
-                // Keep showing loading if cache isn't ready yet on initial load
-                BeatVisualizerLoadingView(message: "Preparing your library...")
-                    .background(Color(UIColor.systemBackground).opacity(0.9))
+                    .transition(.opacity)
+                    .onAppear {
+                        print("🔄 Loading overlay appeared: isLoading=\(viewModel.isLoading), isCacheReady=\(isCacheReady), message='\(viewModel.loadingMessage)'")
+                    }
+                    .onDisappear {
+                        print("✅ Loading overlay disappeared")
+                    }
             }
         }
     }
@@ -619,6 +647,51 @@ struct RateView: View {
     
     // MARK: - Cache Update Methods
     
+    private func updateCachedRatingsWithoutMarkingReady() {
+        // This version doesn't set isCacheReady = true to avoid race conditions
+        // Update top rated items cache
+        let topRatings = viewModel.filteredRatings
+            .filter { $0.personalScore >= 7.0 }
+            .sorted { $0.personalScore > $1.personalScore }
+            .prefix(20)
+        
+        cachedTopRatedItems = Array(topRatings).compactMap { rating in
+            let itemData = viewModel.getItemData(for: rating) ?? RatingItemData(
+                id: rating.itemId,
+                name: "Unknown",
+                imageUrl: nil,
+                artists: nil,
+                albumName: nil,
+                albumId: rating.albumId,
+                itemType: rating.itemType
+            )
+            return RatedItem(id: rating.id, rating: rating, itemData: itemData)
+        }
+        
+        // Update all rated items cache
+        let allRatings = viewModel.filteredRatings.sorted { $0.personalScore > $1.personalScore }
+        cachedAllRatedItems = allRatings.compactMap { rating in
+            let itemData = viewModel.getItemData(for: rating) ?? RatingItemData(
+                id: rating.itemId,
+                name: "Unknown",
+                imageUrl: nil,
+                artists: nil,
+                albumName: nil,
+                albumId: rating.albumId,
+                itemType: rating.itemType
+            )
+            return RatedItem(id: rating.id, rating: rating, itemData: itemData)
+        }
+        
+        lastRatingsUpdateTime = Date()
+        print("🎯 Cache updated (WITHOUT marking ready) with \(cachedTopRatedItems.count) top items and \(cachedAllRatedItems.count) all items")
+        
+        // Mark initial load as complete after first cache update
+        if !hasInitialLoad {
+            hasInitialLoad = true
+        }
+    }
+    
     private func updateCachedRatings() {
         Task {
             // Ensure metadata is loaded first
@@ -660,6 +733,7 @@ struct RateView: View {
                 }
                 
                 lastRatingsUpdateTime = Date()
+                print("🎯 Setting isCacheReady = true with \(cachedTopRatedItems.count) top items and \(cachedAllRatedItems.count) all items")
                 isCacheReady = true
                 
                 // Mark initial load as complete after first cache update
@@ -697,6 +771,8 @@ struct ItemTypeButton: View {
     let isSelected: Bool
     let action: () -> Void
     
+    @State private var isPressed = false
+    
     var body: some View {
         Button(action: action) {
             HStack(spacing: 6) {
@@ -715,8 +791,12 @@ struct ItemTypeButton: View {
                     .fill(isSelected ? Theme.primary : Color(UIColor.secondarySystemBackground))
             )
         }
-        .scaleEffect(isSelected ? 1.02 : 1.0)
+        .scaleEffect(isPressed ? 0.95 : (isSelected ? 1.02 : 1.0))
+        .animation(.easeInOut(duration: 0.1), value: isPressed)
         .animation(.spring(response: 0.3, dampingFraction: 0.7), value: isSelected)
+        .onLongPressGesture(minimumDuration: 0, maximumDistance: .infinity, pressing: { pressing in
+            isPressed = pressing
+        }, perform: {})
     }
 }
 

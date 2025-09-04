@@ -19,10 +19,12 @@ class FriendProfileViewModel: ObservableObject {
     @Published var currentRatings: [RatedItem] = []
     @Published var isLoading = false
     @Published var error: String?
+    @Published var isInFriendContext: Bool = false
     
     private let friendsService = FriendsService()
     private let apiClient = APIClient.shared
     private let authManager = AuthManager.shared
+    private let friendContext = FriendContextService()
     
     var totalTracks: Int {
         return topTracks.count
@@ -78,5 +80,128 @@ class FriendProfileViewModel: ObservableObject {
             itemType: itemType,
             itemId: itemId
         )
+    }
+    
+    // MARK: - Friend Context Navigation Methods
+    // These methods create PrestigeDisplayItems with friend's data for UI reuse
+    
+    /// Navigate to friend's track detail view with their context
+    func navigateToFriendTrack(trackId: String, trackName: String, imageUrl: String, artistName: String?) async -> PrestigeDisplayItem? {
+        guard let friendId = friend?.friendId else { return nil }
+        
+        do {
+            let trackDetails = try await friendContext.getFriendTrackDetails(
+                friendId: friendId, 
+                trackId: trackId
+            )
+            isInFriendContext = true
+            
+            // Transform to PrestigeDisplayItem for UI reuse
+            return friendContext.transformToPrestigeDisplayItem(
+                trackDetails,
+                albumName: nil,
+                artistName: artistName
+            )
+        } catch {
+            self.error = "Failed to load friend's track details: \(error.localizedDescription)"
+            return nil
+        }
+    }
+    
+    /// Navigate to friend's album detail view with their context  
+    func navigateToFriendAlbum(albumId: String, albumName: String, imageUrl: String, artistName: String?) async -> PrestigeDisplayItem? {
+        guard let friendId = friend?.friendId else { return nil }
+        
+        do {
+            let albumDetails = try await friendContext.getFriendAlbumDetails(
+                friendId: friendId, 
+                albumId: albumId
+            )
+            isInFriendContext = true
+            
+            // Transform to PrestigeDisplayItem for UI reuse
+            return friendContext.transformToPrestigeDisplayItem(
+                albumDetails,
+                albumName: albumName,
+                artistName: artistName
+            )
+        } catch {
+            self.error = "Failed to load friend's album details: \(error.localizedDescription)"
+            return nil
+        }
+    }
+    
+    /// Navigate to friend's artist detail view with their context
+    func navigateToFriendArtist(artistId: String, artistName: String, imageUrl: String) async -> PrestigeDisplayItem? {
+        guard let friendId = friend?.friendId else { return nil }
+        
+        do {
+            let artistDetails = try await friendContext.getFriendArtistDetails(
+                friendId: friendId, 
+                artistId: artistId
+            )
+            isInFriendContext = true
+            
+            // Transform to PrestigeDisplayItem for UI reuse
+            return friendContext.transformToPrestigeDisplayItem(
+                artistDetails,
+                albumName: nil,
+                artistName: artistName
+            )
+        } catch {
+            self.error = "Failed to load friend's artist details: \(error.localizedDescription)"
+            return nil
+        }
+    }
+    
+    /// Get friend's track rankings for an album (for use in friend's album detail view)
+    func getFriendAlbumTracks(albumId: String) async -> [FriendTrackRankingResponse] {
+        guard let friendId = friend?.friendId else { return [] }
+        
+        do {
+            return try await friendContext.getFriendAlbumTrackRankings(
+                friendId: friendId, 
+                albumId: albumId
+            )
+        } catch {
+            self.error = "Failed to load friend's album tracks: \(error.localizedDescription)"
+            return []
+        }
+    }
+    
+    /// Get friend's album ratings for an artist (for use in friend's artist detail view)
+    func getFriendArtistAlbums(artistId: String) async -> [FriendAlbumRatingResponse] {
+        guard let friendId = friend?.friendId else { return [] }
+        
+        do {
+            return try await friendContext.getFriendArtistAlbumRankings(
+                friendId: friendId, 
+                artistId: artistId
+            )
+        } catch {
+            self.error = "Failed to load friend's artist albums: \(error.localizedDescription)"
+            return []
+        }
+    }
+    
+    /// Get enhanced comparison data between user and friend
+    func getEnhancedComparison(itemId: String, itemType: String) async -> EnhancedItemComparisonResponse? {
+        guard let friendId = friend?.friendId else { return nil }
+        
+        do {
+            switch itemType.lowercased() {
+            case "track":
+                return try await friendContext.getEnhancedTrackComparison(trackId: itemId, friendId: friendId)
+            case "album":
+                return try await friendContext.getEnhancedAlbumComparison(albumId: itemId, friendId: friendId)
+            case "artist":
+                return try await friendContext.getEnhancedArtistComparison(artistId: itemId, friendId: friendId)
+            default:
+                return nil
+            }
+        } catch {
+            self.error = "Failed to load comparison data: \(error.localizedDescription)"
+            return nil
+        }
     }
 }

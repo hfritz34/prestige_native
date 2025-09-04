@@ -281,3 +281,132 @@ extension Int {
         }
     }
 }
+
+// MARK: - Friend Context Models
+
+/// Friend's detailed item information with ratings and context
+struct FriendItemDetailsResponse: Codable, Identifiable {
+    let itemId: String
+    var id: String { itemId }
+    let itemType: String
+    let itemName: String
+    let itemImageUrl: String
+    let friendId: String
+    let friendNickname: String
+    let friendListeningTime: Int?
+    let friendRatingScore: Double?
+    let friendPosition: Int?
+    let friendPrestigeTier: String
+    let friendRankWithinAlbum: Int?
+    let isPinned: Bool
+    let isFavorite: Bool
+    let additionalData: AnyCodable?
+    
+    enum CodingKeys: String, CodingKey {
+        case itemId, itemType, itemName, itemImageUrl
+        case friendId, friendNickname, friendListeningTime
+        case friendRatingScore, friendPosition, friendPrestigeTier
+        case friendRankWithinAlbum, isPinned, isFavorite, additionalData
+    }
+}
+
+/// Friend's track rankings within an album
+struct FriendTrackRankingResponse: Codable, Identifiable {
+    let trackId: String
+    var id: String { trackId }
+    let trackName: String
+    let trackImageUrl: String
+    let trackNumber: Int
+    let duration: Int
+    let friendId: String
+    let friendListeningTime: Int?
+    let friendRatingScore: Double?
+    let friendPosition: Int?
+    let friendRankWithinAlbum: Int?
+    let friendPrestigeTier: String
+    
+    enum CodingKeys: String, CodingKey {
+        case trackId, trackName, trackImageUrl, trackNumber, duration
+        case friendId, friendListeningTime, friendRatingScore
+        case friendPosition, friendRankWithinAlbum, friendPrestigeTier
+    }
+}
+
+/// Friend's album ratings within an artist
+struct FriendAlbumRatingResponse: Codable, Identifiable {
+    let albumId: String
+    var id: String { albumId }
+    let albumName: String
+    let albumImageUrl: String
+    let releaseDate: Date
+    let trackCount: Int
+    let friendId: String
+    let friendListeningTime: Int?
+    let friendRatingScore: Double?
+    let friendPosition: Int?
+    let friendPrestigeTier: String
+    let isPinned: Bool
+    let isFavorite: Bool
+    
+    enum CodingKeys: String, CodingKey {
+        case albumId, albumName, albumImageUrl, releaseDate, trackCount
+        case friendId, friendListeningTime, friendRatingScore
+        case friendPosition, friendPrestigeTier, isPinned, isFavorite
+    }
+}
+
+/// Enhanced comparison response with detailed rating data
+struct EnhancedItemComparisonResponse: Codable {
+    let itemId: String
+    let itemType: String
+    let itemName: String
+    let itemImageUrl: String
+    let friendId: String
+    let friendNickname: String
+    let userStats: UserComparisonStats
+    let friendStats: UserComparisonStats
+}
+
+struct UserComparisonStats: Codable {
+    let listeningTime: Int?
+    let ratingScore: Double?
+    let position: Int?
+    let prestigeTier: String?
+}
+
+/// Helper for flexible JSON decoding
+struct AnyCodable: Codable {
+    let value: Any
+    
+    init<T>(_ value: T?) where T: Codable {
+        self.value = value ?? ()
+    }
+    
+    init(from decoder: Decoder) throws {
+        let container = try decoder.singleValueContainer()
+        if let intValue = try? container.decode(Int.self) {
+            value = intValue
+        } else if let stringValue = try? container.decode(String.self) {
+            value = stringValue
+        } else if let boolValue = try? container.decode(Bool.self) {
+            value = boolValue
+        } else if let doubleValue = try? container.decode(Double.self) {
+            value = doubleValue
+        } else {
+            value = ()
+        }
+    }
+    
+    func encode(to encoder: Encoder) throws {
+        var container = encoder.singleValueContainer()
+        if let intValue = value as? Int {
+            try container.encode(intValue)
+        } else if let stringValue = value as? String {
+            try container.encode(stringValue)
+        } else if let boolValue = value as? Bool {
+            try container.encode(boolValue)
+        } else if let doubleValue = value as? Double {
+            try container.encode(doubleValue)
+        }
+    }
+}

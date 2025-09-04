@@ -78,6 +78,46 @@ enum APIEndpoints {
         return "api/friendships/friend/\(friendId)/artist/\(artistId)"
     }
     
+    // Friend Context Endpoints (New - matches backend API)
+    
+    /// Get friend's track details with their ratings and context
+    static func friendTrackDetails(userId: String, friendId: String, trackId: String) -> String {
+        return "api/friendships/\(userId)/friends/\(friendId)/tracks/\(trackId)"
+    }
+    
+    /// Get friend's album details with their ratings and context
+    static func friendAlbumDetails(userId: String, friendId: String, albumId: String) -> String {
+        return "api/friendships/\(userId)/friends/\(friendId)/albums/\(albumId)"
+    }
+    
+    /// Get friend's artist details with their ratings and context
+    static func friendArtistDetails(userId: String, friendId: String, artistId: String) -> String {
+        return "api/friendships/\(userId)/friends/\(friendId)/artists/\(artistId)"
+    }
+    
+    /// Get friend's track rankings within an album
+    static func friendAlbumTrackRankings(userId: String, friendId: String, albumId: String) -> String {
+        return "api/friendships/\(userId)/friends/\(friendId)/albums/\(albumId)/tracks"
+    }
+    
+    /// Get friend's album ratings within an artist
+    static func friendArtistAlbumRankings(userId: String, friendId: String, artistId: String) -> String {
+        return "api/friendships/\(userId)/friends/\(friendId)/artists/\(artistId)/albums"
+    }
+    
+    // Enhanced comparison endpoints (update existing ones)
+    static func enhancedCompareTrack(userId: String, trackId: String, friendId: String) -> String {
+        return "api/friendships/\(userId)/compare/track/\(trackId)/with/\(friendId)"
+    }
+    
+    static func enhancedCompareAlbum(userId: String, albumId: String, friendId: String) -> String {
+        return "api/friendships/\(userId)/compare/album/\(albumId)/with/\(friendId)"
+    }
+    
+    static func enhancedCompareArtist(userId: String, artistId: String, friendId: String) -> String {
+        return "api/friendships/\(userId)/compare/artist/\(artistId)/with/\(friendId)"
+    }
+
     // Legacy endpoints (keeping for backward compatibility)
     static let addFriend = "friend/add"
     static func removeFriend(friendId: String) -> String { "friend/\(friendId)" }

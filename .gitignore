@@ -101,3 +101,5 @@ PRESTIGE_SWIFTUI_COMPONENTS.swift
 # Sensitive configuration files
 PrestigeNative/Core/Configuration/
 PrestigeNative/Info.plistRedisConfig.plist
+
+FRIEND_CONTEXT_IMPLEMENTATION_GUIDE.md

@@ -158,6 +158,49 @@ class RatingViewModel: ObservableObject {
         }
     }
     
+    /// Handles switching to a new item type with proper loading states
+    func switchItemType(to newType: RatingItemType) async {
+        // Set loading state immediately
+        isLoading = true
+        loadingProgress = 0.0
+        loadingMessage = "Loading \(newType.displayName.lowercased())..."
+        
+        // Update the selected type
+        selectedItemType = newType
+        
+        do {
+            loadingProgress = 0.3
+            loadingMessage = "Loading your ratings..."
+            
+            // Load ratings for the new type
+            await loadUserRatings()
+            
+            loadingProgress = 0.7
+            loadingMessage = "Loading unrated items..."
+            
+            // Load unrated items for the new type
+            await loadUnratedItems()
+            
+            loadingProgress = 0.9
+            loadingMessage = "Preparing metadata..."
+            
+            // Ensure metadata is loaded
+            await ensureMetadataLoaded()
+            
+            loadingProgress = 1.0
+            loadingMessage = "Ready!"
+            
+        } catch {
+            print("Failed to switch item type: \(error)")
+            self.error = error.localizedDescription
+        }
+        
+        // Complete loading
+        isLoading = false
+        loadingProgress = 0.0
+        loadingMessage = ""
+    }
+
     func loadUserRatings() async {
         do {
             let ratings = try await ratingService.fetchUserRatings(itemType: selectedItemType)

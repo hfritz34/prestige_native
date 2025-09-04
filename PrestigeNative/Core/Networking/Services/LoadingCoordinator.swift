@@ -221,14 +221,23 @@ class LoadingCoordinator: ObservableObject {
         let profileService = ProfileService()
         let recentData = await profileService.fetchRecentlyUpdated(userId: userId)
         
-        updateProgress(0.8, message: "Processing recently updated content...")
+        updateProgress(0.8, message: "Sorting by total listening time...")
+        
+        // Sort all recently updated items by total listening time (greatest to least)
+        let sortedTracks = recentData.tracks.sorted { $0.totalTime > $1.totalTime }
+        let sortedAlbums = recentData.albums.sorted { $0.totalTime > $1.totalTime }
+        let sortedArtists = recentData.artists.sorted { $0.totalTime > $1.totalTime }
         
         return PrestigeContentBundle(
-            tracks: recentData.tracks,
-            albums: recentData.albums,
-            artists: recentData.artists,
+            tracks: sortedTracks,
+            albums: sortedAlbums,
+            artists: sortedArtists,
             pinnedItems: nil,
-            recentlyUpdated: recentData
+            recentlyUpdated: RecentlyUpdatedResponse(
+                tracks: sortedTracks,
+                albums: sortedAlbums,
+                artists: sortedArtists
+            )
         )
     }
     

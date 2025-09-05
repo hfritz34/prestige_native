@@ -15,15 +15,19 @@ enum PrestigeLevel: String, CaseIterable, Codable {
     case none = "None"
     case bronze = "Bronze"
     case silver = "Silver"
-    case gold = "Gold"
-    case sapphire = "Sapphire"
-    case emerald = "Emerald"
-    case diamond = "Diamond"
-    case garnet = "Garnet"
-    case opal = "Opal"
     case peridot = "Peridot"
+    case gold = "Gold"
+    case emerald = "Emerald"
+    case sapphire = "Sapphire"
+    case ruby = "Ruby"
+    case amber = "Amber"
+    case jade = "Jade"
+    case amethyst = "Amethyst"
     case jet = "Jet"
+    case diamond = "Diamond"
+    case opal = "Opal"
     case darkMatter = "Dark Matter"
+    case cosmic = "Cosmic"
     
     /// Display name for UI
     var displayName: String {
@@ -35,11 +39,15 @@ enum PrestigeLevel: String, CaseIterable, Codable {
         case .gold: return "Gold"
         case .emerald: return "Emerald"
         case .sapphire: return "Sapphire"
-        case .garnet: return "Garnet"
+        case .ruby: return "Ruby"
+        case .amber: return "Amber"
+        case .jade: return "Jade"
+        case .amethyst: return "Amethyst"
         case .jet: return "Jet"
         case .diamond: return "Diamond"
         case .opal: return "Opal"
         case .darkMatter: return "Dark Matter"
+        case .cosmic: return "Cosmic"
         }
     }
     
@@ -53,11 +61,15 @@ enum PrestigeLevel: String, CaseIterable, Codable {
         case .gold: return "gold"
         case .emerald: return "emerald"
         case .sapphire: return "sapphire"
-        case .garnet: return "garnet"
+        case .ruby: return "ruby"
+        case .amber: return "amber"
+        case .jade: return "jade"
+        case .amethyst: return "amethyst"
         case .jet: return "jet"
         case .diamond: return "diamond"
         case .opal: return "opal"
         case .darkMatter: return "darkmatter"
+        case .cosmic: return "cosmic"
         }
     }
     
@@ -71,11 +83,15 @@ enum PrestigeLevel: String, CaseIterable, Codable {
         case .gold: return "#FFD700"      // Gold
         case .emerald: return "#50C878"   // Emerald green
         case .sapphire: return "#0F52BA"  // Sapphire blue
-        case .garnet: return "#733635"    // Garnet red
+        case .ruby: return "#E0115F"      // Ruby red
+        case .amber: return "#FFBF00"     // Amber gold
+        case .jade: return "#00A86B"      // Jade green
+        case .amethyst: return "#9966CC"  // Amethyst purple
         case .jet: return "#343434"       // Jet black
         case .diamond: return "#B9F2FF"   // Diamond blue
         case .opal: return "#FFEFDB"      // Opal white
         case .darkMatter: return "#301934" // Dark purple
+        case .cosmic: return "#4B0082"    // Cosmic indigo
         }
     }
     
@@ -85,15 +101,19 @@ enum PrestigeLevel: String, CaseIterable, Codable {
         case .none: return 0
         case .bronze: return 1
         case .silver: return 2
-        case .peridot: return 3     // Fixed: moved from 9 to 3
-        case .gold: return 4        // Fixed: moved from 3 to 4
-        case .emerald: return 5     // Correct position
-        case .sapphire: return 6    // Fixed: moved from 4 to 6
-        case .garnet: return 7      // Correct position
-        case .jet: return 8         // Fixed: moved from 10 to 8
-        case .diamond: return 9     // Fixed: moved from 6 to 9
-        case .opal: return 10       // Fixed: moved from 8 to 10
-        case .darkMatter: return 11 // Correct position
+        case .peridot: return 3
+        case .gold: return 4
+        case .emerald: return 5
+        case .sapphire: return 6
+        case .ruby: return 7        // New tier
+        case .amber: return 8
+        case .jade: return 9        // New tier
+        case .amethyst: return 10   // New tier
+        case .jet: return 11
+        case .diamond: return 12
+        case .opal: return 13
+        case .darkMatter: return 14
+        case .cosmic: return 15     // Final ultimate tier
         }
     }
     

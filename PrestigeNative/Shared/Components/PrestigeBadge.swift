@@ -18,10 +18,16 @@ struct PrestigeBadge: View {
     
     var body: some View {
         HStack(spacing: 4) {
-            if tier != .none && showText {
-                Circle()
-                    .fill(tierColor)
-                    .frame(width: 8, height: 8)
+            if showText {
+                if tier == .none {
+                    RoundedRectangle(cornerRadius: 2)
+                        .fill(Color.gray.opacity(0.3))
+                        .frame(width: 8, height: 8)
+                } else {
+                    Circle()
+                        .fill(tierColor)
+                        .frame(width: 8, height: 8)
+                }
             }
             
             if showText {
@@ -55,8 +61,8 @@ struct PrestigeBadge: View {
             return .green
         case .sapphire:
             return .blue
-        case .garnet:
-            return .red
+        case .amber:
+            return .orange
         case .jet:
             return .black
         case .diamond:
@@ -65,6 +71,14 @@ struct PrestigeBadge: View {
             return .purple
         case .darkMatter:
             return .purple
+        case .ruby:
+            return .red
+        case .jade:
+            return .green
+        case .amethyst:
+            return .purple
+        case .cosmic:
+            return .indigo
         }
     }
 }

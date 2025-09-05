@@ -22,7 +22,7 @@ struct FriendProfileView: View {
         ZStack {
             NavigationView {
                 ScrollView {
-                    VStack(spacing: 24) {
+                    VStack(spacing: 12) {
                         // Profile Header
                         profileHeaderSection
                         
@@ -44,7 +44,7 @@ struct FriendProfileView: View {
                     .padding(.vertical)
                 }
                 .navigationTitle("Friend Profile")
-                .navigationBarTitleDisplayMode(.large)
+                .navigationBarTitleDisplayMode(.inline)
                 .toolbar {
                     ToolbarItem(placement: .navigationBarTrailing) {
                         Button("Done") {
@@ -135,57 +135,84 @@ struct FriendProfileView: View {
     }
     
     private var profileHeaderSection: some View {
-        VStack(spacing: 16) {
-            // Profile Picture
-            if let profilePicUrl = viewModel.friend?.profilePicUrl {
-                AsyncImage(url: URL(string: profilePicUrl)) { image in
-                    image
-                        .resizable()
-                        .aspectRatio(contentMode: .fill)
-                } placeholder: {
-                    Image(systemName: "person.circle.fill")
-                        .font(.system(size: 80))
-                        .foregroundColor(.gray)
-                }
-                .frame(width: 100, height: 100)
-                .clipShape(Circle())
-            } else {
-                Image(systemName: "person.circle.fill")
-                    .font(.system(size: 100))
-                    .foregroundColor(.gray.opacity(0.3))
-            }
-            
-            // User Info
-            VStack(spacing: 4) {
-                if let nickname = viewModel.friend?.nickname {
-                    Text(nickname)
-                        .font(.title2)
-                        .fontWeight(.bold)
-                } else if let name = viewModel.friend?.name {
-                    Text(name)
-                        .font(.title2)
-                        .fontWeight(.bold)
-                } else {
-                    Text("Loading...")
-                        .font(.title2)
-                        .fontWeight(.bold)
-                        .foregroundColor(.secondary)
-                }
-                
-                if let nickname = viewModel.friend?.nickname,
-                   let name = viewModel.friend?.name,
-                   nickname != name {
-                    Text("@\(name)")
+        VStack(spacing: 12) {
+            // Compact Profile Header
+            HStack(alignment: .top, spacing: 14) {
+                // LEFT: name, handle, bio
+                VStack(alignment: .leading, spacing: 4) {
+                    // Display name
+                    if let nickname = viewModel.friend?.nickname {
+                        Text(nickname)
+                            .font(.system(size: 28, weight: .bold))
+                            .lineLimit(1)
+                            .minimumScaleFactor(0.85)
+                            .foregroundColor(.white)
+                    } else if let name = viewModel.friend?.name {
+                        Text(name)
+                            .font(.system(size: 28, weight: .bold))
+                            .lineLimit(1)
+                            .minimumScaleFactor(0.85)
+                            .foregroundColor(.white)
+                    } else {
+                        Text("Loading...")
+                            .font(.system(size: 28, weight: .bold))
+                            .foregroundColor(.secondary)
+                    }
+
+                    // Spotify handle
+                    if let nickname = viewModel.friend?.nickname,
+                       let name = viewModel.friend?.name,
+                       nickname != name {
+                        Text("@\(name)")
+                            .font(.subheadline)
+                            .foregroundStyle(.secondary)
+                            .lineLimit(1)
+                    }
+
+                    // Bio (placeholder for friends)
+                    Text("Friend on Prestige")
                         .font(.caption)
-                        .foregroundColor(.secondary)
+                        .foregroundStyle(.secondary)
+                        .lineLimit(2)
+                }
+                .frame(maxWidth: .infinity, alignment: .leading)
+
+                // RIGHT: avatar
+                if let profilePicUrl = viewModel.friend?.profilePicUrl {
+                    AsyncImage(url: URL(string: profilePicUrl)) { phase in
+                        switch phase {
+                        case .success(let img):
+                            img.resizable().scaledToFill()
+                        default:
+                            Circle().fill(Color.secondary.opacity(0.2))
+                        }
+                    }
+                    .frame(width: 80, height: 80)
+                    .clipShape(Circle())
+                    .overlay(
+                        Circle().strokeBorder(.white.opacity(0.2), lineWidth: 1)
+                    )
+                    .contentShape(Circle())
+                } else {
+                    Circle().fill(Color.secondary.opacity(0.2))
+                        .frame(width: 80, height: 80)
+                        .overlay(
+                            Image(systemName: "person.circle.fill")
+                                .font(.system(size: 40))
+                                .foregroundColor(.gray)
+                        )
+                        .overlay(
+                            Circle().strokeBorder(.white.opacity(0.2), lineWidth: 1)
+                        )
                 }
             }
+            .padding(.horizontal, 20)
+            .padding(.top, 8)
         }
-        .padding(.horizontal)
     }
     
     private var topSection: some View {
-        VStack(alignment: .leading, spacing: 16) {
+        VStack(alignment: .leading, spacing: 8) {
             Text("Top")
                 .font(.title2)
                 .fontWeight(.bold)
@@ -193,7 +220,7 @@ struct FriendProfileView: View {
             
             // Top items carousel
             ScrollView(.horizontal, showsIndicators: false) {
-                HStack(alignment: .top, spacing: 12) {
+                HStack(alignment: .top, spacing: 6) {
                     topCarouselContent
                 }
                 .padding(.horizontal)
@@ -203,14 +230,14 @@ struct FriendProfileView: View {
     }
     
     private var favoritesSection: some View {
-        VStack(alignment: .leading, spacing: 16) {
+        VStack(alignment: .leading, spacing: 8) {
             Text("Favorites")
                 .font(.title2)
                 .fontWeight(.bold)
                 .padding(.horizontal)
             
             ScrollView(.horizontal, showsIndicators: false) {
-                HStack(alignment: .top, spacing: 12) {
+                HStack(alignment: .top, spacing: 6) {
                     favoritesCarouselContent
                 }
                 .padding(.horizontal)
@@ -220,7 +247,7 @@ struct FriendProfileView: View {
     }
     
     private var ratingsSection: some View {
-        VStack(alignment: .leading, spacing: 16) {
+        VStack(alignment: .leading, spacing: 8) {
             Text("Ratings")
                 .font(.title2)
                 .fontWeight(.bold)
@@ -228,7 +255,7 @@ struct FriendProfileView: View {
             
             // Ratings carousel
             ScrollView(.horizontal, showsIndicators: false) {
-                HStack(alignment: .top, spacing: 12) {
+                HStack(alignment: .top, spacing: 6) {
                     if viewModel.currentRatings.isEmpty {
                         // Empty state
                         VStack {
@@ -270,7 +297,7 @@ struct FriendProfileView: View {
     }
     
     private var recentlyPlayedSection: some View {
-        VStack(alignment: .leading, spacing: 16) {
+        VStack(alignment: .leading, spacing: 8) {
             Text("Recently Played")
                 .font(.title2)
                 .fontWeight(.bold)

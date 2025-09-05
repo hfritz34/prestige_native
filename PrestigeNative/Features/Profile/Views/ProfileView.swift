@@ -11,6 +11,7 @@ import SwiftUI
 struct ProfileView: View {
     @StateObject private var viewModel = ProfileViewModel()
     @EnvironmentObject var authManager: AuthManager
+    @EnvironmentObject var appearanceManager: AppearanceManager
     @StateObject private var imagePreloader = ImagePreloader.shared
     @State private var showingError = false
     @State private var selectedTopType: ContentType = .albums
@@ -24,7 +25,7 @@ struct ProfileView: View {
         ZStack {
             NavigationView {
                 ScrollView {
-                    VStack(spacing: 14) {
+                    VStack(spacing: 12) {
                         // Profile Header
                         profileHeaderSection
                         
@@ -63,6 +64,7 @@ struct ProfileView: View {
                 .sheet(isPresented: $showingSettings) {
                     SettingsView()
                         .environmentObject(authManager)
+                        .environmentObject(appearanceManager)
                 }
                 .sheet(item: $selectedPrestige) { selection in
                     PrestigeDetailView(
@@ -161,17 +163,20 @@ struct ProfileView: View {
                             .foregroundColor(.white)
                     }
 
-                    // Spotify handle (placeholder for now)
-                    Text("@spotifyuser")
-                        .font(.subheadline)
-                        .foregroundStyle(.secondary)
-                        .lineLimit(1)
 
-                    // Bio (placeholder for now)
-                    Text("Music lover exploring sound")
-                        .font(.caption)
-                        .foregroundStyle(.secondary)
-                        .lineLimit(2)
+                    // Bio
+                    if let bio = viewModel.userProfile?.bio, !bio.isEmpty {
+                        Text(bio)
+                            .font(.caption)
+                            .foregroundStyle(.secondary)
+                            .lineLimit(2)
+                    } else {
+                        Text("Add a bio to tell others about your music taste")
+                            .font(.caption)
+                            .foregroundStyle(.secondary.opacity(0.7))
+                            .italic()
+                            .lineLimit(2)
+                    }
                 }
                 .frame(maxWidth: .infinity, alignment: .leading)
 

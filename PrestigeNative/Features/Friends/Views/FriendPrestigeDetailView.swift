@@ -708,50 +708,8 @@ struct FriendPrestigeDetailView: View {
     // MARK: - Helper Properties and Methods
     
     private var progressToNextTier: (percentage: Double, nextTier: PrestigeLevel, remainingTime: String)? {
-        let totalMinutes = friendPrestigeItem.totalTimeMilliseconds / 1000 / 60
-        let itemType: PrestigeCalculator.ItemType = {
-            switch friendPrestigeItem.contentType {
-            case .tracks: return .track
-            case .albums: return .album
-            case .artists: return .artist
-            }
-        }()
-        
-        guard let nextTierInfo = PrestigeCalculator.getNextTierInfo(
-            currentLevel: friendPrestigeItem.prestigeLevel,
-            totalTimeMinutes: totalMinutes,
-            itemType: itemType
-        ) else { return nil }
-        
-        // Calculate progress within current tier - IDENTICAL logic to PrestigeDetailView
-        let thresholds = getThresholds(for: itemType)
-        let currentTierIndex = friendPrestigeItem.prestigeLevel.order
-        
-        let currentTierThreshold = currentTierIndex > 0 ? thresholds[currentTierIndex - 1] : 0
-        let nextTierThreshold = currentTierIndex < thresholds.count ? thresholds[currentTierIndex] : thresholds.last ?? 0
-        
-        let progressInCurrentTier = Double(totalMinutes - currentTierThreshold)
-        let tierRange = Double(nextTierThreshold - currentTierThreshold)
-        
-        let percentage = tierRange > 0 ? (progressInCurrentTier / tierRange) * 100 : 0
-        let safePercentage = percentage.isNaN || percentage.isInfinite ? 0 : min(max(percentage, 0), 100)
-        
-        return (
-            percentage: safePercentage,
-            nextTier: nextTierInfo.nextLevel,
-            remainingTime: formatTime(Double(nextTierInfo.minutesNeeded))
-        )
-    }
-    
-    private func getThresholds(for itemType: PrestigeCalculator.ItemType) -> [Int] {
-        switch itemType {
-        case .track:
-            return [60, 150, 300, 500, 800, 1200, 1600, 2200, 3000, 6000, 15000]
-        case .album:
-            return [200, 350, 500, 1000, 2000, 4000, 6000, 10000, 15000, 30000, 50000]
-        case .artist:
-            return [400, 750, 1200, 2000, 3000, 6000, 10000, 15000, 25000, 50000, 100000]
-        }
+        // Progress calculation disabled - all prestige logic moved to backend
+        return nil
     }
     
     private func formatTime(_ minutes: Double) -> String {

@@ -82,7 +82,7 @@ struct OnboardingTutorialView: View {
                 Text("Welcome to Prestige")
                     .font(.largeTitle)
                     .fontWeight(.bold)
-                    .foregroundColor(.white)
+                    .foregroundColor(.primary)
                 
                 Text("Track your music journey like never before")
                     .font(.headline)
@@ -119,7 +119,7 @@ struct OnboardingTutorialView: View {
             Text("What is Prestige?")
                 .font(.largeTitle)
                 .fontWeight(.bold)
-                .foregroundColor(.white)
+                .foregroundColor(.primary)
             
             Text("Prestige levels represent your dedication to artists, albums, and tracks. The more you listen, the higher your prestige grows!")
                 .font(.headline)
@@ -153,7 +153,7 @@ struct OnboardingTutorialView: View {
             Text("Watch Your Prestige Grow")
                 .font(.largeTitle)
                 .fontWeight(.bold)
-                .foregroundColor(.white)
+                .foregroundColor(.primary)
                 .multilineTextAlignment(.center)
             
             Text("As you listen more, your prestige evolves through beautiful tiers")
@@ -166,7 +166,7 @@ struct OnboardingTutorialView: View {
                 GridItem(.flexible()),
                 GridItem(.flexible()),
                 GridItem(.flexible())
-            ], spacing: 8) {
+            ], spacing: 12) {
                 // Row 1
                 DemoAlbumCard(prestigeLevel: .bronze, listeningTime: "3h 20m", showAnimation: true, delay: 0.0)
                 DemoAlbumCard(prestigeLevel: .silver, listeningTime: "5h 50m", showAnimation: true, delay: 0.3)
@@ -191,7 +191,7 @@ struct OnboardingTutorialView: View {
             Text("Head-to-Head Ratings")
                 .font(.largeTitle)
                 .fontWeight(.bold)
-                .foregroundColor(.white)
+                .foregroundColor(.primary)
             
             Text("Compare albums side-by-side to build your personalized ranking system")
                 .font(.headline)
@@ -216,7 +216,7 @@ struct OnboardingTutorialView: View {
             Text("Connect with Friends")
                 .font(.largeTitle)
                 .fontWeight(.bold)
-                .foregroundColor(.white)
+                .foregroundColor(.primary)
             
             Text("See what your friends are listening to and compare your music taste")
                 .font(.headline)
@@ -239,7 +239,7 @@ struct OnboardingTutorialView: View {
             Text("Your Musical Profile")
                 .font(.largeTitle)
                 .fontWeight(.bold)
-                .foregroundColor(.white)
+                .foregroundColor(.primary)
             
             Text("All your prestiges, ratings, and listening stats in one beautiful profile")
                 .font(.headline)
@@ -257,7 +257,7 @@ struct OnboardingTutorialView: View {
                     Text("You're all set!")
                         .font(.title)
                         .fontWeight(.bold)
-                        .foregroundColor(.white)
+                        .foregroundColor(.primary)
                     
                     Text("Start building your musical prestige")
                         .font(.headline)
@@ -351,7 +351,7 @@ struct FeatureHighlight: View {
                 Text(title)
                     .font(.headline)
                     .fontWeight(.semibold)
-                    .foregroundColor(.white)
+                    .foregroundColor(.primary)
                 
                 Text(description)
                     .font(.subheadline)

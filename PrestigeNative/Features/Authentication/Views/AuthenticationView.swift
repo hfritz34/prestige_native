@@ -10,6 +10,7 @@ import SwiftUI
 
 struct AuthenticationView: View {
     @StateObject private var authManager = AuthManager.shared
+    @EnvironmentObject var appearanceManager: AppearanceManager
     @State private var userProfileLoaded = false
     
     var body: some View {
@@ -36,6 +37,7 @@ struct AuthenticationView: View {
                     // Main app content
                     MainTabView()
                         .environmentObject(authManager)
+                        .environmentObject(appearanceManager)
                         .onAppear {
                             // Inject AuthManager into APIClient when user is authenticated
                             APIClient.shared.setAuthManager(authManager)
@@ -97,28 +99,37 @@ struct AuthenticationView: View {
 // Placeholder for main app content
 struct MainTabView: View {
     @EnvironmentObject var authManager: AuthManager
+    @EnvironmentObject var appearanceManager: AppearanceManager
     
     var body: some View {
         TabView {
             HomeView()
+                .environmentObject(authManager)
+                .environmentObject(appearanceManager)
                 .tabItem {
                     Image(systemName: "house.fill")
                     Text("Home")
                 }
             
             RateView()
+                .environmentObject(authManager)
+                .environmentObject(appearanceManager)
                 .tabItem {
                     Image(systemName: "star.fill")
                     Text("Rate")
                 }
             
             FriendsView()
+                .environmentObject(authManager)
+                .environmentObject(appearanceManager)
                 .tabItem {
                     Image(systemName: "person.2.fill")
                     Text("Friends")
                 }
             
             ProfileView()
+                .environmentObject(authManager)
+                .environmentObject(appearanceManager)
                 .tabItem {
                     Image(systemName: "person.fill")
                     Text("Profile")

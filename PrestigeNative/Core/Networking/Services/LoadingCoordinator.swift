@@ -283,7 +283,8 @@ class LoadingCoordinator: ObservableObject {
                 albumPosition: rating?.rankWithinAlbum,
                 totalTracksInAlbum: nil, // Will need separate logic to get total tracks
                 isPinned: track.isPinned,
-                rating: rating?.personalScore
+                rating: rating?.personalScore,
+                prestigeTier: track.prestigeTier // CRITICAL: Preserve the prestige tier from original track!
             )
         }
     }

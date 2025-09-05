@@ -235,6 +235,20 @@ class AuthManager: ObservableObject {
         }
     }
     
+    /// Update user profile with data from UserResponse
+    func updateUserProfile(from userResponse: UserResponse) async {
+        await MainActor.run {
+            self.user = AuthUser(
+                id: userResponse.id,
+                email: userResponse.email,
+                nickname: userResponse.nickname,
+                profilePictureUrl: userResponse.profilePictureUrl,
+                name: userResponse.name,
+                bio: userResponse.bio
+            )
+        }
+    }
+    
     // MARK: - Private Methods
     
     private func checkExistingSession() {
@@ -293,7 +307,9 @@ class AuthManager: ObservableObject {
             id: validUserId,
             email: "",
             nickname: "User", 
-            profilePictureUrl: nil
+            profilePictureUrl: nil,
+            name: "User",
+            bio: nil
         )
         
         await MainActor.run {
@@ -412,6 +428,8 @@ struct AuthUser: Codable {
     let email: String
     let nickname: String
     let profilePictureUrl: String?
+    let name: String
+    let bio: String?
 }
 
 enum AuthError: Error, LocalizedError, Equatable {

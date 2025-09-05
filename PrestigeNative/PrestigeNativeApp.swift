@@ -10,11 +10,14 @@ import SwiftUI
 @main
 struct PrestigeNativeApp: App {
     @StateObject private var authManager = AuthManager.shared
+    @StateObject private var appearanceManager = AppearanceManager.shared
     
     var body: some Scene {
         WindowGroup {
             AuthenticationView()
                 .environmentObject(authManager)
+                .environmentObject(appearanceManager)
+                .preferredColorScheme(appearanceManager.colorScheme)
                 .onOpenURL { url in
                     print("🔵 App: ==========================================")
                     print("🔵 App: RECEIVED URL CALLBACK!")

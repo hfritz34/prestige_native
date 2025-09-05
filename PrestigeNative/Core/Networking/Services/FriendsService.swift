@@ -241,6 +241,20 @@ class FriendsService: ObservableObject {
         socialDiscoveryResults.removeAll()
     }
     
+    /// Get enhanced comparison data between user and friend for any item type
+    func getEnhancedItemComparison(userId: String, itemId: String, itemType: String, friendId: String) async throws -> EnhancedItemComparisonResponse {
+        switch itemType.lowercased() {
+        case "track":
+            return try await apiClient.getEnhancedTrackComparison(userId: userId, trackId: itemId, friendId: friendId)
+        case "album": 
+            return try await apiClient.getEnhancedAlbumComparison(userId: userId, albumId: itemId, friendId: friendId)
+        case "artist":
+            return try await apiClient.getEnhancedArtistComparison(userId: userId, artistId: itemId, friendId: friendId)
+        default:
+            throw APIError.invalidURL
+        }
+    }
+    
     // MARK: - Friend Profile Details
     
     /// Get detailed friend profile

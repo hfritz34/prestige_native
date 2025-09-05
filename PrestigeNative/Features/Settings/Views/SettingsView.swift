@@ -10,9 +10,11 @@
 import SwiftUI
 import UIKit
 import UniformTypeIdentifiers
+import Foundation
 
 struct SettingsView: View {
     @EnvironmentObject var authManager: AuthManager
+    @EnvironmentObject var appearanceManager: AppearanceManager
     @Environment(\.dismiss) var dismiss
     @State private var showingLogoutAlert = false
     @StateObject private var tutorialManager = TutorialManager.shared
@@ -22,7 +24,7 @@ struct SettingsView: View {
             List {
                 // Account Section
                 Section {
-                    NavigationLink(destination: AccountSettingsView()) {
+                    NavigationLink(destination: AccountSettingsView().environmentObject(authManager)) {
                         Label("Account", systemImage: "person.circle")
                     }
                     
@@ -45,6 +47,20 @@ struct SettingsView: View {
                             .foregroundColor(.orange)
                     }
                     #endif
+                }
+                
+                // Appearance Section
+                Section("Appearance") {
+                    HStack {
+                        Label("Dark Mode", systemImage: "moon.fill")
+                        Spacer()
+                        Toggle("", isOn: Binding(
+                            get: { appearanceManager.colorScheme == .dark },
+                            set: { isDark in
+                                appearanceManager.setColorScheme(isDark ? .dark : .light)
+                            }
+                        ))
+                    }
                 }
                 
                 // Information Section
@@ -129,9 +145,113 @@ struct SettingsView: View {
 // MARK: - Placeholder Views
 
 struct AccountSettingsView: View {
+    @EnvironmentObject var authManager: AuthManager
+    @State private var nickname: String = ""
+    @State private var bio: String = ""
+    @State private var isLoading = false
+    @State private var showingSuccessAlert = false
+    @State private var showingErrorAlert = false
+    @State private var errorMessage = ""
+    
+    private let bioCharacterLimit = 150
+    
     var body: some View {
-        Text("Account Settings")
-            .navigationTitle("Account")
+        Form {
+            Section("Profile Information") {
+                HStack {
+                    Text("Name")
+                    Spacer()
+                    Text(authManager.user?.name ?? "")
+                        .foregroundColor(.secondary)
+                }
+                
+                HStack {
+                    Text("Email")
+                    Spacer()
+                    Text(authManager.user?.email ?? "")
+                        .foregroundColor(.secondary)
+                }
+                
+                HStack {
+                    Text("Nickname")
+                    Spacer()
+                    TextField("Enter nickname", text: $nickname)
+                        .multilineTextAlignment(.trailing)
+                        .textFieldStyle(.plain)
+                }
+            }
+            
+            Section("Bio") {
+                TextEditor(text: $bio)
+                    .frame(minHeight: 80, maxHeight: 120)
+                
+                HStack {
+                    Spacer()
+                    Text("\(bio.count)/\(bioCharacterLimit) characters")
+                        .font(.caption)
+                        .foregroundColor(bio.count > bioCharacterLimit ? .red : .secondary)
+                }
+            }
+            
+            Section {
+                Button(action: saveProfile) {
+                    if isLoading {
+                        HStack {
+                            ProgressView()
+                                .scaleEffect(0.8)
+                            Text("Saving...")
+                        }
+                    } else {
+                        Text("Save Changes")
+                    }
+                }
+                .disabled(isLoading || bio.count > bioCharacterLimit)
+            }
+        }
+        .navigationTitle("Account Settings")
+        .navigationBarTitleDisplayMode(.inline)
+        .onAppear(perform: loadUserProfile)
+        .alert("Success", isPresented: $showingSuccessAlert) {
+            Button("OK") { }
+        } message: {
+            Text("Profile updated successfully!")
+        }
+        .alert("Error", isPresented: $showingErrorAlert) {
+            Button("OK") { }
+        } message: {
+            Text(errorMessage)
+        }
+    }
+    
+    private func loadUserProfile() {
+        nickname = authManager.user?.nickname ?? ""
+        bio = authManager.user?.bio ?? ""
+    }
+    
+    private func saveProfile() {
+        guard !isLoading else { return }
+        isLoading = true
+        
+        Task {
+            do {
+                let updatedUser = try await APIClient.shared.updateUserProfile(
+                    nickname: nickname.trimmingCharacters(in: .whitespacesAndNewlines),
+                    bio: bio.trimmingCharacters(in: .whitespacesAndNewlines)
+                )
+                
+                await authManager.updateUserProfile(from: updatedUser)
+                await MainActor.run {
+                    isLoading = false
+                    showingSuccessAlert = true
+                }
+            } catch {
+                await MainActor.run {
+                    errorMessage = error.localizedDescription
+                    isLoading = false
+                    showingErrorAlert = true
+                }
+            }
+        }
     }
 }
 

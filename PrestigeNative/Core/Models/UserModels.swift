@@ -17,12 +17,13 @@ struct UserResponse: Codable, Identifiable {
     let nickname: String
     let email: String
     let profilePictureUrl: String?
+    let bio: String?
     let isSetup: Bool
     let createdAt: Date?
     let spotifyConnected: Bool?
     
     enum CodingKeys: String, CodingKey {
-        case id, name, email, isSetup, createdAt, spotifyConnected
+        case id, name, email, bio, isSetup, createdAt, spotifyConnected
         case nickname = "nickName"
         case profilePictureUrl = "profilePicURL"
     }
@@ -34,6 +35,17 @@ struct NicknameRequest: Codable {
     
     enum CodingKeys: String, CodingKey {
         case nickname = "nickName"
+    }
+}
+
+/// Request to update user profile (nickname and bio)
+struct UpdateProfileRequest: Codable {
+    let nickname: String?
+    let bio: String?
+    
+    enum CodingKeys: String, CodingKey {
+        case nickname = "nickName"
+        case bio
     }
 }
 

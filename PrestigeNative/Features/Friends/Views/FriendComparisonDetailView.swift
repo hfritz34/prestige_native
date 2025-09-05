@@ -69,25 +69,167 @@ struct FriendComparisonDetailView: View {
             Text("You vs \(comparison.friendNickname)")
                 .font(.headline)
                 .fontWeight(.bold)
+                .foregroundColor(.primary)
             
-            HStack(spacing: 20) {
-                // User stats
+            // Side-by-side visual comparison (like demo/rating flow)
+            HStack(alignment: .center, spacing: 20) {
+                // User card (matching home page 3-column design)
+                VStack(spacing: 6) {
+                    ZStack {
+                        // Prestige background (matching home page design)
+                        if let userTier = comparison.userStats.prestigeTier,
+                           let prestigeLevel = PrestigeLevel(rawValue: userTier),
+                           prestigeLevel != .none && !prestigeLevel.imageName.isEmpty {
+                            Image(prestigeLevel.imageName)
+                                .resizable()
+                                .aspectRatio(contentMode: .fill)
+                                .opacity(0.8)
+                                .scaleEffect(1.1)
+                                .clipShape(RoundedRectangle(cornerRadius: 8))
+                        }
+                        
+                        // Item artwork (matching home page design)
+                        CachedAsyncImage(
+                            url: comparison.itemImageUrl,
+                            placeholder: Image(systemName: getItemTypeIcon()),
+                            contentMode: .fill
+                        )
+                        .frame(width: 110, height: 110)
+                        .clipShape(RoundedRectangle(cornerRadius: 8))
+                        .shadow(color: .black.opacity(0.2), radius: 2, x: 0, y: 1)
+                        
+                        // Prestige badge at bottom (matching home page)
+                        if let userTier = comparison.userStats.prestigeTier,
+                           let prestigeLevel = PrestigeLevel(rawValue: userTier) {
+                            VStack {
+                                Spacer()
+                                PrestigeBadge(tier: prestigeLevel, showText: false)
+                                    .scaleEffect(0.8)
+                                    .padding(.bottom, 8)
+                            }
+                        }
+                    }
+                    .frame(width: 150, height: 150)
+                    .aspectRatio(1, contentMode: .fit)
+                    
+                    // User info (matching home page design)
+                    VStack(spacing: 2) {
+                        Text("You")
+                            .font(.caption)
+                            .fontWeight(.semibold)
+                            .lineLimit(1)
+                            .foregroundColor(.primary)
+                        
+                        if let listeningTime = comparison.userStats.listeningTime {
+                            Text(TimeFormatter.formatListeningTime(listeningTime * 1000))
+                                .font(.caption2)
+                                .fontWeight(.medium)
+                                .foregroundColor(
+                                    Color(hex: comparison.userStats.prestigeTier.flatMap { PrestigeLevel.fromBackendTier($0).color } ?? "#6B7280") ?? .purple
+                                )
+                        }
+                    }
+                }
+                
+                // VS Indicator (using same design as rating comparison)
+                VersusIndicator()
+                
+                // Friend card (matching home page 3-column design)
+                VStack(spacing: 6) {
+                    ZStack {
+                        // Prestige background (matching home page design)
+                        if let friendTier = comparison.friendStats.prestigeTier,
+                           let prestigeLevel = PrestigeLevel(rawValue: friendTier),
+                           prestigeLevel != .none && !prestigeLevel.imageName.isEmpty {
+                            Image(prestigeLevel.imageName)
+                                .resizable()
+                                .aspectRatio(contentMode: .fill)
+                                .opacity(0.8)
+                                .scaleEffect(1.1)
+                                .clipShape(RoundedRectangle(cornerRadius: 8))
+                        }
+                        
+                        // Item artwork (matching home page design)
+                        CachedAsyncImage(
+                            url: comparison.itemImageUrl,
+                            placeholder: Image(systemName: getItemTypeIcon()),
+                            contentMode: .fill
+                        )
+                        .frame(width: 110, height: 110)
+                        .clipShape(RoundedRectangle(cornerRadius: 8))
+                        .shadow(color: .black.opacity(0.2), radius: 2, x: 0, y: 1)
+                        
+                        // Prestige badge at bottom (matching home page)
+                        if let friendTier = comparison.friendStats.prestigeTier,
+                           let prestigeLevel = PrestigeLevel(rawValue: friendTier) {
+                            VStack {
+                                Spacer()
+                                PrestigeBadge(tier: prestigeLevel, showText: false)
+                                    .scaleEffect(0.8)
+                                    .padding(.bottom, 8)
+                            }
+                        }
+                    }
+                    .frame(width: 150, height: 150)
+                    .aspectRatio(1, contentMode: .fit)
+                    
+                    // Friend info (matching home page design)
+                    VStack(spacing: 2) {
+                        Text(comparison.friendNickname)
+                            .font(.caption)
+                            .fontWeight(.semibold)
+                            .lineLimit(1)
+                            .foregroundColor(.primary)
+                        
+                        if let listeningTime = comparison.friendStats.listeningTime {
+                            Text(TimeFormatter.formatListeningTime(listeningTime * 1000))
+                                .font(.caption2)
+                                .fontWeight(.medium)
+                                .foregroundColor(
+                                    Color(hex: comparison.friendStats.prestigeTier.flatMap { PrestigeLevel.fromBackendTier($0).color } ?? "#6B7280") ?? .purple
+                                )
+                        }
+                    }
+                }
+            }
+        }
+        .padding()
+        .background(
+            RoundedRectangle(cornerRadius: 16)
+                .fill(Color(UIColor.secondarySystemBackground))
+        )
+    }
+    
+    private var detailedStatsSection: some View {
+        VStack(spacing: 16) {
+            Text("Stats Comparison")
+                .font(.headline)
+                .fontWeight(.bold)
+                .foregroundColor(.primary)
+                .frame(maxWidth: .infinity, alignment: .leading)
+            
+            // Side-by-side stats cards
+            HStack(spacing: 16) {
+                // User stats column
                 VStack(spacing: 12) {
                     Text("You")
                         .font(.subheadline)
                         .fontWeight(.semibold)
-                        .foregroundColor(Theme.primary)
+                        .foregroundColor(.primary)
                     
                     VStack(spacing: 8) {
+                        // Listening Time
                         if let listeningTime = comparison.userStats.listeningTime {
                             StatComparisonCard(
-                                title: "Listening Time",
+                                title: "Time",
                                 value: TimeFormatter.formatListeningTime(listeningTime * 1000),
                                 icon: "clock.fill",
                                 color: .blue
                             )
                         }
                         
+                        
+                        // Rating (if available)
                         if let rating = comparison.userStats.ratingScore {
                             StatComparisonCard(
                                 title: "Rating",
@@ -97,56 +239,39 @@ struct FriendComparisonDetailView: View {
                             )
                         }
                         
+                        // Position/Ranking
                         if let position = comparison.userStats.position {
                             StatComparisonCard(
-                                title: "Position",
+                                title: "Ranking",
                                 value: "#\(position)",
                                 icon: "trophy.fill",
                                 color: .yellow
-                            )
-                        }
-                        
-                        if let tier = comparison.userStats.prestigeTier {
-                            StatComparisonCard(
-                                title: "Prestige",
-                                value: tier,
-                                icon: "crown.fill",
-                                color: Color(hex: PrestigeLevel(rawValue: tier)?.color ?? "#6B7280") ?? .gray
                             )
                         }
                     }
                 }
                 .frame(maxWidth: .infinity)
                 
-                // VS separator
-                VStack {
-                    Text("VS")
-                        .font(.caption)
-                        .fontWeight(.bold)
-                        .foregroundColor(.secondary)
-                    
-                    Rectangle()
-                        .frame(width: 1, height: 100)
-                        .foregroundColor(.secondary)
-                }
-                
-                // Friend stats
+                // Friend stats column
                 VStack(spacing: 12) {
                     Text(comparison.friendNickname)
                         .font(.subheadline)
                         .fontWeight(.semibold)
-                        .foregroundColor(.green)
+                        .foregroundColor(.primary)
                     
                     VStack(spacing: 8) {
+                        // Listening Time
                         if let listeningTime = comparison.friendStats.listeningTime {
                             StatComparisonCard(
-                                title: "Listening Time",
+                                title: "Time",
                                 value: TimeFormatter.formatListeningTime(listeningTime * 1000),
                                 icon: "clock.fill",
                                 color: .blue
                             )
                         }
                         
+                        
+                        // Rating (if available)
                         if let rating = comparison.friendStats.ratingScore {
                             StatComparisonCard(
                                 title: "Rating",
@@ -156,21 +281,13 @@ struct FriendComparisonDetailView: View {
                             )
                         }
                         
+                        // Position/Ranking
                         if let position = comparison.friendStats.position {
                             StatComparisonCard(
-                                title: "Position",
+                                title: "Ranking",
                                 value: "#\(position)",
                                 icon: "trophy.fill",
                                 color: .yellow
-                            )
-                        }
-                        
-                        if let tier = comparison.friendStats.prestigeTier {
-                            StatComparisonCard(
-                                title: "Prestige",
-                                value: tier,
-                                icon: "crown.fill",
-                                color: Color(hex: PrestigeLevel(rawValue: tier)?.color ?? "#6B7280") ?? .gray
                             )
                         }
                     }
@@ -185,60 +302,6 @@ struct FriendComparisonDetailView: View {
         )
     }
     
-    private var detailedStatsSection: some View {
-        VStack(spacing: 16) {
-            Text("Detailed Comparison")
-                .font(.headline)
-                .fontWeight(.bold)
-                .frame(maxWidth: .infinity, alignment: .leading)
-            
-            VStack(spacing: 12) {
-                // Listening time comparison
-                if let userTime = comparison.userStats.listeningTime,
-                   let friendTime = comparison.friendStats.listeningTime {
-                    ComparisonBar(
-                        title: "Listening Time",
-                        userValue: Double(userTime),
-                        friendValue: Double(friendTime),
-                        userLabel: TimeFormatter.formatListeningTime(userTime * 1000),
-                        friendLabel: TimeFormatter.formatListeningTime(friendTime * 1000),
-                        friendName: comparison.friendNickname
-                    )
-                }
-                
-                // Rating comparison
-                if let userRating = comparison.userStats.ratingScore,
-                   let friendRating = comparison.friendStats.ratingScore {
-                    ComparisonBar(
-                        title: "Rating",
-                        userValue: userRating,
-                        friendValue: friendRating,
-                        userLabel: String(format: "%.1f", userRating),
-                        friendLabel: String(format: "%.1f", friendRating),
-                        friendName: comparison.friendNickname,
-                        maxValue: 10.0
-                    )
-                }
-                
-                // Position comparison (lower is better)
-                if let userPosition = comparison.userStats.position,
-                   let friendPosition = comparison.friendStats.position {
-                    let maxPosition = max(userPosition, friendPosition)
-                    ComparisonBar(
-                        title: "Position (Lower is Better)",
-                        userValue: Double(maxPosition + 1 - userPosition),
-                        friendValue: Double(maxPosition + 1 - friendPosition),
-                        userLabel: "#\(userPosition)",
-                        friendLabel: "#\(friendPosition)",
-                        friendName: comparison.friendNickname,
-                        maxValue: Double(maxPosition + 1),
-                        isInverted: true
-                    )
-                }
-            }
-        }
-    }
-    
     // MARK: - Helper Methods
     
     private func getItemTypeIcon() -> String {
@@ -249,6 +312,7 @@ struct FriendComparisonDetailView: View {
         default: return "music.note"
         }
     }
+    
 }
 
 // MARK: - Supporting Views
@@ -472,3 +536,4 @@ struct ComparisonBar: View {
         )
     )
 }
+

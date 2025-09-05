@@ -68,7 +68,7 @@ struct DemoAlbumCard: View {
                     .font(.caption2)
                     .fontWeight(.semibold)
                     .lineLimit(1)
-                    .foregroundColor(.white)
+                    .foregroundColor(.primary)
                 
                 Text(artistName)
                     .font(.caption2)
@@ -104,10 +104,10 @@ struct DemoRatingCard: View {
             Text("Head-to-Head Comparison")
                 .font(.headline)
                 .fontWeight(.semibold)
-                .foregroundColor(.white)
+                .foregroundColor(.primary)
             
             // VS Display  
-            HStack(alignment: .top, spacing: 20) {
+            HStack(alignment: .center, spacing: 20) {
                 // Left album - BOY ANONYMOUS (winner)
                 VStack(spacing: 12) {
                     ZStack {
@@ -135,7 +135,7 @@ struct DemoRatingCard: View {
                         Text("BOY ANONYMOUS")
                             .font(.caption)
                             .fontWeight(.semibold)
-                            .foregroundColor(.white)
+                            .foregroundColor(.primary)
                             .lineLimit(1)
                         Text("Paris Texas")
                             .font(.caption2)
@@ -153,17 +153,8 @@ struct DemoRatingCard: View {
                 .scaleEffect(selectedWinner == "left" ? 1.05 : 0.95)
                 .animation(.spring(response: 0.3, dampingFraction: 0.7), value: selectedWinner)
                 
-                // VS Badge
-                Text("VS")
-                    .font(.title2)
-                    .fontWeight(.black)
-                    .foregroundColor(.white)
-                    .padding(.horizontal, 12)
-                    .padding(.vertical, 6)
-                    .background(
-                        Capsule()
-                            .fill(Color.purple)
-                    )
+                // VS Indicator (using same design as rating comparison)
+                VersusIndicator()
                 
                 // Right album - Gemini Rights
                 VStack(spacing: 12) {
@@ -192,7 +183,7 @@ struct DemoRatingCard: View {
                         Text("Gemini Rights")
                             .font(.caption)
                             .fontWeight(.semibold)
-                            .foregroundColor(.white)
+                            .foregroundColor(.primary)
                             .lineLimit(1)
                         Text("Steve Lacy")
                             .font(.caption2)
@@ -244,7 +235,7 @@ struct DemoFriendsComparison: View {
             Text("Friend Comparison")
                 .font(.headline)
                 .fontWeight(.semibold)
-                .foregroundColor(.white)
+                .foregroundColor(.primary)
             
             // Comparison cards
             HStack(spacing: 12) {
@@ -253,7 +244,7 @@ struct DemoFriendsComparison: View {
                     Text("You")
                         .font(.subheadline)
                         .fontWeight(.semibold)
-                        .foregroundColor(.white)
+                        .foregroundColor(.primary)
                     
                     DemoAlbumCard(
                         prestigeLevel: .diamond,
@@ -271,16 +262,22 @@ struct DemoFriendsComparison: View {
                 }
                 
                 Text("VS")
-                    .font(.headline)
-                    .fontWeight(.bold)
-                    .foregroundColor(.white.opacity(0.6))
+                    .font(.title2)
+                    .fontWeight(.black)
+                    .foregroundColor(.primary)
+                    .padding(.horizontal, 12)
+                    .padding(.vertical, 6)
+                    .background(
+                        Capsule()
+                            .fill(Color.purple)
+                    )
                 
                 // Friend card
                 VStack(spacing: 8) {
-                    Text("Alex")
+                    Text("Oliver(friend)")
                         .font(.subheadline)
                         .fontWeight(.semibold)
-                        .foregroundColor(.white)
+                        .foregroundColor(.primary)
                     
                     DemoAlbumCard(
                         prestigeLevel: .gold,
@@ -323,13 +320,13 @@ struct DemoProfileView: View {
                         Text("YU")
                             .font(.title2)
                             .fontWeight(.bold)
-                            .foregroundColor(.white)
+                            .foregroundColor(.primary)
                     )
                 
                 Text("Your Profile")
                     .font(.headline)
                     .fontWeight(.semibold)
-                    .foregroundColor(.white)
+                    .foregroundColor(.primary)
             }
             
             // Stats grid
@@ -383,7 +380,7 @@ struct DemoStatCard: View {
             Text(value)
                 .font(.subheadline)
                 .fontWeight(.bold)
-                .foregroundColor(.white)
+                .foregroundColor(.primary)
             
             Text(title)
                 .font(.caption2)
@@ -406,3 +403,4 @@ struct DemoStatCard: View {
     .padding()
     .background(Color.black)
 }
+

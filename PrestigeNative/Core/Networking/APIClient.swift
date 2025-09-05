@@ -60,6 +60,14 @@ class APIClient: ObservableObject {
             
             // Handle successful responses
             if 200...299 ~= httpResponse.statusCode {
+                // Debug: Log response data for prestige-related endpoints
+                if let dataString = String(data: data, encoding: .utf8),
+                   let url = request.url?.absoluteString,
+                   (url.contains("tracks") || url.contains("albums") || url.contains("artists")) {
+                    print("🔍 API Response for \(url):")
+                    print("🔍 Response data: \(dataString.prefix(500))")
+                }
+                
                 let decoder = JSONDecoder()
                 decoder.dateDecodingStrategy = .iso8601
                 return try decoder.decode(T.self, from: data)
@@ -485,6 +493,15 @@ extension APIClient {
         }
         let request = NicknameRequest(nickname: nickname)
         return try await patch(APIEndpoints.updateNickname(userId: userId), body: request, responseType: UserResponse.self)
+    }
+    
+    /// Update user profile (nickname and bio)
+    func updateUserProfile(nickname: String, bio: String) async throws -> UserResponse {
+        guard let userId = authManager?.user?.id else {
+            throw APIError.authenticationError
+        }
+        let request = UpdateProfileRequest(nickname: nickname.isEmpty ? nil : nickname, bio: bio.isEmpty ? nil : bio)
+        return try await patch(APIEndpoints.updateUserProfile(userId: userId), body: request, responseType: UserResponse.self)
     }
     
     /// Add friend with cache invalidation

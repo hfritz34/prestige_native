@@ -18,6 +18,7 @@ struct PrestigeNativeApp: App {
                 .environmentObject(authManager)
                 .environmentObject(appearanceManager)
                 .preferredColorScheme(appearanceManager.colorScheme)
+                .dynamicTypeSize(.medium)
                 .onOpenURL { url in
                     print("🔵 App: ==========================================")
                     print("🔵 App: RECEIVED URL CALLBACK!")

@@ -175,6 +175,19 @@ struct AddFavoritesView: View {
         }
         
         do {
+            // First save any pending favorites changes
+            if viewModel.hasUnsavedChanges {
+                await viewModel.saveFavorites()
+                
+                // Check if saving failed
+                if viewModel.showingError {
+                    await MainActor.run {
+                        isCompleting = false
+                    }
+                    return
+                }
+            }
+            
             // Update user setup status
             _ = try await APIClient.shared.updateUserSetupStatus(true)
             

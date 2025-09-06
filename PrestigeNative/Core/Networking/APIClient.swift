@@ -669,7 +669,7 @@ extension APIClient {
             throw APIError.authenticationError
         }
         
-        let endpoint = "api/friendships/\(userId)/friend-requests"
+        let endpoint = "api/friendships/\(userId)/outgoing-friend-requests"
         return try await get(endpoint, responseType: [FriendRequestResponse].self)
     }
     

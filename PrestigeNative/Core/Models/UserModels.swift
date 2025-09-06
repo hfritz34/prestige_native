@@ -132,11 +132,10 @@ struct FriendRequestResponse: Codable, Identifiable {
 }
 
 /// Friend request status enum
-enum FriendRequestStatus: String, Codable, CaseIterable {
-    case pending = "pending"
-    case accepted = "accepted" 
-    case declined = "declined"
-    case blocked = "blocked"
+enum FriendRequestStatus: Int, Codable, CaseIterable {
+    case pending = 0
+    case accepted = 1
+    case declined = 2
     
     var displayName: String {
         switch self {
@@ -146,8 +145,6 @@ enum FriendRequestStatus: String, Codable, CaseIterable {
             return "Accepted"
         case .declined:
             return "Declined"
-        case .blocked:
-            return "Blocked"
         }
     }
 }

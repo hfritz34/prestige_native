@@ -318,23 +318,9 @@ class FriendsService: ObservableObject {
                 }
             } else {
                 let friendRequest = try await apiClient.sendFriendRequest(friendId: friendId)
+                // Refresh outgoing requests to get the actual request from server
+                await fetchOutgoingFriendRequests()
                 await MainActor.run {
-                    // Add to outgoing requests (convert FriendResponse to FriendRequestResponse)
-                    let outgoingRequest = FriendRequestResponse(
-                        id: UUID().uuidString,
-                        fromUserId: authManager.user?.id ?? "",
-                        toUserId: friendId,
-                        fromUserName: authManager.user?.nickname ?? "",
-                        fromUserNickname: authManager.user?.nickname,
-                        fromUserProfilePicUrl: authManager.user?.profilePictureUrl,
-                        toUserName: friendRequest.name,
-                        toUserNickname: friendRequest.nickname,
-                        toUserProfilePicUrl: friendRequest.profilePicUrl,
-                        status: .pending,
-                        createdAt: Date(),
-                        updatedAt: nil
-                    )
-                    self.outgoingFriendRequests.append(outgoingRequest)
                     // Remove from search results if present
                     self.searchResults.removeAll { $0.id == friendId }
                     self.isLoading = false

@@ -72,6 +72,13 @@ struct FriendsView: View {
                 await friendsService.fetchIncomingFriendRequests()
                 await friendsService.fetchOutgoingFriendRequests()
             }
+            .onAppear {
+                // Refresh requests when view appears to handle state restoration
+                Task {
+                    await friendsService.fetchIncomingFriendRequests()
+                    await friendsService.fetchOutgoingFriendRequests()
+                }
+            }
             .refreshable {
                 await friendsService.refreshFriendsData()
                 await viewModel.loadFriends()
@@ -162,6 +169,8 @@ struct FriendsView: View {
                         onAddFriend: {
                             Task {
                                 await friendsService.sendFriendRequest(friendId: user.id)
+                                // Refresh to update UI state
+                                await viewModel.searchUsers(query: searchText)
                             }
                         }
                     )

@@ -23,7 +23,7 @@ struct GridRatingCard: View {
                     maxHeight: nil
                 )
                 .aspectRatio(1, contentMode: .fill)
-                .frame(width: 130, height: 130)
+                .frame(maxWidth: .infinity, maxHeight: .infinity)
                 .clipped()
                 .modifier(ImageShapeModifier(itemType: itemData.itemType))
                 .overlay(
@@ -67,6 +67,7 @@ struct GridRatingCard: View {
                 .frame(maxWidth: .infinity, minHeight: 28, alignment: .topLeading)
             }
             .frame(maxWidth: .infinity)
+            .frame(minHeight: 160) // Ensure consistent minimum height
         }
         .buttonStyle(PlainButtonStyle())
         .contextMenu {

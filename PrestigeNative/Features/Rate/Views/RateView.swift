@@ -27,6 +27,15 @@ struct RateView: View {
     @State private var isCacheReady = false
     @State private var hasInitialLoad = false
     
+    // Adaptive grid columns based on screen width
+    private var adaptiveGridColumns: [GridItem] {
+        [
+            GridItem(.flexible(minimum: 100, maximum: 140), spacing: 8),
+            GridItem(.flexible(minimum: 100, maximum: 140), spacing: 8),
+            GridItem(.flexible(minimum: 100, maximum: 140), spacing: 8)
+        ]
+    }
+    
     var body: some View {
         NavigationView {
             VStack(spacing: 0) {
@@ -311,12 +320,8 @@ struct RateView: View {
                 let items = Array(filteredUnratedItems.prefix(unratedLimit))
                 
                 if isGridView {
-                    // Grid layout
-                    LazyVGrid(columns: [
-                        GridItem(.flexible(), spacing: 1),
-                        GridItem(.flexible(), spacing: 1),
-                        GridItem(.flexible(), spacing: 1)
-                    ], spacing: 2) {
+                    // Grid layout - responsive columns
+                    LazyVGrid(columns: adaptiveGridColumns, spacing: 12) {
                         ForEach(items, id: \.id) { item in
                             GridRatingCard(
                                 itemData: item,
@@ -335,6 +340,7 @@ struct RateView: View {
                             }
                         }
                     }
+                    .padding(.horizontal, 16)
                 } else {
                     // List layout
                     ForEach(items, id: \.id) { item in
@@ -379,12 +385,8 @@ struct RateView: View {
                 let items = Array(topRatedItems.prefix(topRatedLimit))
                 
                 if isGridView {
-                    // Grid layout
-                    LazyVGrid(columns: [
-                        GridItem(.flexible(), spacing: 1),
-                        GridItem(.flexible(), spacing: 1),
-                        GridItem(.flexible(), spacing: 1)
-                    ], spacing: 2) {
+                    // Grid layout - responsive columns
+                    LazyVGrid(columns: adaptiveGridColumns, spacing: 12) {
                         ForEach(Array(items.enumerated()), id: \.element.id) { _, item in
                             GridRatingCard(
                                 itemData: item.itemData,
@@ -407,6 +409,7 @@ struct RateView: View {
                             }
                         }
                     }
+                    .padding(.horizontal, 16)
                 } else {
                     // List layout
                     ForEach(Array(items.enumerated()), id: \.element.id) { _, item in
@@ -458,12 +461,8 @@ struct RateView: View {
                 let items = Array(allRatedItems.prefix(yourRatingsLimit))
                 
                 if isGridView {
-                    // Grid layout
-                    LazyVGrid(columns: [
-                        GridItem(.flexible(), spacing: 1),
-                        GridItem(.flexible(), spacing: 1),
-                        GridItem(.flexible(), spacing: 1)
-                    ], spacing: 2) {
+                    // Grid layout - responsive columns
+                    LazyVGrid(columns: adaptiveGridColumns, spacing: 12) {
                         ForEach(items, id: \.id) { item in
                             GridRatingCard(
                                 itemData: item.itemData,
@@ -486,6 +485,7 @@ struct RateView: View {
                             }
                         }
                     }
+                    .padding(.horizontal, 16)
                 } else {
                     // List layout
                     ForEach(items, id: \.id) { item in

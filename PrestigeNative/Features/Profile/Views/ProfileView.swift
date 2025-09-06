@@ -17,6 +17,7 @@ struct ProfileView: View {
     @State private var selectedTopType: ContentType = .albums
     @State private var selectedContentType: ContentType = .albums
     @State private var showingSettings = false
+    @State private var showingEditProfile = false
     @State private var selectedPrestige: PrestigeSelection?
     @State private var hasInitiallyLoaded = false
     
@@ -67,6 +68,10 @@ struct ProfileView: View {
                     SettingsView()
                         .environmentObject(authManager)
                         .environmentObject(appearanceManager)
+                }
+                .sheet(isPresented: $showingEditProfile) {
+                    EditProfileView()
+                        .environmentObject(authManager)
                 }
                 .sheet(item: $selectedPrestige) { selection in
                     PrestigeDetailView(
@@ -193,12 +198,12 @@ struct ProfileView: View {
             // Profile Actions
             HStack(spacing: 12) {
                 Button(action: {
-                    // TODO: Edit profile action
+                    showingEditProfile = true
                 }) {
                     Text("Edit profile")
                         .font(.subheadline)
                         .frame(maxWidth: .infinity)
-                        .padding(.vertical, 10)
+                        .padding(.vertical, 6)
                 }
                 .buttonStyle(.borderedProminent)
                 .tint(.purple)
@@ -209,7 +214,7 @@ struct ProfileView: View {
                     Text("Share profile")
                         .font(.subheadline)
                         .frame(maxWidth: .infinity)
-                        .padding(.vertical, 10)
+                        .padding(.vertical, 6)
                 }
                 .buttonStyle(.bordered)
                 .tint(.secondary)

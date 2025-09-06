@@ -495,12 +495,9 @@ extension APIClient {
         return try await patch(APIEndpoints.updateNickname(userId: userId), body: request, responseType: UserResponse.self)
     }
     
-    /// Update user profile (nickname and bio)
-    func updateUserProfile(nickname: String, bio: String) async throws -> UserResponse {
-        guard let userId = authManager?.user?.id else {
-            throw APIError.authenticationError
-        }
-        let request = UpdateProfileRequest(nickname: nickname.isEmpty ? nil : nickname, bio: bio.isEmpty ? nil : bio)
+    /// Update user profile (display name and bio)
+    func updateUserProfile(userId: String, displayName: String, bio: String?) async throws -> UserResponse {
+        let request = UpdateProfileRequest(nickname: displayName.isEmpty ? nil : displayName, bio: bio)
         return try await patch(APIEndpoints.updateUserProfile(userId: userId), body: request, responseType: UserResponse.self)
     }
     

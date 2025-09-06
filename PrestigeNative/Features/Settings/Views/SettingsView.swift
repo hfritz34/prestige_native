@@ -234,12 +234,21 @@ struct AccountSettingsView: View {
         
         Task {
             do {
+                guard let userId = authManager.user?.id else {
+                    throw APIError.authenticationError
+                }
+                
                 let updatedUser = try await APIClient.shared.updateUserProfile(
-                    nickname: nickname.trimmingCharacters(in: .whitespacesAndNewlines),
-                    bio: bio.trimmingCharacters(in: .whitespacesAndNewlines)
+                    userId: userId,
+                    displayName: nickname.trimmingCharacters(in: .whitespacesAndNewlines),
+                    bio: bio.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty ? nil : bio.trimmingCharacters(in: .whitespacesAndNewlines)
                 )
                 
-                await authManager.updateUserProfile(from: updatedUser)
+                // Update local user object
+                await MainActor.run {
+                    authManager.user?.nickname = updatedUser.nickname
+                    authManager.user?.bio = updatedUser.bio
+                }
                 await MainActor.run {
                     isLoading = false
                     showingSuccessAlert = true

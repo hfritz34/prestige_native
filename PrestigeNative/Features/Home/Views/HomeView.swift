@@ -19,13 +19,14 @@ struct HomeView: View {
     @State private var showContentButtons = false
     @State private var gridColumnCount: Int = 3 // Default: 3 columns
     @StateObject private var tutorialManager = TutorialManager.shared
+    @Environment(\.colorScheme) var colorScheme
     
     var body: some View {
         NavigationView {
             VStack(spacing: 0) {
                 // Header with crown logo and title
                 HStack(alignment: .center, spacing: 8) {
-                    Image("white_logo_clear")
+                    Image(colorScheme == .dark ? "white_crown" : "purple_crown")
                         .resizable()
                         .scaledToFit()
                         .frame(width: 32, height: 32)
@@ -33,7 +34,7 @@ struct HomeView: View {
                     Text("Your Prestiges")
                         .font(.title2)
                         .fontWeight(.bold)
-                        .foregroundColor(.white)
+                        .foregroundColor(.primary)
                         .offset(y: 2)
                     
                     Spacer()
@@ -225,12 +226,12 @@ struct HomeView: View {
                         Text(range.displayName)
                             .font(.subheadline)
                             .fontWeight(viewModel.selectedTimeRange == range ? .semibold : .medium)
-                            .foregroundColor(viewModel.selectedTimeRange == range ? .white : .secondary)
+                            .foregroundColor(viewModel.selectedTimeRange == range ? .primary : .secondary)
                             .lineLimit(1)
                         
                         Rectangle()
                             .frame(height: 2)
-                            .foregroundColor(viewModel.selectedTimeRange == range ? .white : .clear)
+                            .foregroundColor(viewModel.selectedTimeRange == range ? .primary : .clear)
                     }
                 }
                 .frame(maxWidth: .infinity)

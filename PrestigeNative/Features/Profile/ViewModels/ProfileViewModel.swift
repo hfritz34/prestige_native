@@ -166,8 +166,18 @@ class ProfileViewModel: ObservableObject {
             let (loadedTracks, loadedAlbums, loadedArtists) = try await (tracks, albums, artists)
             
             await MainActor.run {
-                // Sort by score to ensure we show top rated items first
-                self.ratedTracks = loadedTracks.sorted { $0.rating.personalScore > $1.rating.personalScore }
+                // Sort tracks by album first, then by position within each album
+                self.ratedTracks = loadedTracks.sorted { track1, track2 in
+                    let album1 = track1.itemData.albumName ?? ""
+                    let album2 = track2.itemData.albumName ?? ""
+                    
+                    if album1 != album2 {
+                        return album1 < album2 // Sort albums alphabetically
+                    } else {
+                        return track1.rating.position < track2.rating.position // Then by position within album
+                    }
+                }
+                // Sort albums and artists by score (descending) to show highest rated first
                 self.ratedAlbums = loadedAlbums.sorted { $0.rating.personalScore > $1.rating.personalScore }
                 self.ratedArtists = loadedArtists.sorted { $0.rating.personalScore > $1.rating.personalScore }
                 self.ratingsLoaded = true
@@ -182,13 +192,32 @@ class ProfileViewModel: ObservableObject {
         }
     }
     
-    /// Get current ratings based on selected type (Albums and Artists only for profile carousel)
+    /// Get current ratings based on selected type
     var currentRatings: [RatedItem] {
         switch selectedRatingType {
-        case .track: return ratedAlbums // Default to albums if tracks somehow selected
+        case .track: return ratedTracks // Now supports track ratings with positional ranking
         case .album: return ratedAlbums
         case .artist: return ratedArtists
         }
+    }
+    
+    /// Get track ratings organized by album for better display
+    var trackRatingsByAlbum: [(albumName: String, tracks: [RatedItem])] {
+        // Group tracks by album name
+        let grouped = Dictionary(grouping: ratedTracks) { track in
+            track.itemData.albumName ?? "Unknown Album"
+        }
+        
+        // Sort albums by best average position of their tracks, then by album name
+        return grouped.sorted { album1, album2 in
+            let avgPosition1 = album1.value.map(\.rating.position).reduce(0, +) / album1.value.count
+            let avgPosition2 = album2.value.map(\.rating.position).reduce(0, +) / album2.value.count
+            
+            if avgPosition1 != avgPosition2 {
+                return avgPosition1 < avgPosition2 // Better average position first
+            }
+            return album1.key < album2.key // Then alphabetical
+        }.map { (albumName: $0.key, tracks: $0.value.sorted { $0.rating.position < $1.rating.position }) }
     }
     
     /// Change rating type selection

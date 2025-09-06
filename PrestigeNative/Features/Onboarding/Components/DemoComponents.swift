@@ -14,10 +14,24 @@ struct DemoAlbumCard: View {
     let listeningTime: String
     let showAnimation: Bool
     var delay: Double = 0.0
+    var albumData: DemoAlbumData? = nil // New: optional personalized data
     var albumImageUrl: String = "https://i.scdn.co/image/ab67616d0000b273e09e5aed7d747f5692b183ea"
     var albumName: String = "London's Saviour"
     var artistName: String = "fakemink"
     var imageSize: CGFloat = 110  // Default grid size
+    
+    // Computed properties to use personalized data when available
+    private var finalImageUrl: String {
+        return albumData?.imageUrl ?? albumImageUrl
+    }
+    
+    private var finalAlbumName: String {
+        return albumData?.name ?? albumName
+    }
+    
+    private var finalArtistName: String {
+        return albumData?.artistName ?? artistName
+    }
     
     @State private var isVisible = false
     
@@ -36,7 +50,7 @@ struct DemoAlbumCard: View {
                 }
                 
                 // Album artwork - properly centered
-                AsyncImage(url: URL(string: albumImageUrl)) { image in
+                AsyncImage(url: URL(string: finalImageUrl)) { image in
                     image
                         .resizable()
                         .aspectRatio(contentMode: .fill)
@@ -64,13 +78,13 @@ struct DemoAlbumCard: View {
             
             // Album info
             VStack(spacing: 2) {
-                Text(albumName)
+                Text(finalAlbumName)
                     .font(.caption2)
                     .fontWeight(.semibold)
                     .lineLimit(1)
                     .foregroundColor(.primary)
                 
-                Text(artistName)
+                Text(finalArtistName)
                     .font(.caption2)
                     .foregroundColor(.white.opacity(0.7))
                     .lineLimit(1)
@@ -95,6 +109,8 @@ struct DemoAlbumCard: View {
 
 // MARK: - Demo Head-to-Head Rating Comparison
 struct DemoRatingCard: View {
+    var leftAlbumData: DemoAlbumData? = nil
+    var rightAlbumData: DemoAlbumData? = nil
     @State private var selectedWinner: String? = "left"
     @State private var showResult = false
     
@@ -107,11 +123,11 @@ struct DemoRatingCard: View {
                 .foregroundColor(.primary)
             
             // VS Display  
-            HStack(alignment: .center, spacing: 20) {
-                // Left album - BOY ANONYMOUS (winner)
+            HStack(alignment: .top, spacing: 20) {
+                // Left album - personalized or default
                 VStack(spacing: 12) {
                     ZStack {
-                        AsyncImage(url: URL(string: "https://i.scdn.co/image/ab67616d0000b273a3fed508a9b88a492b589873")) { image in
+                        AsyncImage(url: URL(string: leftAlbumData?.imageUrl ?? "https://i.scdn.co/image/ab67616d0000b273a3fed508a9b88a492b589873")) { image in
                             image
                                 .resizable()
                                 .aspectRatio(contentMode: .fill)
@@ -132,34 +148,39 @@ struct DemoRatingCard: View {
                     }
                     
                     VStack(spacing: 4) {
-                        Text("BOY ANONYMOUS")
+                        Text(leftAlbumData?.name ?? "BOY ANONYMOUS")
                             .font(.caption)
                             .fontWeight(.semibold)
                             .foregroundColor(.primary)
                             .lineLimit(1)
-                        Text("Paris Texas")
+                        Text(leftAlbumData?.artistName ?? "Paris Texas")
                             .font(.caption2)
                             .foregroundColor(.white.opacity(0.7))
                     }
                     
-                    if selectedWinner == "left" && showResult {
-                        Text("Winner! 🏆")
-                            .font(.caption)
-                            .fontWeight(.bold)
-                            .foregroundColor(.green)
-                            .transition(.scale)
-                    }
+                    Text(selectedWinner == "left" && showResult ? "Winner! 🏆" : "")
+                        .font(.caption)
+                        .fontWeight(.bold)
+                        .foregroundColor(.green)
+                        .frame(height: 16) // Fixed height to prevent layout shift
+                        .transition(.scale)
                 }
-                .scaleEffect(selectedWinner == "left" ? 1.05 : 0.95)
+                .frame(width: 120, height: 180) // Fixed frame to prevent movement
+                .scaleEffect(selectedWinner == "left" ? 1.05 : 1.0)
                 .animation(.spring(response: 0.3, dampingFraction: 0.7), value: selectedWinner)
                 
-                // VS Indicator (using same design as rating comparison)
-                VersusIndicator()
+                // VS Indicator centered on album artwork
+                VStack {
+                    VersusIndicator()
+                        .padding(.top, 35) // Adjust to center on the 120px album art
+                    Spacer()
+                }
+                .frame(height: 180) // Match album card height
                 
-                // Right album - Gemini Rights
+                // Right album - personalized or default
                 VStack(spacing: 12) {
                     ZStack {
-                        AsyncImage(url: URL(string: "https://i.scdn.co/image/ab67616d0000b27368968350c2550e36d96344ee")) { image in
+                        AsyncImage(url: URL(string: rightAlbumData?.imageUrl ?? "https://i.scdn.co/image/ab67616d0000b27368968350c2550e36d96344ee")) { image in
                             image
                                 .resizable()
                                 .aspectRatio(contentMode: .fill)
@@ -180,25 +201,25 @@ struct DemoRatingCard: View {
                     }
                     
                     VStack(spacing: 4) {
-                        Text("Gemini Rights")
+                        Text(rightAlbumData?.name ?? "Gemini Rights")
                             .font(.caption)
                             .fontWeight(.semibold)
                             .foregroundColor(.primary)
                             .lineLimit(1)
-                        Text("Steve Lacy")
+                        Text(rightAlbumData?.artistName ?? "Steve Lacy")
                             .font(.caption2)
                             .foregroundColor(.white.opacity(0.7))
                     }
                     
-                    if selectedWinner == "right" && showResult {
-                        Text("Winner! 🏆")
-                            .font(.caption)
-                            .fontWeight(.bold)
-                            .foregroundColor(.green)
-                            .transition(.scale)
-                    }
+                    Text(selectedWinner == "right" && showResult ? "Winner! 🏆" : "")
+                        .font(.caption)
+                        .fontWeight(.bold)
+                        .foregroundColor(.green)
+                        .frame(height: 16) // Fixed height to prevent layout shift
+                        .transition(.scale)
                 }
-                .scaleEffect(selectedWinner == "right" ? 1.05 : 0.95)
+                .frame(width: 120, height: 180) // Fixed frame to prevent movement
+                .scaleEffect(selectedWinner == "right" ? 1.05 : 1.0)
                 .animation(.spring(response: 0.3, dampingFraction: 0.7), value: selectedWinner)
             }
             
@@ -230,6 +251,8 @@ struct DemoRatingCard: View {
 
 // MARK: - Demo Friends Comparison
 struct DemoFriendsComparison: View {
+    var albumData: DemoAlbumData? = nil
+    
     var body: some View {
         VStack(spacing: 16) {
             Text("Friend Comparison")
@@ -250,6 +273,7 @@ struct DemoFriendsComparison: View {
                         prestigeLevel: .diamond,
                         listeningTime: "50h 0m",
                         showAnimation: false,
+                        albumData: albumData,
                         albumImageUrl: "https://i.scdn.co/image/ab67616d0000b273072e9faef2ef7b6db63834a3",
                         albumName: "ASTROWORLD",
                         artistName: "Travis Scott",
@@ -261,20 +285,11 @@ struct DemoFriendsComparison: View {
                         .foregroundColor(.cyan)
                 }
                 
-                Text("VS")
-                    .font(.title2)
-                    .fontWeight(.black)
-                    .foregroundColor(.primary)
-                    .padding(.horizontal, 12)
-                    .padding(.vertical, 6)
-                    .background(
-                        Capsule()
-                            .fill(Color.purple)
-                    )
+                VersusIndicator()
                 
                 // Friend card
                 VStack(spacing: 8) {
-                    Text("Oliver(friend)")
+                    Text("Friend")
                         .font(.subheadline)
                         .fontWeight(.semibold)
                         .foregroundColor(.primary)
@@ -283,6 +298,7 @@ struct DemoFriendsComparison: View {
                         prestigeLevel: .gold,
                         listeningTime: "32h 15m",
                         showAnimation: false,
+                        albumData: albumData,
                         albumImageUrl: "https://i.scdn.co/image/ab67616d0000b273072e9faef2ef7b6db63834a3",
                         albumName: "ASTROWORLD",
                         artistName: "Travis Scott",
@@ -301,9 +317,11 @@ struct DemoFriendsComparison: View {
                 .fontWeight(.semibold)
                 .foregroundColor(.green)
         }
-        .padding()
+        .padding(.horizontal, 24) // Increase horizontal padding 
+        .padding(.vertical, 16)
         .background(Color.white.opacity(0.1))
         .cornerRadius(12)
+        .padding(.horizontal, 24) // Increase margin from screen edges
     }
 }
 
@@ -340,22 +358,31 @@ struct DemoProfileView: View {
                 DemoStatCard(title: "Albums Rated", value: "127", icon: "star.fill", color: .yellow)
             }
             
-            // Top prestige preview
-            VStack(spacing: 8) {
-                Text("Your Top Prestige")
+            // Collect prestiges encouragement
+            VStack(spacing: 12) {
+                Text("Collect Prestiges!")
                     .font(.subheadline)
                     .fontWeight(.semibold)
                     .foregroundColor(.white.opacity(0.8))
                 
-                DemoAlbumCard(
-                    prestigeLevel: .darkMatter,
-                    listeningTime: "83h 20m",
-                    showAnimation: false,
-                    albumImageUrl: "https://i.scdn.co/image/ab67616d0000b273c43b3a9459cadcf6f68867cd",
-                    albumName: "Pray For Haiti",
-                    artistName: "Mach-Hommy",
-                    imageSize: 160
-                )
+                Image("purple_crown")
+                    .resizable()
+                    .scaledToFit()
+                    .frame(width: 80, height: 80)
+                    .padding()
+                    .background(
+                        Circle()
+                            .fill(LinearGradient(
+                                colors: [Color.purple.opacity(0.3), Color.blue.opacity(0.2)],
+                                startPoint: .topLeading,
+                                endPoint: .bottomTrailing
+                            ))
+                    )
+                
+                Text("Build your musical legacy")
+                    .font(.caption)
+                    .fontWeight(.medium)
+                    .foregroundColor(.purple)
             }
         }
         .padding()

@@ -16,6 +16,7 @@ class TutorialManager: ObservableObject {
     static let shared = TutorialManager()
     
     private let hasSeenTutorialKey = "hasSeenOnboardingTutorial"
+    private var hasTriggeredInSession = false // Prevent multiple triggers per session
     
     private init() {
         loadTutorialState()
@@ -37,13 +38,20 @@ class TutorialManager: ObservableObject {
     
     func resetTutorial() {
         hasSeenTutorial = false
+        hasTriggeredInSession = false
         shouldShowTutorial = true
         UserDefaults.standard.removeObject(forKey: hasSeenTutorialKey)
     }
     
+    /// Manually show tutorial (from settings)
+    func showTutorialManually() {
+        shouldShowTutorial = true
+    }
+    
     func checkIfShouldShowTutorial() {
-        // Show tutorial if user hasn't seen it and has completed basic onboarding
-        if !hasSeenTutorial {
+        // Show tutorial only if user hasn't seen it AND hasn't been triggered in this session
+        if !hasSeenTutorial && !hasTriggeredInSession {
+            hasTriggeredInSession = true
             // Add a small delay to ensure home view is loaded
             DispatchQueue.main.asyncAfter(deadline: .now() + 1.0) {
                 self.shouldShowTutorial = true

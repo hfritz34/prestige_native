@@ -62,6 +62,9 @@ struct ProfileView: View {
                     }
                 }
                 .refreshable {
+                    // Clear any existing errors before refresh to avoid showing stale errors
+                    viewModel.error = nil
+                    showingError = false
                     await viewModel.refreshDataSynchronously()
                 }
                 .sheet(isPresented: $showingSettings) {
@@ -114,12 +117,15 @@ struct ProfileView: View {
             Text(viewModel.error?.localizedDescription ?? "An error occurred")
         }
         .onChange(of: viewModel.error) { _, error in
-            if error != nil {
-                // Add a small delay to avoid showing flash errors during loading
-                DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
-                    // Only show error if it's still present after delay
-                    if viewModel.error != nil {
-                        showingError = true
+            if let error = error {
+                // Only show errors for non-transient issues and after a delay
+                // Skip showing errors during refresh or if we have existing data
+                if !viewModel.isLoading && viewModel.userProfile != nil {
+                    DispatchQueue.main.asyncAfter(deadline: .now() + 1.0) {
+                        // Only show error if it's still present and not loading
+                        if viewModel.error != nil && !viewModel.isLoading {
+                            showingError = true
+                        }
                     }
                 }
             } else {
@@ -136,19 +142,13 @@ struct ProfileView: View {
             HStack(alignment: .top, spacing: 14) {
                 // LEFT: name, handle, bio
                 VStack(alignment: .leading, spacing: 4) {
-                    // Display name
-                    if let name = viewModel.userProfile?.name {
-                        Text(name)
+                    // Display name (use nickname if available, fallback to name)
+                    if let profile = viewModel.userProfile {
+                        Text(profile.nickname.isEmpty ? profile.name : profile.nickname)
                             .font(.system(size: 28, weight: .bold))
                             .lineLimit(1)
                             .minimumScaleFactor(0.85)
-                            .foregroundColor(.white)
-                    } else if let nickname = viewModel.userProfile?.nickname {
-                        Text(nickname)
-                            .font(.system(size: 28, weight: .bold))
-                            .lineLimit(1)
-                            .minimumScaleFactor(0.85)
-                            .foregroundColor(.white)
+                            .foregroundColor(.primary)
                     } else if viewModel.isLoading {
                         Text("Loading...")
                             .font(.system(size: 28, weight: .bold))
@@ -156,7 +156,7 @@ struct ProfileView: View {
                     } else {
                         Text("User")
                             .font(.system(size: 28, weight: .bold))
-                            .foregroundColor(.white)
+                            .foregroundColor(.primary)
                     }
 
 
@@ -578,10 +578,8 @@ struct ProfileView: View {
     private func getCurrentRatingItems() -> [RatedItem] {
         switch selectedContentType {
         case .tracks:
-            // For tracks, we need to implement proper track ratings organized by album and position
-            // For now, return empty since ProfileViewModel doesn't support track ratings yet
-            // TODO: Implement track ratings in ProfileViewModel with album grouping and positional sorting
-            return []
+            // Return track ratings sorted by position (best position first)
+            return viewModel.ratedTracks
         case .albums:
             return viewModel.ratedAlbums
         case .artists:

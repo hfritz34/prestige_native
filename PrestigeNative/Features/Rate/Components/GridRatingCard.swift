@@ -27,15 +27,22 @@ struct GridRatingCard: View {
                 .clipped()
                 .modifier(ImageShapeModifier(itemType: itemData.itemType))
                 .overlay(
-                    // Rating badge overlay
+                    // Rating badge overlay - show position for tracks, score for albums/artists
                     Group {
                         if let rating = rating {
                             VStack {
                                 Spacer()
                                 HStack {
                                     Spacer()
-                                    RatingBadge(score: rating.personalScore, size: .small)
-                                        .padding(6)
+                                    if itemData.itemType == .track {
+                                        // Show position for tracks
+                                        PositionBadge(position: rating.position, size: .small)
+                                            .padding(6)
+                                    } else {
+                                        // Show rating for albums/artists
+                                        RatingBadge(score: rating.personalScore, size: .small)
+                                            .padding(6)
+                                    }
                                 }
                             }
                         }

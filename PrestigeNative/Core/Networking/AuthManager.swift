@@ -170,16 +170,13 @@ class AuthManager: ObservableObject {
         do {
             print("🔵 Auth: Starting logout")
             
-            // Clear local credentials first
-            _ = credentialsManager.clear()
+            // Clear local credentials first - ensure it's fully cleared
+            let cleared = credentialsManager.clear()
+            print("🔵 Auth: Credentials cleared: \(cleared)")
             
-            // Logout from Auth0
-            var webAuth = Auth0
-                .webAuth(clientId: auth0ClientId, domain: auth0Domain)
-            if let redirect = auth0CallbackURL {
-                webAuth = webAuth.redirectURL(redirect)
-            }
-            try await webAuth.clearSession()
+            // Logout from Auth0 - Skip this to avoid automatic popup
+            // The credentials are already cleared, which is the most important part
+            print("🔵 Auth: Skipping Auth0 web session clear to prevent popup")
             
             print("✅ Auth: Logout successful")
             await MainActor.run {
@@ -243,6 +240,17 @@ class AuthManager: ObservableObject {
             
             // Check if we have valid stored credentials
             guard credentialsManager.canRenew() else {
+                print("🔵 Auth: No renewable credentials found")
+                await MainActor.run {
+                    isAuthenticated = false
+                    isLoading = false
+                }
+                return
+            }
+            
+            // Additional check to verify credentials actually exist
+            guard credentialsManager.hasValid() else {
+                print("🔵 Auth: Credentials exist but are not valid")
                 await MainActor.run {
                     isAuthenticated = false
                     isLoading = false

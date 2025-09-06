@@ -10,6 +10,9 @@ import SwiftUI
 
 struct OnboardingTutorialView: View {
     @Environment(\.dismiss) private var dismiss
+    @EnvironmentObject var authManager: AuthManager
+    @StateObject private var personalizedDemo = PersonalizedDemoService.shared
+    @StateObject private var imagePreloader = ImagePreloader.shared
     @State private var currentStep = 0
     @State private var showCompletionAnimation = false
     
@@ -43,7 +46,18 @@ struct OnboardingTutorialView: View {
             .navigationBarHidden(true)
         }
         .onAppear {
-            // Preload any animations or content
+            // Load personalized demo data and preload images
+            if let userId = authManager.user?.id, !userId.isEmpty {
+                Task {
+                    await personalizedDemo.loadPersonalizedDemoData(userId: userId)
+                    
+                    // Preload all demo images once data is ready
+                    await MainActor.run {
+                        let imageUrls = personalizedDemo.demoAlbums.map { $0.imageUrl }
+                        imagePreloader.preloadImages(imageUrls)
+                    }
+                }
+            }
         }
     }
     
@@ -126,13 +140,14 @@ struct OnboardingTutorialView: View {
                 .foregroundColor(.white.opacity(0.8))
                 .multilineTextAlignment(.center)
             
-            // Demo album at diamond tier with mk.gee
+            // Demo album at diamond tier - personalized or default
             VStack(spacing: 16) {
                 // Static album card at diamond level - larger for single display
                 DemoAlbumCard(
                     prestigeLevel: .diamond,
                     listeningTime: "50h 0m",
                     showAnimation: true,
+                    albumData: personalizedDemo.isReady ? personalizedDemo.getFeaturedAlbum() : nil,
                     albumImageUrl: "https://i.scdn.co/image/ab67616d0000b273038b1c2017f14c805cf5b7e9",
                     albumName: "Two Star & The Dream Police",
                     artistName: "Mk.gee",
@@ -161,21 +176,26 @@ struct OnboardingTutorialView: View {
                 .foregroundColor(.white.opacity(0.8))
                 .multilineTextAlignment(.center)
             
-            // 3x2 Grid showing progression with fakemink album
+            // 3x2 Grid showing progression - personalized or default
             LazyVGrid(columns: [
                 GridItem(.flexible()),
                 GridItem(.flexible()),
                 GridItem(.flexible())
-            ], spacing: 12) {
-                // Row 1
-                DemoAlbumCard(prestigeLevel: .bronze, listeningTime: "3h 20m", showAnimation: true, delay: 0.0)
-                DemoAlbumCard(prestigeLevel: .silver, listeningTime: "5h 50m", showAnimation: true, delay: 0.3)
-                DemoAlbumCard(prestigeLevel: .gold, listeningTime: "16h 40m", showAnimation: true, delay: 0.6)
+            ], spacing: 20) {
+                let progressionAlbums = personalizedDemo.isReady ? personalizedDemo.getProgressionAlbums() : []
+                let prestigeLevels: [PrestigeLevel] = [.bronze, .silver, .gold, .sapphire, .emerald, .darkMatter]
+                let listeningTimes = ["3h 20m", "5h 50m", "16h 40m", "33h 20m", "66h 40m", "138h 53m"]
+                let delays = [0.0, 0.3, 0.6, 0.9, 1.2, 1.5]
                 
-                // Row 2
-                DemoAlbumCard(prestigeLevel: .sapphire, listeningTime: "33h 20m", showAnimation: true, delay: 0.9)
-                DemoAlbumCard(prestigeLevel: .emerald, listeningTime: "66h 40m", showAnimation: true, delay: 1.2)
-                DemoAlbumCard(prestigeLevel: .darkMatter, listeningTime: "138h 53m", showAnimation: true, delay: 1.5)
+                ForEach(0..<6, id: \.self) { index in
+                    DemoAlbumCard(
+                        prestigeLevel: prestigeLevels[index],
+                        listeningTime: listeningTimes[index],
+                        showAnimation: true,
+                        delay: delays[index],
+                        albumData: progressionAlbums.indices.contains(index) ? progressionAlbums[index] : nil
+                    )
+                }
             }
             
             Text("Each tier unlocks new visual themes and shows your dedication!")
@@ -198,9 +218,13 @@ struct OnboardingTutorialView: View {
                 .foregroundColor(.white.opacity(0.8))
                 .multilineTextAlignment(.center)
             
-            // Demo rating interface
+            // Demo rating interface - personalized
             VStack(spacing: 16) {
-                DemoRatingCard()
+                let comparisonAlbums = personalizedDemo.isReady ? personalizedDemo.getComparisonAlbums() : (left: nil, right: nil)
+                DemoRatingCard(
+                    leftAlbumData: comparisonAlbums.left,
+                    rightAlbumData: comparisonAlbums.right
+                )
                 
                 Text("Our unique comparison system creates accurate rankings based on your preferences - no arbitrary scores needed!")
                     .font(.subheadline)
@@ -223,8 +247,10 @@ struct OnboardingTutorialView: View {
                 .foregroundColor(.white.opacity(0.8))
                 .multilineTextAlignment(.center)
             
-            // Demo friends comparison
-            DemoFriendsComparison()
+            // Demo friends comparison - personalized
+            DemoFriendsComparison(
+                albumData: personalizedDemo.isReady ? personalizedDemo.getFriendsComparisonAlbum() : nil
+            )
             
             Text("Discover new music through your friends' prestiges and ratings")
                 .font(.subheadline)
@@ -329,6 +355,7 @@ struct OnboardingTutorialView: View {
                 .cornerRadius(20)
             }
         }
+        .padding(.horizontal, 40) // Increased horizontal padding to center buttons better
         .padding(.bottom)
     }
 }

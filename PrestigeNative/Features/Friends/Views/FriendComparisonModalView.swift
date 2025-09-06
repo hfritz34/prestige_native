@@ -47,7 +47,7 @@ struct FriendComparisonModalView: View {
                     .foregroundColor(.primary)
                 }
             }
-            .background(Color.black)
+            .background(Color(UIColor.systemBackground))
         }
         .sheet(isPresented: $showingFriendDetail) {
             if let comparison = selectedComparison {

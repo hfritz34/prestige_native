@@ -33,21 +33,6 @@ struct SettingsView: View {
                     }
                 }
                 
-                // Data Section
-                Section {
-                    NavigationLink(destination: ImportDataView()) {
-                        Label("Import Data", systemImage: "square.and.arrow.down")
-                    }
-                    
-                    #if DEBUG
-                    Button {
-                        resetUserSetupStatus()
-                    } label: {
-                        Label("Reset Onboarding (Dev)", systemImage: "arrow.clockwise")
-                            .foregroundColor(.orange)
-                    }
-                    #endif
-                }
                 
                 // Appearance Section
                 Section("Appearance") {
@@ -66,7 +51,7 @@ struct SettingsView: View {
                 // Information Section
                 Section {
                     Button {
-                        tutorialManager.resetTutorial()
+                        tutorialManager.showTutorialManually()
                         dismiss()
                     } label: {
                         Label("Show App Tutorial", systemImage: "play.circle")

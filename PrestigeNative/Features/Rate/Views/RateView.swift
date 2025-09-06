@@ -240,11 +240,11 @@ struct RateView: View {
                         Text(tab.title)
                             .font(.subheadline)
                             .fontWeight(selectedTab == tab ? .semibold : .medium)
-                            .foregroundColor(selectedTab == tab ? .white : .secondary)
+                            .foregroundColor(selectedTab == tab ? .primary : .secondary)
                         
                         Rectangle()
                             .frame(height: 2)
-                            .foregroundColor(selectedTab == tab ? .white : .clear)
+                            .foregroundColor(selectedTab == tab ? .primary : .clear)
                     }
                 }
                 .frame(maxWidth: .infinity)
@@ -668,8 +668,26 @@ struct RateView: View {
             return RatedItem(id: rating.id, rating: rating, itemData: itemData)
         }
         
-        // Update all rated items cache
-        let allRatings = viewModel.filteredRatings.sorted { $0.personalScore > $1.personalScore }
+        // Update all rated items cache with appropriate sorting
+        let allRatings: [Rating]
+        if viewModel.selectedItemType == .track {
+            // For tracks, sort by album first, then by position within album
+            allRatings = viewModel.filteredRatings.sorted { rating1, rating2 in
+                let itemData1 = viewModel.getItemData(for: rating1)
+                let itemData2 = viewModel.getItemData(for: rating2)
+                let album1 = itemData1?.albumName ?? ""
+                let album2 = itemData2?.albumName ?? ""
+                
+                if album1 != album2 {
+                    return album1 < album2 // Sort albums alphabetically
+                } else {
+                    return rating1.position < rating2.position // Then by position within album
+                }
+            }
+        } else {
+            // For albums and artists, sort by score
+            allRatings = viewModel.filteredRatings.sorted { $0.personalScore > $1.personalScore }
+        }
         cachedAllRatedItems = allRatings.compactMap { rating in
             let itemData = viewModel.getItemData(for: rating) ?? RatingItemData(
                 id: rating.itemId,
@@ -717,8 +735,26 @@ struct RateView: View {
                     return RatedItem(id: rating.id, rating: rating, itemData: itemData)
                 }
                 
-                // Update all rated items cache
-                let allRatings = viewModel.filteredRatings.sorted { $0.personalScore > $1.personalScore }
+                // Update all rated items cache with appropriate sorting
+                let allRatings: [Rating]
+                if viewModel.selectedItemType == .track {
+                    // For tracks, sort by album first, then by position within album
+                    allRatings = viewModel.filteredRatings.sorted { rating1, rating2 in
+                        let itemData1 = viewModel.getItemData(for: rating1)
+                        let itemData2 = viewModel.getItemData(for: rating2)
+                        let album1 = itemData1?.albumName ?? ""
+                        let album2 = itemData2?.albumName ?? ""
+                        
+                        if album1 != album2 {
+                            return album1 < album2 // Sort albums alphabetically
+                        } else {
+                            return rating1.position < rating2.position // Then by position within album
+                        }
+                    }
+                } else {
+                    // For albums and artists, sort by score
+                    allRatings = viewModel.filteredRatings.sorted { $0.personalScore > $1.personalScore }
+                }
                 cachedAllRatedItems = allRatings.compactMap { rating in
                     let itemData = viewModel.getItemData(for: rating) ?? RatingItemData(
                         id: rating.itemId,

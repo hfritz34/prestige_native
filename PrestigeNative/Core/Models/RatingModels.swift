@@ -56,7 +56,12 @@ struct Rating: Codable, Identifiable, Equatable {
     }
     
     var displayScore: String {
-        String(format: "%.1f", personalScore)
+        // For tracks, show position instead of score
+        if itemType == .track {
+            return "#\(position)"
+        } else {
+            return String(format: "%.1f", personalScore)
+        }
     }
 }
 
@@ -174,7 +179,8 @@ struct RatedItem: Identifiable {
     var displaySubtitle: String {
         switch itemData.itemType {
         case .track:
-            return itemData.artists?.joined(separator: ", ") ?? ""
+            // For tracks, show album name for better organization
+            return itemData.albumName ?? (itemData.artists?.joined(separator: ", ") ?? "")
         case .album:
             return itemData.artists?.joined(separator: ", ") ?? ""
         case .artist:

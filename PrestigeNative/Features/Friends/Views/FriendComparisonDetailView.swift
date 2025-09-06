@@ -218,36 +218,44 @@ struct FriendComparisonDetailView: View {
                         .foregroundColor(.primary)
                     
                     VStack(spacing: 8) {
-                        // Listening Time
-                        if let listeningTime = comparison.userStats.listeningTime {
+                        // Always show 3 stats in consistent order
+                        
+                        // 1. Listening Time (always first)
+                        StatComparisonCard(
+                            title: "Time",
+                            value: comparison.userStats.listeningTime != nil ? 
+                                TimeFormatter.formatListeningTime(comparison.userStats.listeningTime! * 1000) : "N/A",
+                            icon: "clock.fill",
+                            color: .blue
+                        )
+                        
+                        // 2. Rating or Position (based on item type)
+                        if comparison.itemType.lowercased() == "track" {
+                            // For tracks: show position/ranking
                             StatComparisonCard(
-                                title: "Time",
-                                value: TimeFormatter.formatListeningTime(listeningTime * 1000),
-                                icon: "clock.fill",
-                                color: .blue
+                                title: "Position",
+                                value: comparison.userStats.position != nil ? "#\(comparison.userStats.position!)" : "N/A",
+                                icon: "trophy.fill",
+                                color: .yellow
                             )
-                        }
-                        
-                        
-                        // Rating (if available)
-                        if let rating = comparison.userStats.ratingScore {
+                        } else {
+                            // For albums/artists: show rating
                             StatComparisonCard(
                                 title: "Rating",
-                                value: String(format: "%.1f", rating),
+                                value: comparison.userStats.ratingScore != nil ? 
+                                    String(format: "%.1f", comparison.userStats.ratingScore!) : "Not rated",
                                 icon: "star.fill",
                                 color: .orange
                             )
                         }
                         
-                        // Position/Ranking
-                        if let position = comparison.userStats.position {
-                            StatComparisonCard(
-                                title: "Ranking",
-                                value: "#\(position)",
-                                icon: "trophy.fill",
-                                color: .yellow
-                            )
-                        }
+                        // 3. Play Count (placeholder for now since we don't have this data yet)
+                        StatComparisonCard(
+                            title: "Plays",
+                            value: "N/A",
+                            icon: "play.fill",
+                            color: .green
+                        )
                     }
                 }
                 .frame(maxWidth: .infinity)
@@ -260,36 +268,44 @@ struct FriendComparisonDetailView: View {
                         .foregroundColor(.primary)
                     
                     VStack(spacing: 8) {
-                        // Listening Time
-                        if let listeningTime = comparison.friendStats.listeningTime {
+                        // Always show 3 stats in consistent order
+                        
+                        // 1. Listening Time (always first)
+                        StatComparisonCard(
+                            title: "Time",
+                            value: comparison.friendStats.listeningTime != nil ? 
+                                TimeFormatter.formatListeningTime(comparison.friendStats.listeningTime! * 1000) : "N/A",
+                            icon: "clock.fill",
+                            color: .blue
+                        )
+                        
+                        // 2. Rating or Position (based on item type)
+                        if comparison.itemType.lowercased() == "track" {
+                            // For tracks: show position/ranking
                             StatComparisonCard(
-                                title: "Time",
-                                value: TimeFormatter.formatListeningTime(listeningTime * 1000),
-                                icon: "clock.fill",
-                                color: .blue
+                                title: "Position",
+                                value: comparison.friendStats.position != nil ? "#\(comparison.friendStats.position!)" : "N/A",
+                                icon: "trophy.fill",
+                                color: .yellow
                             )
-                        }
-                        
-                        
-                        // Rating (if available)
-                        if let rating = comparison.friendStats.ratingScore {
+                        } else {
+                            // For albums/artists: show rating
                             StatComparisonCard(
                                 title: "Rating",
-                                value: String(format: "%.1f", rating),
+                                value: comparison.friendStats.ratingScore != nil ? 
+                                    String(format: "%.1f", comparison.friendStats.ratingScore!) : "Not rated",
                                 icon: "star.fill",
                                 color: .orange
                             )
                         }
                         
-                        // Position/Ranking
-                        if let position = comparison.friendStats.position {
-                            StatComparisonCard(
-                                title: "Ranking",
-                                value: "#\(position)",
-                                icon: "trophy.fill",
-                                color: .yellow
-                            )
-                        }
+                        // 3. Play Count (placeholder for now since we don't have this data yet)
+                        StatComparisonCard(
+                            title: "Plays",
+                            value: "N/A",
+                            icon: "play.fill",
+                            color: .green
+                        )
                     }
                 }
                 .frame(maxWidth: .infinity)

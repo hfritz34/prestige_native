@@ -69,7 +69,7 @@ struct PrestigeDetailView: View {
                     }
                 }
             }
-            .background(Color.black)
+            .background(Color(UIColor.systemBackground))
             .sheet(isPresented: $ratingViewModel.showRatingModal) {
                 RatingModal()
                     .environmentObject(ratingViewModel)
@@ -125,10 +125,6 @@ struct PrestigeDetailView: View {
                     maxHeight: 180
                 )
                 .clipShape(RoundedRectangle(cornerRadius: 14))
-                .overlay(
-                    RoundedRectangle(cornerRadius: 14)
-                        .stroke(Color.white.opacity(0.4), lineWidth: 2)
-                )
                 .shadow(radius: 8)
             }
             .frame(width: 220, height: 220)

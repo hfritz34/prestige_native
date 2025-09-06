@@ -81,6 +81,7 @@ struct RateView: View {
                 updateCachedRatings()
             }
         }
+        .dynamicTypeSize(.medium)
         .onChange(of: viewModel.filteredRatings) { oldValue, newValue in
             updateCachedRatings()
         }

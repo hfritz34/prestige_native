@@ -104,6 +104,7 @@ struct HomeView: View {
             }
             .navigationBarHidden(true)
         }
+        .dynamicTypeSize(.medium)
         .networkSpeedControls()
         .onAppear {
             if let userId = authManager.user?.id, !userId.isEmpty {
@@ -207,10 +208,12 @@ struct HomeView: View {
                 Image(systemName: gridIconName)
                     .font(.title2)
                     .foregroundColor(.purple)
+                    .frame(width: 24, height: 24) // Fixed size to prevent layout shifts
                     .padding(8)
                     .background(Color.gray.opacity(0.2))
                     .clipShape(Circle())
             }
+            .frame(width: 40, height: 40) // Fixed button frame
         }
     }
     

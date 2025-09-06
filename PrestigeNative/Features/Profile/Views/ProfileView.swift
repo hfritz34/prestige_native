@@ -92,6 +92,7 @@ struct ProfileView: View {
                     .transition(.opacity.combined(with: .scale(scale: 0.95)))
             }
         }
+        .dynamicTypeSize(.medium)
         .onAppear {
             if let userId = authManager.user?.id {
                 Task {

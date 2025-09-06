@@ -72,6 +72,7 @@ struct FriendsView: View {
                 await friendsService.fetchIncomingFriendRequests()
                 await friendsService.fetchOutgoingFriendRequests()
             }
+            .dynamicTypeSize(.medium)
             .onAppear {
                 // Refresh requests when view appears to handle state restoration
                 Task {

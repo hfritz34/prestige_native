@@ -440,30 +440,38 @@ struct HomeView: View {
         }
     }
     
-    // Dynamic spacing based on grid size
+    // Dynamic spacing based on grid size and device compatibility
     private var gridItemSpacing: CGFloat {
+        let screenWidth = UIScreen.main.bounds.width
+        let isSmallDevice = screenWidth < 400 // iPhone SE, etc.
+        let isArtist = (viewModel.selectedContentType == .artists)
+        
         switch gridColumnCount {
         case 2:
-            return 4   // Very tight spacing for 2 columns
+            return isArtist ? 8 : (isSmallDevice ? 6 : 8)   // More space for artists
         case 3:
-            return 8   // Perfect spacing (reference)
+            return isArtist ? 12 : (isSmallDevice ? 8 : 10)  // Perfect spacing with artist adjustment
         case 4:
-            return 4   // Less spacing for 4 columns to prevent overlap
+            return isArtist ? 8 : (isSmallDevice ? 4 : 6)   // Less spacing for 4 columns
         default:
-            return 8
+            return isArtist ? 12 : 8
         }
     }
     
     private var gridRowSpacing: CGFloat {
+        let screenWidth = UIScreen.main.bounds.width
+        let isSmallDevice = screenWidth < 400
+        let isArtist = (viewModel.selectedContentType == .artists)
+        
         switch gridColumnCount {
         case 2:
-            return 6   // Very tight spacing for 2 columns
+            return isArtist ? 10 : (isSmallDevice ? 8 : 10)  // More vertical space for artists
         case 3:
-            return 10  // Perfect spacing (reference)
+            return isArtist ? 14 : (isSmallDevice ? 10 : 12)  // Perfect spacing with artist adjustment
         case 4:
-            return 6   // Less spacing for 4 columns to prevent overlap
+            return isArtist ? 10 : (isSmallDevice ? 6 : 8)   // Less spacing for 4 columns
         default:
-            return 10
+            return isArtist ? 14 : 10
         }
     }
     

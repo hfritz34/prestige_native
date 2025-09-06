@@ -27,12 +27,45 @@ struct RateView: View {
     @State private var isCacheReady = false
     @State private var hasInitialLoad = false
     
-    // Adaptive grid columns based on screen width
+    // Adaptive grid columns with device compatibility and artist spacing
     private var adaptiveGridColumns: [GridItem] {
-        [
-            GridItem(.flexible(minimum: 100, maximum: 140), spacing: 8),
-            GridItem(.flexible(minimum: 100, maximum: 140), spacing: 8),
-            GridItem(.flexible(minimum: 100, maximum: 140), spacing: 8)
+        let screenWidth = UIScreen.main.bounds.width
+        
+        // Safety check for invalid screen width
+        guard screenWidth.isFinite && screenWidth > 0 else {
+            // Fallback to safe static grid with adjusted spacing for artists
+            let spacing: CGFloat = (viewModel.selectedItemType == .artist) ? 12 : 8
+            return [
+                GridItem(.flexible(minimum: 100, maximum: 140), spacing: spacing),
+                GridItem(.flexible(minimum: 100, maximum: 140), spacing: spacing),
+                GridItem(.flexible(minimum: 100, maximum: 140), spacing: spacing)
+            ]
+        }
+        
+        let padding: CGFloat = 32 // Total horizontal padding (16 on each side)
+        
+        // Adjust spacing based on item type - circular artist images need more space
+        let spacing: CGFloat = (viewModel.selectedItemType == .artist) ? 12 : 8
+        let totalSpacing: CGFloat = spacing * 2 // Space between 3 columns
+        let availableWidth = screenWidth - padding - totalSpacing
+        let itemWidth = availableWidth / 3
+        
+        // For artists, use slightly smaller max width to prevent circular overlap
+        let maxWidthMultiplier: CGFloat = (viewModel.selectedItemType == .artist) ? 1.1 : 1.2
+        
+        // Ensure minimum and maximum constraints work across all devices with NaN protection
+        let minWidth = max(itemWidth * 0.8, 90).isFinite ? max(itemWidth * 0.8, 90) : 90
+        let maxWidth = min(itemWidth * maxWidthMultiplier, 160).isFinite ? min(itemWidth * maxWidthMultiplier, 160) : 160
+        
+        // Final safety check
+        let safeMinWidth = minWidth.isFinite ? minWidth : 90
+        let safeMaxWidth = maxWidth.isFinite ? maxWidth : 160
+        let safeSpacing = spacing.isFinite ? spacing : 8
+        
+        return [
+            GridItem(.flexible(minimum: safeMinWidth, maximum: safeMaxWidth), spacing: safeSpacing),
+            GridItem(.flexible(minimum: safeMinWidth, maximum: safeMaxWidth), spacing: safeSpacing),
+            GridItem(.flexible(minimum: safeMinWidth, maximum: safeMaxWidth), spacing: safeSpacing)
         ]
     }
     
@@ -321,7 +354,7 @@ struct RateView: View {
                 
                 if isGridView {
                     // Grid layout - responsive columns
-                    LazyVGrid(columns: adaptiveGridColumns, spacing: 12) {
+                    LazyVGrid(columns: adaptiveGridColumns, spacing: viewModel.selectedItemType == .artist ? 16 : 12) {
                         ForEach(items, id: \.id) { item in
                             GridRatingCard(
                                 itemData: item,
@@ -386,7 +419,7 @@ struct RateView: View {
                 
                 if isGridView {
                     // Grid layout - responsive columns
-                    LazyVGrid(columns: adaptiveGridColumns, spacing: 12) {
+                    LazyVGrid(columns: adaptiveGridColumns, spacing: viewModel.selectedItemType == .artist ? 16 : 12) {
                         ForEach(Array(items.enumerated()), id: \.element.id) { _, item in
                             GridRatingCard(
                                 itemData: item.itemData,
@@ -462,7 +495,7 @@ struct RateView: View {
                 
                 if isGridView {
                     // Grid layout - responsive columns
-                    LazyVGrid(columns: adaptiveGridColumns, spacing: 12) {
+                    LazyVGrid(columns: adaptiveGridColumns, spacing: viewModel.selectedItemType == .artist ? 16 : 12) {
                         ForEach(items, id: \.id) { item in
                             GridRatingCard(
                                 itemData: item.itemData,

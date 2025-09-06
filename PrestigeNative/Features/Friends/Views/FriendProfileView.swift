@@ -277,16 +277,54 @@ struct FriendProfileView: View {
                     } else {
                         // Display rated items
                         ForEach(Array(viewModel.currentRatings.prefix(25).enumerated()), id: \.element.id) { index, ratedItem in
-                            RatedItemCard(
-                                ratedItem: ratedItem,
-                                prestigeLevel: getPrestigeLevelForRatedItem(ratedItem)
-                            )
-                                .onTapGesture {
-                                    selectedPrestige = PrestigeSelection(
-                                        item: convertRatedItemToPrestigeDisplayItem(ratedItem),
-                                        rank: index + 1
-                                    )
+                            VStack(spacing: 4) {
+                                CachedAsyncImage(
+                                    url: ratedItem.imageUrl,
+                                    placeholder: Image(systemName: getIconForRatingType(ratedItem.itemData.itemType)),
+                                    contentMode: .fill,
+                                    maxWidth: 120,
+                                    maxHeight: 120
+                                )
+                                .clipShape(RoundedRectangle(cornerRadius: 8))
+                                .overlay(
+                                    // Rating score overlay
+                                    VStack {
+                                        Spacer()
+                                        HStack {
+                                            Spacer()
+                                            Text(ratedItem.rating.displayScore)
+                                                .font(.caption)
+                                                .fontWeight(.bold)
+                                                .foregroundColor(.white)
+                                                .padding(.horizontal, 6)
+                                                .padding(.vertical, 2)
+                                                .background(Color.black.opacity(0.7))
+                                                .cornerRadius(4)
+                                        }
+                                    }
+                                    .padding(6)
+                                )
+                                
+                                Text(ratedItem.displayTitle)
+                                    .font(.caption)
+                                    .fontWeight(.medium)
+                                    .lineLimit(1)
+                                    .frame(width: 120)
+                                
+                                if !ratedItem.displaySubtitle.isEmpty {
+                                    Text(ratedItem.displaySubtitle)
+                                        .font(.caption2)
+                                        .foregroundColor(.secondary)
+                                        .lineLimit(1)
+                                        .frame(width: 120)
                                 }
+                            }
+                            .onTapGesture {
+                                selectedPrestige = PrestigeSelection(
+                                    item: convertRatedItemToPrestigeDisplayItem(ratedItem),
+                                    rank: index + 1
+                                )
+                            }
                         }
                     }
                 }
@@ -492,7 +530,7 @@ struct FriendProfileView: View {
     
     private var recentlyPlayedContent: some View {
         VStack(spacing: 8) {
-            if viewModel.recentTracks.isEmpty {
+            if viewModel.recentlyPlayed.isEmpty {
                 EmptyStateView(
                     icon: "clock",
                     title: "No Recent Activity",
@@ -500,10 +538,34 @@ struct FriendProfileView: View {
                 )
                 .padding(.horizontal)
             } else {
-                ForEach(Array(viewModel.recentTracks.prefix(30).enumerated()), id: \.offset) { index, track in
-                    // Placeholder for recent track rows
-                    // This needs to be implemented based on your data model
-                    EmptyView()
+                ScrollView(.horizontal, showsIndicators: false) {
+                    HStack(spacing: 12) {
+                        ForEach(Array(viewModel.recentlyPlayed.prefix(10).enumerated()), id: \.offset) { index, recentItem in
+                            VStack(spacing: 4) {
+                                CachedAsyncImage(
+                                    url: recentItem.imageUrl,
+                                    placeholder: Image(systemName: "music.note"),
+                                    contentMode: .fill,
+                                    maxWidth: 80,
+                                    maxHeight: 80
+                                )
+                                .clipShape(RoundedRectangle(cornerRadius: 8))
+                                
+                                Text(recentItem.trackName)
+                                    .font(.caption)
+                                    .fontWeight(.medium)
+                                    .lineLimit(1)
+                                    .frame(width: 80)
+                                
+                                Text(recentItem.artistName)
+                                    .font(.caption2)
+                                    .foregroundColor(.secondary)
+                                    .lineLimit(1)
+                                    .frame(width: 80)
+                            }
+                        }
+                    }
+                    .padding(.horizontal)
                 }
             }
         }
@@ -565,6 +627,14 @@ struct FriendProfileView: View {
             return getPrestigeLevelForAlbum(ratedItem.itemData.id)
         case .artist:
             return getPrestigeLevelForArtist(ratedItem.itemData.id)
+        }
+    }
+    
+    private func getIconForRatingType(_ itemType: RatingItemType) -> String {
+        switch itemType {
+        case .track: return "music.note"
+        case .album: return "square.stack"
+        case .artist: return "music.mic"
         }
     }
 }

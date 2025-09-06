@@ -65,11 +65,14 @@ class FriendProfileViewModel: ObservableObject {
             self.ratedArtists = friendProfile.ratedArtists ?? []
             self.recentlyPlayed = friendProfile.recentlyPlayed ?? []
             
+            // Convert rated items to RatedItem objects for the ratings section
+            self.currentRatings = convertToRatedItems()
+            
             // Note: recentTracks is left empty as RecentlyPlayedResponse doesn't have full track data
             // The UI should use recentlyPlayed directly
             self.recentTracks = []
             
-            print("✅ Friend profile loaded: \(friendProfile.name) with \(topTracks.count) top tracks, \(ratedTracks.count) rated tracks, and \(recentlyPlayed.count) recently played")
+            print("✅ Friend profile loaded: \(friendProfile.name) with \(topTracks.count) top tracks, \(ratedTracks.count) rated tracks, \(currentRatings.count) converted ratings, and \(recentlyPlayed.count) recently played")
         } else {
             self.error = "Failed to load friend profile"
             print("❌ Failed to load friend profile for: \(friendId)")
@@ -215,5 +218,99 @@ class FriendProfileViewModel: ObservableObject {
             self.error = "Failed to load comparison data: \(error.localizedDescription)"
             return nil
         }
+    }
+    
+    // MARK: - Private Helper Methods
+    
+    /// Convert rated tracks, albums, and artists into RatedItem objects for the UI
+    private func convertToRatedItems() -> [RatedItem] {
+        var ratedItems: [RatedItem] = []
+        
+        // Convert rated tracks
+        for ratedTrack in ratedTracks.filter({ $0.personalRatingScore != nil && $0.ratingPosition != nil }) {
+            let ratedItem = RatedItem(
+                id: "\(ratedTrack.track.id)_track",
+                rating: Rating(
+                    itemId: ratedTrack.track.id,
+                    itemType: .track,
+                    albumId: ratedTrack.track.album.id,
+                    categoryId: 1, // Default category
+                    category: nil,
+                    position: ratedTrack.ratingPosition ?? 0,
+                    personalScore: ratedTrack.personalRatingScore ?? 0.0,
+                    rankWithinAlbum: ratedTrack.rankWithinAlbum,
+                    isNewRating: false
+                ),
+                itemData: RatingItemData(
+                    id: ratedTrack.track.id,
+                    name: ratedTrack.track.name,
+                    imageUrl: ratedTrack.track.album.images.first?.url,
+                    artists: ratedTrack.track.artists.map { $0.name },
+                    albumName: ratedTrack.track.album.name,
+                    albumId: ratedTrack.track.album.id,
+                    itemType: .track
+                )
+            )
+            ratedItems.append(ratedItem)
+        }
+        
+        // Convert rated albums
+        for ratedAlbum in ratedAlbums.filter({ $0.personalRatingScore != nil && $0.ratingPosition != nil }) {
+            let ratedItem = RatedItem(
+                id: "\(ratedAlbum.album.id)_album",
+                rating: Rating(
+                    itemId: ratedAlbum.album.id,
+                    itemType: .album,
+                    albumId: ratedAlbum.album.id,
+                    categoryId: 1, // Default category
+                    category: nil,
+                    position: ratedAlbum.ratingPosition ?? 0,
+                    personalScore: ratedAlbum.personalRatingScore ?? 0.0,
+                    rankWithinAlbum: nil,
+                    isNewRating: false
+                ),
+                itemData: RatingItemData(
+                    id: ratedAlbum.album.id,
+                    name: ratedAlbum.album.name,
+                    imageUrl: ratedAlbum.album.images.first?.url,
+                    artists: ratedAlbum.album.artists.map { $0.name },
+                    albumName: ratedAlbum.album.name,
+                    albumId: ratedAlbum.album.id,
+                    itemType: .album
+                )
+            )
+            ratedItems.append(ratedItem)
+        }
+        
+        // Convert rated artists
+        for ratedArtist in ratedArtists.filter({ $0.personalRatingScore != nil && $0.ratingPosition != nil }) {
+            let ratedItem = RatedItem(
+                id: "\(ratedArtist.artist.id)_artist",
+                rating: Rating(
+                    itemId: ratedArtist.artist.id,
+                    itemType: .artist,
+                    albumId: nil,
+                    categoryId: 1, // Default category
+                    category: nil,
+                    position: ratedArtist.ratingPosition ?? 0,
+                    personalScore: ratedArtist.personalRatingScore ?? 0.0,
+                    rankWithinAlbum: nil,
+                    isNewRating: false
+                ),
+                itemData: RatingItemData(
+                    id: ratedArtist.artist.id,
+                    name: ratedArtist.artist.name,
+                    imageUrl: ratedArtist.artist.images.first?.url,
+                    artists: nil,
+                    albumName: nil,
+                    albumId: nil,
+                    itemType: .artist
+                )
+            )
+            ratedItems.append(ratedItem)
+        }
+        
+        // Sort by rating position (lower position = higher rank)
+        return ratedItems.sorted { $0.rating.position < $1.rating.position }
     }
 }

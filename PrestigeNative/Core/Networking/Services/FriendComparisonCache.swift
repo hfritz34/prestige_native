@@ -124,19 +124,19 @@ class FriendComparisonCache: ObservableObject {
         let loadingKey = "\(itemType)_\(itemId)_batch"
         isLoading[loadingKey] = true
         
-        // Use TaskGroup to load friend times concurrently but with limits (max 5 concurrent)
+        // Use TaskGroup to load friend times concurrently but with limits (max 10 concurrent)
         await withTaskGroup(of: (String, Double).self, body: { group in
-            for friendId in friendIds.prefix(5) { // Limit to 5 concurrent requests
+            for friendId in friendIds.prefix(10) { // Increased from 5 to 10 concurrent requests
                 group.addTask {
                     let time = await self.getFriendItemTime(friendId: friendId, itemType: itemType, itemId: itemId)
                     return (friendId, time)
                 }
             }
             
-            // Handle remaining friends in batches if more than 5
-            if friendIds.count > 5 {
-                let remainingFriends = Array(friendIds.dropFirst(5))
-                let batches = remainingFriends.chunked(into: 5)
+            // Handle remaining friends in batches if more than 10
+            if friendIds.count > 10 {
+                let remainingFriends = Array(friendIds.dropFirst(10))
+                let batches = remainingFriends.chunked(into: 10)
                 for batch in batches {
                     for friendId in batch {
                         group.addTask {
@@ -154,7 +154,39 @@ class FriendComparisonCache: ObservableObject {
         })
         
         isLoading[loadingKey] = false
-        print("✅ FriendComparisonCache: Batch loaded times for \(friendIds.count) friends on \(itemType) \(itemId)")
+        print("✅ FriendComparisonCache: Batch loaded times for \(friendIds.count) friends on \(itemType) \(itemId) (up to 10 concurrent)")
+        
+        // Preload next batch in background if there are many friends
+        if friendIds.count > 20 {
+            Task {
+                await loadFriendTimesForItemBackground(itemType: itemType, itemId: itemId, friendIds: Array(friendIds.dropFirst(20)))
+            }
+        }
+    }
+    
+    /// Background loading for additional friends (lower priority)
+    private func loadFriendTimesForItemBackground(itemType: String, itemId: String, friendIds: [String]) async {
+        // Load in smaller batches with delays to not overwhelm the API
+        let batches = friendIds.chunked(into: 5)
+        for batch in batches {
+            await withTaskGroup(of: (String, Double).self) { group in
+                for friendId in batch {
+                    group.addTask {
+                        let time = await self.getFriendItemTime(friendId: friendId, itemType: itemType, itemId: itemId)
+                        return (friendId, time)
+                    }
+                }
+                
+                for await (friendId, time) in group {
+                    cacheFriendTime(friendId: friendId, itemType: itemType, itemId: itemId, time: time)
+                }
+            }
+            
+            // Small delay between batches
+            try? await Task.sleep(nanoseconds: 100_000_000) // 0.1 seconds
+        }
+        
+        print("📦 Background loaded additional \(friendIds.count) friend times for \(itemType) \(itemId)")
     }
     
     // MARK: - Social Discovery with Caching

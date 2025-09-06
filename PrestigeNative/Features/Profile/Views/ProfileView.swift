@@ -19,7 +19,6 @@ struct ProfileView: View {
     @State private var showingSettings = false
     @State private var selectedPrestige: PrestigeSelection?
     @State private var hasInitiallyLoaded = false
-    @State private var minimumLoadingTime = false
     
     var body: some View {
         ZStack {
@@ -34,6 +33,9 @@ struct ProfileView: View {
                         
                         // Top Section
                         topSection
+                        
+                        // Pinned Items Section - TODO: Re-enable when ready
+                        // PinnedItemsView()
                         
                         // Favorites Section
                         favoritesSection
@@ -76,8 +78,8 @@ struct ProfileView: View {
             .opacity(hasInitiallyLoaded ? 1 : 0)
             .animation(.easeInOut(duration: 0.3), value: hasInitiallyLoaded)
             
-            // Full-screen loading overlay - show until all data (including ratings) is loaded AND minimum time elapsed
-            if (viewModel.isLoading || !viewModel.ratingsLoaded || !minimumLoadingTime) && !hasInitiallyLoaded {
+            // Full-screen loading overlay - show until all data is loaded
+            if (viewModel.isLoading || !viewModel.ratingsLoaded) && !hasInitiallyLoaded {
                 BeatVisualizerLoadingView(message: "Loading your profile...")
                     .transition(.opacity.combined(with: .scale(scale: 0.95)))
             }
@@ -85,23 +87,12 @@ struct ProfileView: View {
         .onAppear {
             if let userId = authManager.user?.id {
                 Task {
-                    // Start minimum loading timer (2.5 seconds)
-                    Task {
-                        try await Task.sleep(nanoseconds: 2_500_000_000)
-                        await MainActor.run {
-                            minimumLoadingTime = true
-                        }
-                    }
-                    
-                    // Load profile data
+                    // Load profile data immediately
                     await viewModel.loadProfileDataSynchronously(userId: userId)
                 }
             }
         }
         .onChange(of: viewModel.isLoading) { _, isLoading in
-            checkIfReadyToShow()
-        }
-        .onChange(of: minimumLoadingTime) { _, _ in
             checkIfReadyToShow()
         }
         .onChange(of: viewModel.ratingsLoaded) { _, _ in
@@ -514,12 +505,12 @@ struct ProfileView: View {
     
     // MARK: - Helper Functions
     
-    /// Check if ready to show content (data loaded, ratings ready, and minimum time elapsed)
+    /// Check if ready to show content (data loaded and ratings ready)
     private func checkIfReadyToShow() {
         // Check if all data including ratings have been loaded
         let allDataReady = !viewModel.isLoading && viewModel.ratingsLoaded
         
-        if allDataReady && minimumLoadingTime && !hasInitiallyLoaded {
+        if allDataReady && !hasInitiallyLoaded {
             withAnimation(.easeInOut(duration: 0.5)) {
                 hasInitiallyLoaded = true
             }

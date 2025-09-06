@@ -68,6 +68,10 @@ struct PrestigeGridCard: View {
                         maxHeight: spotifyImageSize
                     )
                     .clipShape(RoundedRectangle(cornerRadius: 8))
+                    .overlay(
+                        RoundedRectangle(cornerRadius: 8)
+                            .stroke(Color.white.opacity(0.3), lineWidth: 1.5)
+                    )
                     .shadow(color: .black.opacity(0.2), radius: 2, x: 0, y: 1)
                     
                     // Prestige badge and friend count

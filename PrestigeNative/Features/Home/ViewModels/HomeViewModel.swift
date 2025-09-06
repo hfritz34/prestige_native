@@ -85,6 +85,14 @@ class HomeViewModel: ObservableObject {
         }
     }
     
+    func loadHomeDataAsync(for userId: String) async {
+        self.currentUserId = userId
+        await loadAllData(for: userId, forceRefresh: !hasInitiallyLoaded)
+        await MainActor.run {
+            hasInitiallyLoaded = true
+        }
+    }
+    
     private func loadAllData(for userId: String, forceRefresh: Bool) async {
         // Load all content types at once
         await loadingCoordinator.loadAllContent(
@@ -94,7 +102,14 @@ class HomeViewModel: ObservableObject {
         )
         
         // Preload images for current content type
-        await loadingCoordinator.preloadImages(for: selectedContentType, limit: 20)
+        await loadingCoordinator.preloadImages(for: selectedContentType, limit: 50)
+        
+        // Also preload images for other content types in the background
+        Task {
+            for contentType in ContentType.allCases where contentType != selectedContentType {
+                await loadingCoordinator.preloadImages(for: contentType, limit: 30)
+            }
+        }
     }
     
     private func updateContent(from bundle: PrestigeContentBundle) {

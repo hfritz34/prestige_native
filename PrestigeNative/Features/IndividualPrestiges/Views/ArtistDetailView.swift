@@ -62,7 +62,7 @@ struct ArtistDetailView: View {
                     }
                 }
             }
-            .background(Color(UIColor.systemBackground))
+            .background(Color.black)
             .sheet(isPresented: $ratingViewModel.showRatingModal) {
                 RatingModal()
                     .environmentObject(ratingViewModel)

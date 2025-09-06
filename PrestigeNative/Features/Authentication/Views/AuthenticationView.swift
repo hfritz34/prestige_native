@@ -68,6 +68,11 @@ struct AuthenticationView: View {
                 let userProfile = try await APIClient.shared.getUserProfile(userId: userId, quickCheck: true)
                 print("✅ User profile loaded - isSetup: \(userProfile.isSetup)")
                 
+                // Preload recently updated data for faster recent page access
+                Task {
+                    await preloadRecentData(userId: userId)
+                }
+                
                 await MainActor.run {
                     authManager.userIsSetup = userProfile.isSetup
                     userProfileLoaded = true
@@ -92,6 +97,28 @@ struct AuthenticationView: View {
                     }
                 }
             }
+        }
+    }
+    
+    /// Preload recently updated data in the background for faster recent page access
+    private func preloadRecentData(userId: String) async {
+        print("🚀 Preloading recently updated data for user: \(userId)")
+        
+        do {
+            let loadingCoordinator = LoadingCoordinator()
+            
+            // Preload recently updated data in the background
+            // This will cache the data so when user switches to recent page, it loads instantly
+            await loadingCoordinator.loadAllContent(
+                for: userId,
+                timeRange: .recentlyUpdated,
+                forceRefresh: false
+            )
+            
+            print("✅ Recently updated data preloaded successfully")
+        } catch {
+            // Silently fail - this is just preloading, not critical
+            print("⚠️ Failed to preload recent data (non-critical): \(error)")
         }
     }
 }

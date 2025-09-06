@@ -43,7 +43,7 @@ struct TrackDetailView: View {
                     }
                 }
             }
-            .background(Color(UIColor.systemBackground))
+            .background(Color.black)
         }
         .onAppear {
             loadAlbumData()

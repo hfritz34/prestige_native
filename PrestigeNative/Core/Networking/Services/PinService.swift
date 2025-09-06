@@ -15,6 +15,11 @@ class PinService: ObservableObject {
     @Published var pinnedAlbums: Set<String> = []
     @Published var pinnedArtists: Set<String> = []
     
+    // Ordered arrays for drag-and-drop reordering
+    @Published var orderedPinnedTracks: [UserTrackResponse] = []
+    @Published var orderedPinnedAlbums: [UserAlbumResponse] = []
+    @Published var orderedPinnedArtists: [UserArtistResponse] = []
+    
     private let apiClient = APIClient.shared
     
     private init() {}
@@ -98,9 +103,42 @@ class PinService: ObservableObject {
             pinnedAlbums = Set(pinnedItemsResponse.albums.map { $0.album.id })
             pinnedArtists = Set(pinnedItemsResponse.artists.map { $0.artist.id })
             
+            // Store ordered arrays for UI display
+            orderedPinnedTracks = pinnedItemsResponse.tracks
+            orderedPinnedAlbums = pinnedItemsResponse.albums
+            orderedPinnedArtists = pinnedItemsResponse.artists
+            
         } catch {
             print("Error loading pinned items: \(error)")
         }
+    }
+    
+    // MARK: - Reordering Methods
+    
+    func reorderPinnedItems<T>(items: [T], from source: IndexSet, to destination: Int, contentType: ContentType) {
+        switch contentType {
+        case .tracks:
+            if let trackItems = items as? [UserTrackResponse] {
+                var reorderedItems = trackItems
+                reorderedItems.move(fromOffsets: source, toOffset: destination)
+                orderedPinnedTracks = reorderedItems
+            }
+        case .albums:
+            if let albumItems = items as? [UserAlbumResponse] {
+                var reorderedItems = albumItems
+                reorderedItems.move(fromOffsets: source, toOffset: destination)
+                orderedPinnedAlbums = reorderedItems
+            }
+        case .artists:
+            if let artistItems = items as? [UserArtistResponse] {
+                var reorderedItems = artistItems
+                reorderedItems.move(fromOffsets: source, toOffset: destination)
+                orderedPinnedArtists = reorderedItems
+            }
+        }
+        
+        // TODO: Sync reorder to backend if needed
+        print("Reordered \(contentType) pinned items")
     }
     
     // MARK: - Local State Management

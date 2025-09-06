@@ -68,7 +68,7 @@ struct FriendPrestigeDetailView: View {
                     }
                 }
             }
-            .background(Color(UIColor.systemBackground))
+            .background(Color.black)
             .sheet(isPresented: $showFriendComparison) {
                 if let comparison = comparisonData {
                     FriendComparisonDetailView(comparison: comparison)

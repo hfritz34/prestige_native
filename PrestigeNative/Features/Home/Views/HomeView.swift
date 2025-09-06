@@ -13,6 +13,7 @@ struct HomeView: View {
     @EnvironmentObject var authManager: AuthManager
     @StateObject private var pinService = PinService.shared
     @StateObject private var imagePreloader = ImagePreloader.shared
+    @StateObject private var detailCache = DetailViewCache.shared
     @State private var showingError = false
     @State private var selectedPrestige: PrestigeSelection?
     @State private var showContentButtons = false
@@ -105,22 +106,23 @@ struct HomeView: View {
         .networkSpeedControls()
         .onAppear {
             if let userId = authManager.user?.id, !userId.isEmpty {
-                viewModel.loadHomeData(for: userId)
-                
-                // Load pinned items
                 Task {
-                    await pinService.loadPinnedItems()
-                }
-                
-                // Show content buttons after a delay
-                DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
-                    withAnimation {
-                        showContentButtons = true
+                    // Coordinate parallel loading of home data, pinned items, and tutorial check
+                    async let homeDataTask = viewModel.loadHomeDataAsync(for: userId)
+                    async let pinnedItemsTask = pinService.loadPinnedItems()
+                    let tutorialCheck = tutorialManager.checkIfShouldShowTutorial()
+                    
+                    // Wait for all tasks to complete
+                    await homeDataTask
+                    await pinnedItemsTask
+                    
+                    // Show content buttons after data is loaded
+                    await MainActor.run {
+                        withAnimation {
+                            showContentButtons = true
+                        }
                     }
                 }
-                
-                // Check if tutorial should be shown
-                tutorialManager.checkIfShouldShowTutorial()
             }
         }
         .alert("Error", isPresented: $showingError) {
@@ -306,6 +308,11 @@ struct HomeView: View {
                     gridColumnCount: gridColumnCount
                 )
                 .onTapGesture {
+                    // Preload album detail data immediately when tapped
+                    Task {
+                        await preloadAlbumDetailData(album)
+                    }
+                    
                     selectedPrestige = PrestigeSelection(
                         item: PrestigeDisplayItem.fromAlbum(album),
                         rank: index + 1
@@ -320,6 +327,11 @@ struct HomeView: View {
                     gridColumnCount: gridColumnCount
                 )
                 .onTapGesture {
+                    // Preload track detail data immediately when tapped
+                    Task {
+                        await preloadTrackDetailData(track)
+                    }
+                    
                     selectedPrestige = PrestigeSelection(
                         item: PrestigeDisplayItem.fromTrack(track),
                         rank: index + 1
@@ -334,6 +346,11 @@ struct HomeView: View {
                     gridColumnCount: gridColumnCount
                 )
                 .onTapGesture {
+                    // Preload artist detail data immediately when tapped
+                    Task {
+                        await preloadArtistDetailData(artist)
+                    }
+                    
                     selectedPrestige = PrestigeSelection(
                         item: PrestigeDisplayItem.fromArtist(artist),
                         rank: index + 1
@@ -444,6 +461,26 @@ struct HomeView: View {
         default:
             return 10
         }
+    }
+    
+    // MARK: - Preloading Methods
+    
+    /// Preload album detail data when user taps on album
+    private func preloadAlbumDetailData(_ album: UserAlbumResponse) async {
+        guard let userId = authManager.user?.id else { return }
+        await detailCache.preloadAlbumDetail(album: album, userId: userId)
+    }
+    
+    /// Preload track detail data when user taps on track
+    private func preloadTrackDetailData(_ track: UserTrackResponse) async {
+        guard let userId = authManager.user?.id else { return }
+        await detailCache.preloadTrackDetail(track: track, userId: userId)
+    }
+    
+    /// Preload artist detail data when user taps on artist
+    private func preloadArtistDetailData(_ artist: UserArtistResponse) async {
+        guard let userId = authManager.user?.id else { return }
+        await detailCache.preloadArtistDetail(artist: artist, userId: userId)
     }
 }
 

@@ -70,8 +70,9 @@ class LoadingCoordinator: ObservableObject {
     // Cache for different time ranges
     private var cachedContent: [PrestigeTimeRange: PrestigeContentBundle] = [:]
     private var lastFetchTime: [PrestigeTimeRange: Date] = [:]
-    private let cacheValidityDuration: TimeInterval = 60 // 1 minute for most content
+    private let cacheValidityDuration: TimeInterval = 300 // 5 minutes for most content
     private let recentlyUpdatedCacheDuration: TimeInterval = 3600 // 1 hour for recently updated
+    private let pinnedItemsCacheDuration: TimeInterval = 1800 // 30 minutes for pinned items
     
     init(apiClient: APIClient = .shared, profileService: ProfileService = ProfileService()) {
         self.apiClient = apiClient
@@ -128,7 +129,7 @@ class LoadingCoordinator: ObservableObject {
     }
     
     /// Preload images for visible content
-    func preloadImages(for contentType: ContentType, limit: Int = 20) async {
+    func preloadImages(for contentType: ContentType, limit: Int = 50) async {
         guard let bundle = contentBundle else { return }
         
         let imageUrls: [String] = switch contentType {
@@ -207,9 +208,9 @@ class LoadingCoordinator: ObservableObject {
         updateProgress(0.9, message: "Preparing display...")
         
         return PrestigeContentBundle(
-            tracks: Array(sortedTracks.prefix(60)),
-            albums: Array(sortedAlbums.prefix(60)),
-            artists: Array(sortedArtists.prefix(60)),
+            tracks: Array(sortedTracks.prefix(100)), // Increased from 60
+            albums: Array(sortedAlbums.prefix(100)), // Increased from 60
+            artists: Array(sortedArtists.prefix(100)), // Increased from 60
             pinnedItems: nil,
             recentlyUpdated: nil
         )
@@ -328,8 +329,12 @@ class LoadingCoordinator: ObservableObject {
             return nil
         }
         
-        // Use longer cache duration for recently updated content
-        let cacheDuration = timeRange == .recentlyUpdated ? recentlyUpdatedCacheDuration : cacheValidityDuration
+        // Use appropriate cache duration based on content type
+        let cacheDuration = switch timeRange {
+        case .recentlyUpdated: recentlyUpdatedCacheDuration
+        case .pinned: pinnedItemsCacheDuration  
+        case .allTime: cacheValidityDuration
+        }
         
         guard Date().timeIntervalSince(fetchTime) < cacheDuration else {
             return nil

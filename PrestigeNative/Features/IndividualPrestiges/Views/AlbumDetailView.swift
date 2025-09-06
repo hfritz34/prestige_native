@@ -56,7 +56,7 @@ struct AlbumDetailView: View {
                     }
                 }
             }
-            .background(Color(UIColor.systemBackground))
+            .background(Color.black)
         }
         .onAppear {
             loadAlbumTracks()

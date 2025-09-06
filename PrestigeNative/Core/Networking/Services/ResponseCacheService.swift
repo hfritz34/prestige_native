@@ -24,11 +24,11 @@ class ResponseCacheService: ObservableObject {
     
     // Cache TTL settings aligned with backend Redis cache
     struct CacheTTL {
-        static let userRatings: TimeInterval = 30 * 60        // 30 minutes
-        static let itemMetadata: TimeInterval = 24 * 60 * 60  // 24 hours
-        static let ratingCategories: TimeInterval = 48 * 60 * 60 // 48 hours
-        static let userProfile: TimeInterval = 60 * 60       // 1 hour
-        static let searchResults: TimeInterval = 15 * 60     // 15 minutes
+        static let userRatings: TimeInterval = 60 * 60        // 1 hour (was 30 minutes)
+        static let itemMetadata: TimeInterval = 6 * 60 * 60   // 6 hours (was 24 hours - more reasonable)
+        static let ratingCategories: TimeInterval = 48 * 60 * 60 // 48 hours (unchanged)
+        static let userProfile: TimeInterval = 2 * 60 * 60   // 2 hours (was 1 hour)
+        static let searchResults: TimeInterval = 30 * 60     // 30 minutes (was 15 minutes)
     }
     
     @Published var cacheStats = CacheStatistics()
@@ -264,14 +264,14 @@ enum CacheCategory {
     
     var ttl: TimeInterval {
         switch self {
-        case .userRatings: return 30 * 60        // 30 minutes
-        case .itemMetadata: return 24 * 60 * 60  // 24 hours
+        case .userRatings: return 60 * 60        // 1 hour
+        case .itemMetadata: return 6 * 60 * 60   // 6 hours
         case .ratingCategories: return 48 * 60 * 60 // 48 hours
-        case .userProfile: return 60 * 60       // 1 hour
-        case .searchResults: return 15 * 60     // 15 minutes
-        case .spotifyData: return 15 * 60       // 15 minutes
-        case .friends: return 30 * 60           // 30 minutes
-        case .friendProfiles: return 60 * 60    // 1 hour
+        case .userProfile: return 2 * 60 * 60    // 2 hours
+        case .searchResults: return 30 * 60      // 30 minutes
+        case .spotifyData: return 30 * 60        // 30 minutes (was 15)
+        case .friends: return 60 * 60            // 1 hour (was 30 minutes)
+        case .friendProfiles: return 2 * 60 * 60 // 2 hours (was 1 hour)
         }
     }
 }

@@ -69,7 +69,7 @@ struct PrestigeDetailView: View {
                     }
                 }
             }
-            .background(Color(UIColor.systemBackground))
+            .background(Color.black)
             .sheet(isPresented: $ratingViewModel.showRatingModal) {
                 RatingModal()
                     .environmentObject(ratingViewModel)
@@ -117,21 +117,18 @@ struct PrestigeDetailView: View {
                     .clipShape(RoundedRectangle(cornerRadius: 14))
                 
                 // Main artwork
-                AsyncImage(url: URL(string: item.imageUrl)) { image in
-                    image
-                        .resizable()
-                        .aspectRatio(contentMode: .fit)
-                } placeholder: {
+                CachedAsyncImage(
+                    url: item.imageUrl,
+                    placeholder: Image(systemName: item.contentType.iconName),
+                    contentMode: .fill,
+                    maxWidth: 180,
+                    maxHeight: 180
+                )
+                .clipShape(RoundedRectangle(cornerRadius: 14))
+                .overlay(
                     RoundedRectangle(cornerRadius: 14)
-                        .fill(Color.gray.opacity(0.3))
-                        .overlay(
-                            Image(systemName: item.contentType.iconName)
-                                .font(.largeTitle)
-                                .foregroundColor(.gray)
-                        )
-                }
-                .frame(width: 180, height: 180)
-                .cornerRadius(14)
+                        .stroke(Color.white.opacity(0.4), lineWidth: 2)
+                )
                 .shadow(radius: 8)
             }
             .frame(width: 220, height: 220)

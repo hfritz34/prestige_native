@@ -53,6 +53,10 @@ enum APIEndpoints {
         return "api/friendships/\(userId)/friends/\(friendId)"
     }
     
+    static func friendRecentlyPlayed(userId: String, friendId: String) -> String {
+        return "api/friendships/\(userId)/friends/\(friendId)/recently-played"
+    }
+    
     // Social discovery endpoints
     static func friendsWithTrack(userId: String, trackId: String) -> String {
         return "api/friendships/\(userId)/friends/listened-to-track/\(trackId)"

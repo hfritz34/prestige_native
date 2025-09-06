@@ -16,6 +16,48 @@ struct AddFavoritesView: View {
     @State private var isCompleting = false
     @Environment(\.dismiss) var dismiss
     
+    // Adaptive grid columns with improved device compatibility and NaN protection
+    private var adaptiveGridColumns: [GridItem] {
+        let screenWidth = UIScreen.main.bounds.width
+        
+        // Safety check for invalid screen width
+        guard screenWidth.isFinite && screenWidth > 0 else {
+            // Fallback to safe static grid with adjusted spacing for artists
+            let spacing: CGFloat = (selectedTab == "artists") ? 12 : 8
+            return [
+                GridItem(.flexible(minimum: 100, maximum: 140), spacing: spacing),
+                GridItem(.flexible(minimum: 100, maximum: 140), spacing: spacing),
+                GridItem(.flexible(minimum: 100, maximum: 140), spacing: spacing)
+            ]
+        }
+        
+        let padding: CGFloat = 32 // Total horizontal padding (16 on each side)
+        
+        // Adjust spacing based on item type - circular artist images need more space
+        let spacing: CGFloat = (selectedTab == "artists") ? 12 : 8
+        let totalSpacing: CGFloat = spacing * 2 // Space between 3 columns
+        let availableWidth = screenWidth - padding - totalSpacing
+        let itemWidth = availableWidth / 3
+        
+        // For artists, use slightly smaller max width to prevent circular overlap
+        let maxWidthMultiplier: CGFloat = (selectedTab == "artists") ? 1.1 : 1.2
+        
+        // Ensure minimum and maximum constraints work across all devices with NaN protection
+        let minWidth = max(itemWidth * 0.8, 90).isFinite ? max(itemWidth * 0.8, 90) : 90
+        let maxWidth = min(itemWidth * maxWidthMultiplier, 160).isFinite ? min(itemWidth * maxWidthMultiplier, 160) : 160
+        
+        // Final safety check
+        let safeMinWidth = minWidth.isFinite ? minWidth : 90
+        let safeMaxWidth = maxWidth.isFinite ? maxWidth : 160
+        let safeSpacing = spacing.isFinite ? spacing : 8
+        
+        return [
+            GridItem(.flexible(minimum: safeMinWidth, maximum: safeMaxWidth), spacing: safeSpacing),
+            GridItem(.flexible(minimum: safeMinWidth, maximum: safeMaxWidth), spacing: safeSpacing),
+            GridItem(.flexible(minimum: safeMinWidth, maximum: safeMaxWidth), spacing: safeSpacing)
+        ]
+    }
+    
     var body: some View {
         VStack(spacing: 0) {
             // Tab selector
@@ -23,18 +65,24 @@ struct AddFavoritesView: View {
                 TabButton(title: "Albums", icon: "square.stack", isSelected: selectedTab == "albums") {
                     selectedTab = "albums"
                     viewModel.selectedType = .albums
+                    searchText = "" // Clear search text when switching tabs
+                    viewModel.searchResults = [] // Clear search results when switching tabs
                     viewModel.loadCurrentFavorites()
                 }
                 
                 TabButton(title: "Songs", icon: "music.note", isSelected: selectedTab == "tracks") {
                     selectedTab = "tracks"
                     viewModel.selectedType = .tracks
+                    searchText = "" // Clear search text when switching tabs
+                    viewModel.searchResults = [] // Clear search results when switching tabs
                     viewModel.loadCurrentFavorites()
                 }
                 
                 TabButton(title: "Artists", icon: "music.mic", isSelected: selectedTab == "artists") {
                     selectedTab = "artists"
                     viewModel.selectedType = .artists
+                    searchText = "" // Clear search text when switching tabs
+                    viewModel.searchResults = [] // Clear search results when switching tabs
                     viewModel.loadCurrentFavorites()
                 }
             }
@@ -130,21 +178,27 @@ struct AddFavoritesView: View {
                 .cornerRadius(10)
                 .padding(.horizontal)
                 
-                // Search results
+                // Search results - Grid Layout
                 ScrollView {
-                    LazyVStack(spacing: 8) {
-                        if viewModel.isSearching {
-                            ProgressView()
-                                .padding(.vertical, 50)
-                        } else {
+                    if viewModel.isSearching {
+                        ProgressView("Searching...")
+                            .padding(.vertical, 50)
+                    } else if viewModel.isLoadingCategory {
+                        ProgressView("Loading \(getSearchPlaceholder())...")
+                            .padding(.vertical, 50)
+                    } else {
+                        LazyVGrid(columns: adaptiveGridColumns, spacing: selectedTab == "artists" ? 16 : 12) {
                             ForEach(viewModel.searchResults, id: \.id) { item in
-                                SearchResultRow(item: item, isSelected: viewModel.isFavorite(item)) {
+                                FavoritesGridCard(
+                                    item: item,
+                                    isSelected: viewModel.isFavorite(item)
+                                ) {
                                     viewModel.toggleFavorite(item)
                                 }
                             }
                         }
+                        .padding(.horizontal, selectedTab == "artists" ? 20 : 16)
                     }
-                    .padding(.horizontal)
                 }
             }
         }
@@ -175,17 +229,24 @@ struct AddFavoritesView: View {
         }
         
         do {
-            // First save any pending favorites changes
-            if viewModel.hasUnsavedChanges {
+            // Always save favorites during onboarding to ensure they are persisted
+            print("🔄 Onboarding completion - Current favorites: \(viewModel.currentFavorites.count), Has unsaved changes: \(viewModel.hasUnsavedChanges)")
+            
+            if !viewModel.currentFavorites.isEmpty || viewModel.hasUnsavedChanges {
+                print("🔄 Saving favorites during onboarding completion...")
                 await viewModel.saveFavorites()
                 
                 // Check if saving failed
                 if viewModel.showingError {
+                    print("❌ Favorite saving failed during onboarding: \(viewModel.errorMessage)")
                     await MainActor.run {
                         isCompleting = false
                     }
                     return
                 }
+                print("✅ Favorites saved successfully during onboarding")
+            } else {
+                print("ℹ️ No favorites to save during onboarding")
             }
             
             // Update user setup status
@@ -232,58 +293,6 @@ struct FavoriteChip: View {
     }
 }
 
-struct SearchResultRow: View {
-    let item: SpotifyItem
-    let isSelected: Bool
-    let onTap: () -> Void
-    
-    var body: some View {
-        HStack {
-            // Item image
-            CachedAsyncImage(
-                url: item.imageUrl,
-                placeholder: Image(systemName: getIconForType()),
-                contentMode: .fill,
-                maxWidth: 50,
-                maxHeight: 50
-            )
-            .clipShape(RoundedRectangle(cornerRadius: 8))
-            
-            // Item details
-            VStack(alignment: .leading, spacing: 4) {
-                Text(item.name)
-                    .font(.subheadline)
-                    .fontWeight(.medium)
-                    .lineLimit(1)
-                
-                Text(item.subtitle ?? "")
-                    .font(.caption)
-                    .foregroundColor(.secondary)
-                    .lineLimit(1)
-            }
-            
-            Spacer()
-            
-            // Selection indicator
-            Image(systemName: isSelected ? "heart.fill" : "heart")
-                .foregroundColor(isSelected ? .red : .gray)
-        }
-        .padding(.vertical, 8)
-        .contentShape(Rectangle())
-        .onTapGesture {
-            onTap()
-        }
-    }
-    
-    private func getIconForType() -> String {
-        switch item.type {
-        case "track": return "music.note"
-        case "album": return "square.stack"
-        case "artist": return "music.mic"
-        default: return "music.note"
-        }
-    }
-}
 
 #Preview {
     NavigationView {

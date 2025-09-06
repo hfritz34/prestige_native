@@ -293,6 +293,22 @@ class FriendsService: ObservableObject {
         }
     }
     
+    /// Get friend's recently played tracks
+    func getFriendRecentlyPlayed(friendId: String) async -> [RecentlyPlayedResponse] {
+        guard let userId = authManager.user?.id else { return [] }
+        
+        do {
+            let recentlyPlayed = try await apiClient.getFriendRecentlyPlayed(
+                userId: userId,
+                friendId: friendId
+            )
+            return recentlyPlayed
+        } catch {
+            print("❌ Error fetching friend's recently played: \(error)")
+            return []
+        }
+    }
+    
     // MARK: - Friend Request Management
     
     /// Send a friend request to another user

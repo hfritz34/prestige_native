@@ -192,10 +192,10 @@ struct ArtistDetailView: View {
                 .frame(maxWidth: .infinity, alignment: .leading)
             
             LazyVGrid(columns: [
-                GridItem(.flexible()),
-                GridItem(.flexible()),
-                GridItem(.flexible())
-            ], spacing: 16) {
+                GridItem(.flexible(minimum: 100, maximum: 140), spacing: 8),
+                GridItem(.flexible(minimum: 100, maximum: 140), spacing: 8),
+                GridItem(.flexible(minimum: 100, maximum: 140), spacing: 8)
+            ], spacing: 12) {
                 StatCard(
                     title: "Minutes",
                     value: TimeFormatter.formatListeningTime(item.totalTimeMilliseconds),

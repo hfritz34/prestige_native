@@ -29,6 +29,7 @@ class AddFavoritesViewModel: ObservableObject {
     @Published var currentFavorites: [SpotifyItem] = []
     @Published var selectedType: ContentType = .albums
     @Published var isSearching = false
+    @Published var isLoadingCategory = false
     @Published var showingError = false
     @Published var errorMessage = ""
     @Published var isSaving = false
@@ -128,8 +129,17 @@ class AddFavoritesViewModel: ObservableObject {
     
     func loadCurrentFavorites() {
         Task {
+            await MainActor.run {
+                self.isLoadingCategory = true
+            }
+            
             do {
-                guard let userId = AuthManager.shared.user?.id else { return }
+                guard let userId = AuthManager.shared.user?.id else { 
+                    await MainActor.run {
+                        self.isLoadingCategory = false
+                    }
+                    return 
+                }
                 
                 let typeString = mapContentTypeToSearchType(selectedType)
                 
@@ -154,6 +164,7 @@ class AddFavoritesViewModel: ObservableObject {
                         }
                         self.originalFavorites = self.currentFavorites
                         self.hasUnsavedChanges = false
+                        self.isLoadingCategory = false
                     }
                 case .albums:
                     let albumFavorites = try await APIClient.shared.getAlbumFavorites(userId: userId)
@@ -169,6 +180,7 @@ class AddFavoritesViewModel: ObservableObject {
                         }
                         self.originalFavorites = self.currentFavorites
                         self.hasUnsavedChanges = false
+                        self.isLoadingCategory = false
                     }
                 case .artists:
                     let artistFavorites = try await APIClient.shared.getArtistFavorites(userId: userId)
@@ -184,6 +196,7 @@ class AddFavoritesViewModel: ObservableObject {
                         }
                         self.originalFavorites = self.currentFavorites
                         self.hasUnsavedChanges = false
+                        self.isLoadingCategory = false
                     }
                 }
             } catch {
@@ -191,6 +204,7 @@ class AddFavoritesViewModel: ObservableObject {
                     self.currentFavorites = []
                     self.originalFavorites = []
                     self.hasUnsavedChanges = false
+                    self.isLoadingCategory = false
                 }
                 print("Failed to load favorites for \(selectedType): \(error)")
             }

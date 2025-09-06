@@ -32,6 +32,7 @@ class ProfileViewModel: ObservableObject {
     private let profileService: ProfileService
     private let authManager: AuthManager
     private var cancellables = Set<AnyCancellable>()
+    private var currentLoadingTask: Task<Void, Never>?
     
     // Computed properties for stats
     var totalListeningTime: Int {
@@ -106,13 +107,20 @@ class ProfileViewModel: ObservableObject {
         
         print("🔵 ProfileViewModel: Loading data for user: \(actualUserId)")
         
-        Task {
+        // Cancel any existing loading task
+        currentLoadingTask?.cancel()
+        
+        currentLoadingTask = Task {
             // Load profile data and ratings in parallel
             async let profileTask = profileService.loadAllProfileData(userId: actualUserId)
             async let ratingsTask = loadRatingsData()
             
             // Wait for both to complete
             let _ = await (profileTask, ratingsTask)
+            
+            await MainActor.run {
+                currentLoadingTask = nil
+            }
         }
     }
     
@@ -150,8 +158,17 @@ class ProfileViewModel: ObservableObject {
     /// Refresh data synchronously for pull-to-refresh
     @MainActor
     func refreshDataSynchronously() async {
+        // Cancel any existing loading task to prevent cancellation errors
+        currentLoadingTask?.cancel()
+        
         guard let userId = authManager.user?.id else { return }
-        await loadProfileDataSynchronously(userId: userId)
+        
+        currentLoadingTask = Task {
+            await loadProfileDataSynchronously(userId: userId)
+        }
+        
+        await currentLoadingTask?.value
+        currentLoadingTask = nil
     }
     
     /// Load ratings data for all types

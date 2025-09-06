@@ -141,11 +141,14 @@ struct UserTrackResponse: Codable, Identifiable {
     let rating: Double?         // User's rating score (1-10)
     let rankWithinAlbum: Int?   // Ranking position within the album
     let prestigeTier: String?   // Prestige tier from backend (e.g., "Gold", "Diamond")
+    let personalRatingScore: Double? // Personal rating score from backend
+    let ratingPosition: Int?    // Position in user's rated tracks
     
     init(totalTime: Int, track: TrackResponse, userId: String, 
          albumPosition: Int? = nil, totalTracksInAlbum: Int? = nil, 
          isPinned: Bool = false, rating: Double? = nil, rankWithinAlbum: Int? = nil,
-         prestigeTier: String? = nil) {
+         prestigeTier: String? = nil, personalRatingScore: Double? = nil, 
+         ratingPosition: Int? = nil) {
         self.totalTime = totalTime
         self.track = track
         self.userId = userId
@@ -155,6 +158,8 @@ struct UserTrackResponse: Codable, Identifiable {
         self.rating = rating
         self.rankWithinAlbum = rankWithinAlbum
         self.prestigeTier = prestigeTier
+        self.personalRatingScore = personalRatingScore
+        self.ratingPosition = ratingPosition
     }
     
     var id: String { track.id }
@@ -185,6 +190,7 @@ struct UserTrackResponse: Codable, Identifiable {
         case totalTime, track, userId
         case albumPosition, totalTracksInAlbum
         case isPinned, rating, rankWithinAlbum, prestigeTier
+        case personalRatingScore, ratingPosition
     }
 }
 
@@ -196,15 +202,20 @@ struct UserAlbumResponse: Codable, Identifiable {
     let isPinned: Bool          // Whether album is pinned (required field)
     let rating: Double?         // User's rating score (1-10)
     let prestigeTier: String?   // Prestige tier from backend (e.g., "Gold", "Diamond")
+    let personalRatingScore: Double? // Personal rating score from backend
+    let ratingPosition: Int?    // Position in user's rated albums
     
     init(totalTime: Int, album: AlbumResponse, userId: String, 
-         isPinned: Bool = false, rating: Double? = nil, prestigeTier: String? = nil) {
+         isPinned: Bool = false, rating: Double? = nil, prestigeTier: String? = nil,
+         personalRatingScore: Double? = nil, ratingPosition: Int? = nil) {
         self.totalTime = totalTime
         self.album = album
         self.userId = userId
         self.isPinned = isPinned
         self.rating = rating
         self.prestigeTier = prestigeTier
+        self.personalRatingScore = personalRatingScore
+        self.ratingPosition = ratingPosition
     }
     
     var id: String { album.id }
@@ -222,6 +233,7 @@ struct UserAlbumResponse: Codable, Identifiable {
     enum CodingKeys: String, CodingKey {
         case totalTime, album, userId
         case isPinned, rating, prestigeTier
+        case personalRatingScore, ratingPosition
     }
 }
 
@@ -233,15 +245,20 @@ struct UserArtistResponse: Codable, Identifiable {
     let isPinned: Bool          // Whether artist is pinned (required field)
     let rating: Double?         // User's rating score (1-10)
     let prestigeTier: String?   // Prestige tier from backend (e.g., "Gold", "Diamond")
+    let personalRatingScore: Double? // Personal rating score from backend
+    let ratingPosition: Int?    // Position in user's rated artists
     
     init(totalTime: Int, artist: ArtistResponse, userId: String, 
-         isPinned: Bool = false, rating: Double? = nil, prestigeTier: String? = nil) {
+         isPinned: Bool = false, rating: Double? = nil, prestigeTier: String? = nil,
+         personalRatingScore: Double? = nil, ratingPosition: Int? = nil) {
         self.totalTime = totalTime
         self.artist = artist
         self.userId = userId
         self.isPinned = isPinned
         self.rating = rating
         self.prestigeTier = prestigeTier
+        self.personalRatingScore = personalRatingScore
+        self.ratingPosition = ratingPosition
     }
     
     var id: String { artist.id }
@@ -259,6 +276,7 @@ struct UserArtistResponse: Codable, Identifiable {
     enum CodingKeys: String, CodingKey {
         case totalTime, artist, userId
         case isPinned, rating, prestigeTier
+        case personalRatingScore, ratingPosition
     }
 }
 

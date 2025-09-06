@@ -13,6 +13,21 @@ import Combine
 class APIClient: ObservableObject {
     static let shared = APIClient()
     
+    // Date formatters for high precision .NET API dates
+    private static let highPrecisionDateFormatter: DateFormatter = {
+        let formatter = DateFormatter()
+        formatter.dateFormat = "yyyy-MM-dd'T'HH:mm:ss.SSSSSSS"
+        formatter.timeZone = TimeZone(abbreviation: "UTC")
+        return formatter
+    }()
+    
+    private static let standardDateFormatter: DateFormatter = {
+        let formatter = DateFormatter()
+        formatter.dateFormat = "yyyy-MM-dd'T'HH:mm:ss.SSS"
+        formatter.timeZone = TimeZone(abbreviation: "UTC")
+        return formatter
+    }()
+    
     private let baseURL: String
     private let maxRetries = 2
     private let session: URLSession
@@ -69,7 +84,27 @@ class APIClient: ObservableObject {
                 }
                 
                 let decoder = JSONDecoder()
-                decoder.dateDecodingStrategy = .iso8601
+                decoder.dateDecodingStrategy = .custom { decoder in
+                    let container = try decoder.singleValueContainer()
+                    let dateString = try container.decode(String.self)
+                    
+                    // Try high precision format first (from .NET API)
+                    if let date = APIClient.highPrecisionDateFormatter.date(from: dateString) {
+                        return date
+                    }
+                    
+                    // Fall back to standard ISO8601
+                    if let date = ISO8601DateFormatter().date(from: dateString) {
+                        return date
+                    }
+                    
+                    // Final fallback to standard format
+                    if let date = APIClient.standardDateFormatter.date(from: dateString) {
+                        return date
+                    }
+                    
+                    throw DecodingError.dataCorruptedError(in: container, debugDescription: "Cannot decode date string \(dateString)")
+                }
                 return try decoder.decode(T.self, from: data)
             }
             
@@ -444,7 +479,27 @@ extension APIClient {
             
             if 200...299 ~= httpResponse.statusCode {
                 let decoder = JSONDecoder()
-                decoder.dateDecodingStrategy = .iso8601
+                decoder.dateDecodingStrategy = .custom { decoder in
+                    let container = try decoder.singleValueContainer()
+                    let dateString = try container.decode(String.self)
+                    
+                    // Try high precision format first (from .NET API)
+                    if let date = APIClient.highPrecisionDateFormatter.date(from: dateString) {
+                        return date
+                    }
+                    
+                    // Fall back to standard ISO8601
+                    if let date = ISO8601DateFormatter().date(from: dateString) {
+                        return date
+                    }
+                    
+                    // Final fallback to standard format
+                    if let date = APIClient.standardDateFormatter.date(from: dateString) {
+                        return date
+                    }
+                    
+                    throw DecodingError.dataCorruptedError(in: container, debugDescription: "Cannot decode date string \(dateString)")
+                }
                 return try decoder.decode(UserResponse.self, from: data)
             } else {
                 throw APIError.httpError(statusCode: httpResponse.statusCode, message: nil)
@@ -473,6 +528,14 @@ extension APIClient {
             responseType: FriendResponse.self,
             category: .friendProfiles,
             forceRefresh: forceRefresh
+        )
+    }
+    
+    /// Get friend's recently played tracks
+    func getFriendRecentlyPlayed(userId: String, friendId: String) async throws -> [RecentlyPlayedResponse] {
+        return try await get(
+            APIEndpoints.friendRecentlyPlayed(userId: userId, friendId: friendId),
+            responseType: [RecentlyPlayedResponse].self
         )
     }
     
@@ -628,7 +691,11 @@ extension APIClient {
                 favoriteArtists: nil,
                 topTracks: nil,
                 topAlbums: nil,
-                topArtists: nil
+                topArtists: nil,
+                ratedTracks: nil,
+                ratedAlbums: nil,
+                ratedArtists: nil,
+                recentlyPlayed: nil
             )
         }
     }

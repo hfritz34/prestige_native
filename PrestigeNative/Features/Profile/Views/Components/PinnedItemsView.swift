@@ -92,8 +92,12 @@ struct PinnedItemsView: View {
     
     private var pinnedItemsGrid: some View {
         LazyVGrid(
-            columns: Array(repeating: GridItem(.flexible(), spacing: 16), count: 3),
-            spacing: 16
+            columns: [
+                GridItem(.flexible(minimum: 100, maximum: 140), spacing: 8),
+                GridItem(.flexible(minimum: 100, maximum: 140), spacing: 8),
+                GridItem(.flexible(minimum: 100, maximum: 140), spacing: 8)
+            ],
+            spacing: 12
         ) {
             ForEach(Array(pinnedItems.enumerated()), id: \.offset) { index, item in
                 pinnedItemCard(item: item, index: index)

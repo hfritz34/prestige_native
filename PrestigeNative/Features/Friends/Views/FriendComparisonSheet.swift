@@ -308,7 +308,11 @@ struct AnyShape: Shape {
                 favoriteArtists: nil,
                 topTracks: nil,
                 topAlbums: nil,
-                topArtists: nil
+                topArtists: nil,
+                ratedTracks: nil,
+                ratedAlbums: nil,
+                ratedArtists: nil,
+                recentlyPlayed: nil
             ),
             FriendResponse(
                 id: "friend2",
@@ -323,7 +327,11 @@ struct AnyShape: Shape {
                 favoriteArtists: nil,
                 topTracks: nil,
                 topAlbums: nil,
-                topArtists: nil
+                topArtists: nil,
+                ratedTracks: nil,
+                ratedAlbums: nil,
+                ratedArtists: nil,
+                recentlyPlayed: nil
             )
         ]
     )

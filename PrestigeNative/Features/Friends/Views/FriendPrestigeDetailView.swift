@@ -214,10 +214,10 @@ struct FriendPrestigeDetailView: View {
                 .frame(maxWidth: .infinity, alignment: .leading)
             
             LazyVGrid(columns: [
-                GridItem(.flexible()),
-                GridItem(.flexible()),
-                GridItem(.flexible())
-            ], spacing: 16) {
+                GridItem(.flexible(minimum: 100, maximum: 140), spacing: 8),
+                GridItem(.flexible(minimum: 100, maximum: 140), spacing: 8),
+                GridItem(.flexible(minimum: 100, maximum: 140), spacing: 8)
+            ], spacing: 12) {
                 StatCard(
                     title: "Minutes",
                     value: TimeFormatter.formatListeningTime(friendPrestigeItem.totalTimeMilliseconds),
@@ -740,7 +740,11 @@ struct FriendPrestigeDetailView: View {
             favoriteArtists: nil,
             topTracks: nil,
             topAlbums: nil,
-            topArtists: nil
+            topArtists: nil,
+            ratedTracks: nil,
+            ratedAlbums: nil,
+            ratedArtists: nil,
+            recentlyPlayed: nil
         )
     }
     

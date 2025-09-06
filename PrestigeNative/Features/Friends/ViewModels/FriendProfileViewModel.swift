@@ -15,7 +15,11 @@ class FriendProfileViewModel: ObservableObject {
     @Published var favoriteTracks: [UserTrackResponse] = []
     @Published var favoriteAlbums: [UserAlbumResponse] = []
     @Published var favoriteArtists: [UserArtistResponse] = []
+    @Published var ratedTracks: [UserTrackResponse] = []
+    @Published var ratedAlbums: [UserAlbumResponse] = []
+    @Published var ratedArtists: [UserArtistResponse] = []
     @Published var recentTracks: [TrackResponse] = []
+    @Published var recentlyPlayed: [RecentlyPlayedResponse] = []
     @Published var currentRatings: [RatedItem] = []
     @Published var isLoading = false
     @Published var error: String?
@@ -56,8 +60,16 @@ class FriendProfileViewModel: ObservableObject {
             self.favoriteTracks = friendProfile.favoriteTracks ?? []
             self.favoriteAlbums = friendProfile.favoriteAlbums ?? []
             self.favoriteArtists = friendProfile.favoriteArtists ?? []
+            self.ratedTracks = friendProfile.ratedTracks ?? []
+            self.ratedAlbums = friendProfile.ratedAlbums ?? []
+            self.ratedArtists = friendProfile.ratedArtists ?? []
+            self.recentlyPlayed = friendProfile.recentlyPlayed ?? []
             
-            print("✅ Friend profile loaded: \(friendProfile.name) with \(topTracks.count) top tracks")
+            // Note: recentTracks is left empty as RecentlyPlayedResponse doesn't have full track data
+            // The UI should use recentlyPlayed directly
+            self.recentTracks = []
+            
+            print("✅ Friend profile loaded: \(friendProfile.name) with \(topTracks.count) top tracks, \(ratedTracks.count) rated tracks, and \(recentlyPlayed.count) recently played")
         } else {
             self.error = "Failed to load friend profile"
             print("❌ Failed to load friend profile for: \(friendId)")

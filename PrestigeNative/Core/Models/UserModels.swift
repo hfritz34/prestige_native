@@ -68,6 +68,10 @@ struct FriendResponse: Codable, Identifiable {
     let topTracks: [UserTrackResponse]?
     let topAlbums: [UserAlbumResponse]?
     let topArtists: [UserArtistResponse]?
+    let ratedTracks: [UserTrackResponse]?
+    let ratedAlbums: [UserAlbumResponse]?
+    let ratedArtists: [UserArtistResponse]?
+    let recentlyPlayed: [RecentlyPlayedResponse]?
     
     // Computed property to maintain compatibility with existing code
     var friendId: String {
@@ -78,6 +82,7 @@ struct FriendResponse: Codable, Identifiable {
         case id, name, nickname, profilePicUrl, friendshipDate, mutualFriends, status
         case favoriteTracks, favoriteAlbums, favoriteArtists
         case topTracks, topAlbums, topArtists
+        case ratedTracks, ratedAlbums, ratedArtists, recentlyPlayed
     }
 }
 
@@ -122,13 +127,17 @@ struct FriendRequestResponse: Codable, Identifiable {
     let toUserNickname: String?
     let toUserProfilePicUrl: String?
     let status: FriendRequestStatus
-    let createdAt: Date
-    let updatedAt: Date?
+    let requestDate: Date
+    let acceptedDate: Date?
     
     enum CodingKeys: String, CodingKey {
         case id, fromUserId, toUserId, fromUserName, fromUserNickname, fromUserProfilePicUrl
-        case toUserName, toUserNickname, toUserProfilePicUrl, status, createdAt, updatedAt
+        case toUserName, toUserNickname, toUserProfilePicUrl, status, requestDate, acceptedDate
     }
+    
+    // Convenience properties for backward compatibility
+    var createdAt: Date { requestDate }
+    var updatedAt: Date? { acceptedDate }
 }
 
 /// Friend request status enum

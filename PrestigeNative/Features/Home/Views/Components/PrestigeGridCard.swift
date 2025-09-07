@@ -224,7 +224,7 @@ struct PrestigeGridCard: View {
         case ..<375:    // iPhone SE 1st gen (320pt)
             baseImageSize = 60   // Conservative increase from 70 original
         case ..<390:    // iPhone SE 2nd/3rd, iPhone 8-13 mini (375pt)
-            baseImageSize = 70   // Conservative increase from 80 original
+            baseImageSize = 100   // Conservative increase from 80 original
         case ..<400:    // iPhone 12/13/14/15 standard (390-393pt)
             baseImageSize = 100  // Conservative increase from 85 original
         case ..<420:    // iPhone 16 Pro (402pt), iPhone 11/XR (414pt)

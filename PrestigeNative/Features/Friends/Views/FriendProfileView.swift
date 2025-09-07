@@ -167,11 +167,18 @@ struct FriendProfileView: View {
                             .lineLimit(1)
                     }
 
-                    // Bio (placeholder for friends)
-                    Text("Friend on Prestige")
-                        .font(.caption)
-                        .foregroundStyle(.secondary)
-                        .lineLimit(2)
+                    // Bio
+                    if let bio = viewModel.friend?.bio, !bio.isEmpty {
+                        Text(bio)
+                            .font(.caption)
+                            .foregroundStyle(.secondary)
+                            .lineLimit(2)
+                    } else {
+                        Text("Friend on Prestige")
+                            .font(.caption)
+                            .foregroundStyle(.secondary)
+                            .lineLimit(2)
+                    }
                 }
                 .frame(maxWidth: .infinity, alignment: .leading)
 

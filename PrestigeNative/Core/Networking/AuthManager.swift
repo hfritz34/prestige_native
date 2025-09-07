@@ -138,7 +138,7 @@ class AuthManager: ObservableObject {
             print("🔵 Auth: This should open Safari with Auth0 login page...")
             
             // Add timeout handling
-            let credentials = try await withTimeout(seconds: 30) {
+            let credentials = try await withTimeout(seconds: 120) {
                 let result = try await webAuth.start()
                 print("🔵 Auth: WebAuth.start() returned successfully")
                 return result

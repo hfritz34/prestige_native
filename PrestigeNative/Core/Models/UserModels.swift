@@ -57,6 +57,7 @@ struct FriendResponse: Codable, Identifiable {
     let name: String
     let nickname: String?
     let profilePicUrl: String?
+    let bio: String?
     let friendshipDate: Date?
     let mutualFriends: Int?
     let status: Int?
@@ -79,7 +80,7 @@ struct FriendResponse: Codable, Identifiable {
     }
     
     enum CodingKeys: String, CodingKey {
-        case id, name, nickname, profilePicUrl, friendshipDate, mutualFriends, status
+        case id, name, nickname, profilePicUrl, bio, friendshipDate, mutualFriends, status
         case favoriteTracks, favoriteAlbums, favoriteArtists
         case topTracks, topAlbums, topArtists
         case ratedTracks, ratedAlbums, ratedArtists, recentlyPlayed

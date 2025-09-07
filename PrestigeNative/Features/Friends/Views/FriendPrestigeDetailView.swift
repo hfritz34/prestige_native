@@ -732,6 +732,7 @@ struct FriendPrestigeDetailView: View {
             name: friendName,
             nickname: friendName,
             profilePicUrl: nil,
+            bio: nil,
             friendshipDate: nil,
             mutualFriends: nil,
             status: nil,

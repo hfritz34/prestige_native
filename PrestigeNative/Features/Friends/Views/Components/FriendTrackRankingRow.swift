@@ -9,6 +9,10 @@ struct FriendTrackRankingRow: View {
     let track: FriendTrackRankingResponse
     let friendName: String
     
+    private var prestigeLevel: PrestigeLevel {
+        PrestigeLevel(rawValue: track.friendPrestigeTier) ?? .none
+    }
+    
     var body: some View {
         HStack(spacing: 12) {
             // Track ranking within album
@@ -64,15 +68,27 @@ struct FriendTrackRankingRow: View {
             
             Spacer()
             
-            // Prestige Badge for friend's track
-            PrestigeBadge(
-                tier: PrestigeLevel(rawValue: track.friendPrestigeTier) ?? .none
-            )
+            // Action buttons on bottom right (can be added later if needed)
+            VStack {
+                Spacer()
+                // Buttons can be added here if needed
+            }
         }
         .padding(.vertical, 8)
         .padding(.horizontal, 12)
         .background(
-            Color(red: 0.95, green: 0.95, blue: 0.97)
+            LinearGradient(
+                gradient: Gradient(colors: [
+                    (Color(hex: prestigeLevel.color) ?? .gray).opacity(0.15),
+                    (Color(hex: prestigeLevel.color) ?? .gray).opacity(0.05)
+                ]),
+                startPoint: .leading,
+                endPoint: .trailing
+            )
+        )
+        .overlay(
+            RoundedRectangle(cornerRadius: 8)
+                .stroke((Color(hex: prestigeLevel.color) ?? .gray).opacity(0.3), lineWidth: 1)
         )
         .cornerRadius(8)
     }

@@ -371,7 +371,7 @@ struct FriendPrestigeDetailView: View {
                 }
                 .disabled(true) // Read-only for friend's data
                 
-                // Enhanced Compare with friend
+                // Enhanced Compare with friend - only if friend has listening time
                 Button(action: {
                     Task {
                         await loadComparisonData()
@@ -379,27 +379,28 @@ struct FriendPrestigeDetailView: View {
                     }
                 }) {
                     VStack(spacing: 4) {
-                        Image(systemName: "arrow.left.arrow.right")
+                        Image(systemName: friendPrestigeItem.totalTimeMilliseconds > 0 ? "arrow.left.arrow.right" : "arrow.left.arrow.right.slash")
                             .font(.title3)
-                        Text("Compare")
+                        Text(friendPrestigeItem.totalTimeMilliseconds > 0 ? "Compare" : "No Data")
                             .font(.caption)
                     }
                     .frame(maxWidth: .infinity)
                     .padding(.vertical, 12)
                     .background(
                         ZStack {
-                            Theme.primarySoft
+                            friendPrestigeItem.totalTimeMilliseconds > 0 ? Theme.primarySoft : Color.gray.opacity(0.3)
                             Color.white.opacity(0.1)
                         }
                     )
                     .overlay(
                         RoundedRectangle(cornerRadius: 10)
-                            .stroke(Theme.primary.opacity(0.3), lineWidth: 0.5)
+                            .stroke(friendPrestigeItem.totalTimeMilliseconds > 0 ? Theme.primary.opacity(0.3) : Color.gray.opacity(0.5), lineWidth: 0.5)
                     )
-                    .foregroundColor(Theme.primary)
+                    .foregroundColor(friendPrestigeItem.totalTimeMilliseconds > 0 ? Theme.primary : .secondary)
                     .cornerRadius(10)
                     .shadow(color: Theme.shadowLight, radius: 4, x: 0, y: 2)
                 }
+                .disabled(friendPrestigeItem.totalTimeMilliseconds == 0)
                 
                 // Context-specific third button - IDENTICAL logic to PrestigeDetailView
                 if friendPrestigeItem.contentType == .albums {
@@ -564,7 +565,7 @@ struct FriendPrestigeDetailView: View {
                     }
                 }
                 .padding()
-                .background(Color(UIColor.tertiarySystemBackground))
+                .background(Color(UIColor.systemBackground))
                 .cornerRadius(12)
             } else if friendAlbumTracks.isEmpty {
                 Button(action: {
@@ -774,12 +775,29 @@ struct FriendPrestigeDetailView: View {
     }
     
     private func loadComparisonData() async {
+        // Only proceed if friend has listening time (button should be disabled otherwise)
+        guard friendPrestigeItem.totalTimeMilliseconds > 0 else {
+            print("Cannot compare - friend has no listening time for this item")
+            return
+        }
+        
         let itemType = friendPrestigeItem.contentType == .tracks ? "track" : 
                       friendPrestigeItem.contentType == .albums ? "album" : "artist"
         
-        comparisonData = await friendProfileViewModel.getEnhancedComparison(
+        let comparison = await friendProfileViewModel.getEnhancedComparison(
             itemId: friendPrestigeItem.spotifyId,
             itemType: itemType
         )
+        
+        // Check if both users have listening time before showing comparison
+        if let comparison = comparison,
+           let userTime = comparison.userStats.listeningTime,
+           let friendTime = comparison.friendStats.listeningTime,
+           userTime > 0 && friendTime > 0 {
+            comparisonData = comparison
+        } else {
+            print("Cannot compare - one or both users have no listening time for this item")
+            // Could show an alert here if needed
+        }
     }
 }

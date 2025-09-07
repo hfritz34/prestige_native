@@ -414,33 +414,33 @@ struct PrestigeDetailView: View {
                     .shadow(color: Theme.shadowLight, radius: 4, x: 0, y: 2)
                 }
                 
-                // Compare with friends (for all content types)
+                // Compare with friends (for all content types) - only if user has listening time
                 Button(action: {
                     showFriendComparison = true
                 }) {
                     VStack(spacing: 4) {
-                        Image(systemName: "person.2.fill")
+                        Image(systemName: item.totalTimeMilliseconds > 0 ? "person.2.fill" : "person.2.slash")
                             .font(.title3)
-                        Text("Compare")
+                        Text(item.totalTimeMilliseconds > 0 ? "Compare" : "No Data")
                             .font(.caption)
                     }
                     .frame(maxWidth: .infinity)
                     .padding(.vertical, 12)
                     .background(
                         ZStack {
-                            Color(UIColor.systemBackground)
-                                .opacity(0.7)
+                            item.totalTimeMilliseconds > 0 ? Color(UIColor.systemBackground).opacity(0.7) : Color.gray.opacity(0.3)
                             Color.white.opacity(0.1)
                         }
                     )
                     .overlay(
                         RoundedRectangle(cornerRadius: 10)
-                            .stroke(Color.gray.opacity(0.2), lineWidth: 0.5)
+                            .stroke(item.totalTimeMilliseconds > 0 ? Color.gray.opacity(0.2) : Color.gray.opacity(0.5), lineWidth: 0.5)
                     )
-                    .foregroundColor(.primary)
+                    .foregroundColor(item.totalTimeMilliseconds > 0 ? .primary : .secondary)
                     .cornerRadius(10)
                     .shadow(color: Theme.shadowLight, radius: 4, x: 0, y: 2)
                 }
+                .disabled(item.totalTimeMilliseconds == 0)
                 
                 // Context-specific third button
                 if item.contentType == .tracks {

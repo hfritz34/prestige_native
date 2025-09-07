@@ -17,7 +17,7 @@ struct HomeView: View {
     @State private var showingError = false
     @State private var selectedPrestige: PrestigeSelection?
     @State private var showContentButtons = false
-    @State private var gridColumnCount: Int = 3 // Default: 3 columns
+    @State private var forceTargetColumns: Int = 3 // Default to 3 columns
     @StateObject private var tutorialManager = TutorialManager.shared
     @Environment(\.colorScheme) var colorScheme
     
@@ -175,7 +175,7 @@ struct HomeView: View {
     // MARK: - View Components
     
     private var contentTypeButtons: some View {
-        HStack(spacing: 12) {
+        HStack(spacing: contentButtonSpacing) {
             ForEach(ContentType.allCases, id: \.self) { type in
                 Button(action: {
                     withAnimation(.easeInOut(duration: 0.15)) {
@@ -186,7 +186,7 @@ struct HomeView: View {
                         .font(.subheadline)
                         .fontWeight(.medium)
                         .foregroundColor(viewModel.selectedContentType == type ? .white : .gray)
-                        .padding(.horizontal, 20)
+                        .padding(.horizontal, contentButtonHorizontalPadding)
                         .padding(.vertical, 10)
                         .background(
                             viewModel.selectedContentType == type
@@ -194,12 +194,13 @@ struct HomeView: View {
                                 : Color.gray.opacity(0.2)
                         )
                         .cornerRadius(20)
+                        .minimumScaleFactor(0.85) // Allow text to scale down if needed
                 }
             }
             
             Spacer()
             
-            // Grid toggle button
+            // Grid toggle button (now controls target columns for adaptive grid)
             Button(action: {
                 withAnimation(.easeInOut(duration: 0.15)) {
                     toggleGridSize()
@@ -214,6 +215,31 @@ struct HomeView: View {
                     .clipShape(Circle())
             }
             .frame(width: 40, height: 40) // Fixed button frame
+        }
+    }
+    
+    // Dynamic content button spacing and padding based on screen size
+    private var contentButtonSpacing: CGFloat {
+        let screenWidth = UIScreen.main.bounds.width
+        switch screenWidth {
+        case ..<380:    // iPhone SE, iPhone 8
+            return 8
+        case 380..<400: // iPhone 12 mini
+            return 10
+        default:        // iPhone 12 and larger
+            return 12
+        }
+    }
+    
+    private var contentButtonHorizontalPadding: CGFloat {
+        let screenWidth = UIScreen.main.bounds.width
+        switch screenWidth {
+        case ..<380:    // iPhone SE, iPhone 8
+            return 12
+        case 380..<400: // iPhone 12 mini
+            return 16
+        default:        // iPhone 12 and larger
+            return 20
         }
     }
     
@@ -290,15 +316,150 @@ struct HomeView: View {
     
     private var prestigeGridSection: some View {
         VStack(alignment: .leading, spacing: 16) {
-            
-            LazyVGrid(
-                columns: Array(repeating: GridItem(.flexible(), spacing: gridItemSpacing), count: gridColumnCount),
-                spacing: gridRowSpacing
-            ) {
-                prestigeGridContent
+            GeometryReader { geometry in
+                LazyVGrid(
+                    columns: adaptiveGridColumns(screenWidth: geometry.size.width),
+                    spacing: adaptiveRowSpacing(screenWidth: geometry.size.width)
+                ) {
+                    prestigeGridContent
+                }
+                .padding(.horizontal, 8)
             }
-            .padding(.horizontal, 8)
+            .frame(minHeight: calculateGridHeight())
         }
+    }
+    
+    // Fixed grid columns based on forced column count
+    private func adaptiveGridColumns(screenWidth: CGFloat) -> [GridItem] {
+        let spacing = adaptiveItemSpacing(screenWidth: screenWidth)
+        let columns = forceTargetColumns
+        
+        return Array(repeating: GridItem(.flexible(), spacing: spacing), count: columns)
+    }
+    
+    // Calculate ideal item width based on forced column count
+    private func idealItemWidth(screenWidth: CGFloat) -> CGFloat {
+        let targetColumns: CGFloat = CGFloat(forceTargetColumns)
+        let totalHorizontalPadding: CGFloat = 16 // 8 on each side
+        let spacing = adaptiveItemSpacing(screenWidth: screenWidth)
+        let totalSpacing = (targetColumns - 1) * spacing
+        let availableWidth = screenWidth - totalHorizontalPadding - totalSpacing
+        let computed = availableWidth / targetColumns
+        
+        // Keep a sensible minimum so content isn't cramped
+        return max(80, floor(computed))
+    }
+    
+    // Dynamic spacing based on logical width breakpoints and column count
+    private func adaptiveItemSpacing(screenWidth: CGFloat) -> CGFloat {
+        // **TRIED AND FAILED VALUES:**
+        // iPhone 12 (390pt): baseSpacing 12pt caused blank space above grid
+        // iPhone 16 Pro Max (440pt): baseSpacing 16pt caused overlaps and cutoffs
+        // Multipliers (1.5x, 1.2x, 0.9x) caused sizing issues
+        
+        let baseSpacing: CGFloat
+        switch screenWidth {
+        case ..<375:    // iPhone SE 1st gen (320pt)
+            baseSpacing = 4
+        case ..<390:    // iPhone SE 2nd/3rd, iPhone 8-13 mini (375pt)
+            baseSpacing = 5
+        case ..<400:    // iPhone 12/13/14/15 standard (390-393pt) - REDUCED from 12
+            baseSpacing = 7
+        case ..<420:    // iPhone 16 Pro (402pt), iPhone 11/XR (414pt)
+            baseSpacing = 8
+        case ..<440:    // iPhone 12/13/14/15 Pro Max/Plus (428-430pt)
+            baseSpacing = 9
+        default:        // iPhone 16 Pro Max (440pt+) - REDUCED from 16
+            baseSpacing = 6  // MUCH smaller for Pro Max to prevent cutoff
+        }
+        
+        // More conservative multipliers
+        let columnMultiplier: CGFloat = {
+            switch forceTargetColumns {
+            case 2: return 1.3  // Less aggressive than 1.5x
+            case 3: return 1.0  // Base spacing for 3 columns
+            case 4: return 0.6  // Tighter for 4 columns, less than 0.9x
+            default: return 1.0
+            }
+        }()
+        
+        // iPhone 12 (390pt) special handling - less aggressive
+        if screenWidth >= 390 && screenWidth < 394 && forceTargetColumns == 3 {
+            return baseSpacing * 1.5  // Less than 2.0x to prevent blank space
+        }
+        
+        return baseSpacing * columnMultiplier
+    }
+    
+    // Dynamic row spacing based on logical width breakpoints and column count
+    private func adaptiveRowSpacing(screenWidth: CGFloat) -> CGFloat {
+        // **TRIED AND FAILED VALUES:**
+        // baseRowSpacing 16-20pt caused blank space above grid
+        // Multipliers (1.3x, 1.1x, 0.9x) with 1.8x special case caused spacing issues
+        
+        let baseRowSpacing: CGFloat
+        switch screenWidth {
+        case ..<375:    // iPhone SE 1st gen (320pt)
+            baseRowSpacing = 6
+        case ..<390:    // iPhone SE 2nd/3rd, iPhone 8-13 mini (375pt)
+            baseRowSpacing = 7
+        case ..<400:    // iPhone 12/13/14/15 standard (390-393pt) - REDUCED from 16
+            baseRowSpacing = 8
+        case ..<420:    // iPhone 16 Pro (402pt), iPhone 11/XR (414pt)
+            baseRowSpacing = 9
+        case ..<440:    // iPhone 12/13/14/15 Pro Max/Plus (428-430pt)
+            baseRowSpacing = 10
+        default:        // iPhone 16 Pro Max (440pt+) - REDUCED from 20
+            baseRowSpacing = 8  // MUCH smaller for Pro Max
+        }
+        
+        // Simpler, more conservative multipliers
+        let columnMultiplier: CGFloat = {
+            switch forceTargetColumns {
+            case 2: return 1.2  // Less than 1.3x
+            case 3: return 1.0  // Base spacing
+            case 4: return 0.8  // Less than 0.9x
+            default: return 1.0
+            }
+        }()
+        
+        // iPhone 12 (390pt) special handling - much less aggressive
+        if screenWidth >= 390 && screenWidth < 394 && forceTargetColumns == 3 {
+            return baseRowSpacing * 1.2  // Much less than 1.8x to prevent blank space
+        }
+        
+        return baseRowSpacing * columnMultiplier
+    }
+    
+    // Estimate grid height to avoid GeometryReader layout issues
+    private func calculateGridHeight() -> CGFloat {
+        let itemCount = CGFloat(max(viewModel.topTracks.count, max(viewModel.topAlbums.count, viewModel.topArtists.count)))
+        let targetColumns: CGFloat = CGFloat(forceTargetColumns)
+        let rows = ceil(itemCount / targetColumns)
+        
+        // Use fixed, reasonable item heights to prevent blank space
+        let itemHeight: CGFloat = {
+            switch forceTargetColumns {
+            case 2: return 220  // Reduced from 240
+            case 3: return 180  // Reduced from 200
+            case 4: return 160  // Reduced from 180
+            default: return 180
+            }
+        }()
+        
+        // Use fixed row spacing instead of dynamic to prevent blank space issues
+        let rowSpacing: CGFloat = {
+            switch forceTargetColumns {
+            case 2: return 12
+            case 3: return 10
+            case 4: return 8
+            default: return 10
+            }
+        }()
+        
+        // Only add extra padding for 2-column display
+        let bottomPadding: CGFloat = forceTargetColumns == 2 ? 50 : 20  // Reduced padding
+        return (rows * itemHeight) + ((rows - 1) * rowSpacing) + bottomPadding
     }
     
     @ViewBuilder
@@ -309,8 +470,9 @@ struct HomeView: View {
                 PrestigeGridCard(
                     item: PrestigeDisplayItem.fromAlbum(album),
                     rank: index + 1,
-                    gridColumnCount: gridColumnCount
+                    gridColumnCount: forceTargetColumns
                 )
+                .frame(maxWidth: .infinity)
                 .onTapGesture {
                     // Preload album detail data immediately when tapped
                     Task {
@@ -328,8 +490,9 @@ struct HomeView: View {
                 PrestigeGridCard(
                     item: PrestigeDisplayItem.fromTrack(track),
                     rank: index + 1,
-                    gridColumnCount: gridColumnCount
+                    gridColumnCount: forceTargetColumns
                 )
+                .frame(maxWidth: .infinity)
                 .onTapGesture {
                     // Preload track detail data immediately when tapped
                     Task {
@@ -347,8 +510,9 @@ struct HomeView: View {
                 PrestigeGridCard(
                     item: PrestigeDisplayItem.fromArtist(artist),
                     rank: index + 1,
-                    gridColumnCount: gridColumnCount
+                    gridColumnCount: forceTargetColumns
                 )
+                .frame(maxWidth: .infinity)
                 .onTapGesture {
                     // Preload artist detail data immediately when tapped
                     Task {
@@ -412,23 +576,23 @@ struct HomeView: View {
         }
     }
     
-    // MARK: - Grid Toggle Functionality
+    // MARK: - Adaptive Grid Toggle Functionality
     
     private func toggleGridSize() {
-        switch gridColumnCount {
-        case 3:
-            gridColumnCount = 4
-        case 4:
-            gridColumnCount = 2
+        switch forceTargetColumns {
         case 2:
-            gridColumnCount = 3
+            forceTargetColumns = 3
+        case 3:
+            forceTargetColumns = 4
+        case 4:
+            forceTargetColumns = 2
         default:
-            gridColumnCount = 3
+            forceTargetColumns = 3  // Always fallback to 3
         }
     }
     
     private var gridIconName: String {
-        switch gridColumnCount {
+        switch forceTargetColumns {
         case 2:
             return "square.grid.2x2"
         case 3:
@@ -440,40 +604,6 @@ struct HomeView: View {
         }
     }
     
-    // Dynamic spacing based on grid size and device compatibility
-    private var gridItemSpacing: CGFloat {
-        let screenWidth = UIScreen.main.bounds.width
-        let isSmallDevice = screenWidth < 400 // iPhone SE, etc.
-        let isArtist = (viewModel.selectedContentType == .artists)
-        
-        switch gridColumnCount {
-        case 2:
-            return isArtist ? 8 : (isSmallDevice ? 6 : 8)   // More space for artists
-        case 3:
-            return isArtist ? 12 : (isSmallDevice ? 8 : 10)  // Perfect spacing with artist adjustment
-        case 4:
-            return isArtist ? 8 : (isSmallDevice ? 4 : 6)   // Less spacing for 4 columns
-        default:
-            return isArtist ? 12 : 8
-        }
-    }
-    
-    private var gridRowSpacing: CGFloat {
-        let screenWidth = UIScreen.main.bounds.width
-        let isSmallDevice = screenWidth < 400
-        let isArtist = (viewModel.selectedContentType == .artists)
-        
-        switch gridColumnCount {
-        case 2:
-            return isArtist ? 10 : (isSmallDevice ? 8 : 10)  // More vertical space for artists
-        case 3:
-            return isArtist ? 14 : (isSmallDevice ? 10 : 12)  // Perfect spacing with artist adjustment
-        case 4:
-            return isArtist ? 10 : (isSmallDevice ? 6 : 8)   // Less spacing for 4 columns
-        default:
-            return isArtist ? 14 : 10
-        }
-    }
     
     // MARK: - Preloading Methods
     

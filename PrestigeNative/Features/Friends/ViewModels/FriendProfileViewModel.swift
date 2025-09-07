@@ -21,6 +21,9 @@ class FriendProfileViewModel: ObservableObject {
     @Published var recentTracks: [TrackResponse] = []
     @Published var recentlyPlayed: [RecentlyPlayedResponse] = []
     @Published var currentRatings: [RatedItem] = []
+    @Published var ratedTrackItems: [RatedItem] = []
+    @Published var ratedAlbumItems: [RatedItem] = []
+    @Published var ratedArtistItems: [RatedItem] = []
     @Published var isLoading = false
     @Published var error: String?
     @Published var isInFriendContext: Bool = false
@@ -66,13 +69,13 @@ class FriendProfileViewModel: ObservableObject {
             self.recentlyPlayed = friendProfile.recentlyPlayed ?? []
             
             // Convert rated items to RatedItem objects for the ratings section
-            self.currentRatings = convertToRatedItems()
+            convertToRatedItems()
             
             // Note: recentTracks is left empty as RecentlyPlayedResponse doesn't have full track data
             // The UI should use recentlyPlayed directly
             self.recentTracks = []
             
-            print("✅ Friend profile loaded: \(friendProfile.name) with \(topTracks.count) top tracks, \(ratedTracks.count) rated tracks, \(currentRatings.count) converted ratings, and \(recentlyPlayed.count) recently played")
+            print("✅ Friend profile loaded: \(friendProfile.name) with \(topTracks.count) top tracks, \(ratedTrackItems.count) track ratings, \(ratedAlbumItems.count) album ratings, \(ratedArtistItems.count) artist ratings, and \(recentlyPlayed.count) recently played")
         } else {
             self.error = "Failed to load friend profile"
             print("❌ Failed to load friend profile for: \(friendId)")
@@ -223,8 +226,10 @@ class FriendProfileViewModel: ObservableObject {
     // MARK: - Private Helper Methods
     
     /// Convert rated tracks, albums, and artists into RatedItem objects for the UI
-    private func convertToRatedItems() -> [RatedItem] {
-        var ratedItems: [RatedItem] = []
+    private func convertToRatedItems() {
+        var trackItems: [RatedItem] = []
+        var albumItems: [RatedItem] = []
+        var artistItems: [RatedItem] = []
         
         // Convert rated tracks
         for ratedTrack in ratedTracks.filter({ $0.personalRatingScore != nil && $0.ratingPosition != nil }) {
@@ -251,7 +256,7 @@ class FriendProfileViewModel: ObservableObject {
                     itemType: .track
                 )
             )
-            ratedItems.append(ratedItem)
+            trackItems.append(ratedItem)
         }
         
         // Convert rated albums
@@ -279,7 +284,7 @@ class FriendProfileViewModel: ObservableObject {
                     itemType: .album
                 )
             )
-            ratedItems.append(ratedItem)
+            albumItems.append(ratedItem)
         }
         
         // Convert rated artists
@@ -307,10 +312,27 @@ class FriendProfileViewModel: ObservableObject {
                     itemType: .artist
                 )
             )
-            ratedItems.append(ratedItem)
+            artistItems.append(ratedItem)
         }
         
-        // Sort by rating position (lower position = higher rank)
-        return ratedItems.sorted { $0.rating.position < $1.rating.position }
+        // Sort each array by rating position (lower position = higher rank) and assign
+        self.ratedTrackItems = trackItems.sorted { $0.rating.position < $1.rating.position }
+        self.ratedAlbumItems = albumItems.sorted { $0.rating.position < $1.rating.position }
+        self.ratedArtistItems = artistItems.sorted { $0.rating.position < $1.rating.position }
+        
+        // Set currentRatings to albums by default to match profile page
+        self.currentRatings = self.ratedAlbumItems
+    }
+    
+    /// Get current rating items based on selected content type
+    func getCurrentRatingItems(for contentType: ContentType) -> [RatedItem] {
+        switch contentType {
+        case .tracks:
+            return ratedTrackItems
+        case .albums:
+            return ratedAlbumItems
+        case .artists:
+            return ratedArtistItems
+        }
     }
 }

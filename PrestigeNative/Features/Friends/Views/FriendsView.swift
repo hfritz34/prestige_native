@@ -201,15 +201,22 @@ struct FriendsView: View {
                                     isIncoming: true,
                                     onAccept: {
                                         Task {
-                                            await friendsService.acceptFriendRequest(request: request)
+                                            let success = await friendsService.acceptFriendRequest(request: request)
+                                            if success {
+                                                print("✅ Friend request accepted successfully")
+                                            }
                                         }
                                     },
                                     onDecline: {
                                         Task {
-                                            await friendsService.declineFriendRequest(request: request)
+                                            let success = await friendsService.declineFriendRequest(request: request)
+                                            if success {
+                                                print("✅ Friend request declined successfully")  
+                                            }
                                         }
                                     }
                                 )
+                                .environmentObject(friendsService)
                             }
                         }
                         .padding(.horizontal)
@@ -232,6 +239,7 @@ struct FriendsView: View {
                                     onAccept: nil,
                                     onDecline: nil
                                 )
+                                .environmentObject(friendsService)
                             }
                         }
                         .padding(.horizontal)
@@ -477,7 +485,7 @@ struct FriendRequestRowView: View {
     let onAccept: (() -> Void)?
     let onDecline: (() -> Void)?
     
-    @State private var isLoading = false
+    @EnvironmentObject var friendsService: FriendsService
     
     var body: some View {
         HStack(spacing: 12) {
@@ -521,10 +529,9 @@ struct FriendRequestRowView: View {
                 HStack(spacing: 8) {
                     // Decline button
                     Button(action: {
-                        isLoading = true
                         onDecline?()
                     }) {
-                        if isLoading {
+                        if friendsService.isLoading {
                             ProgressView()
                                 .scaleEffect(0.8)
                         } else {
@@ -535,13 +542,13 @@ struct FriendRequestRowView: View {
                     .foregroundColor(.red)
                     .frame(width: 32, height: 32)
                     .background(Circle().fill(Color.red.opacity(0.1)))
+                    .disabled(friendsService.isLoading)
                     
                     // Accept button
                     Button(action: {
-                        isLoading = true
                         onAccept?()
                     }) {
-                        if isLoading {
+                        if friendsService.isLoading {
                             ProgressView()
                                 .scaleEffect(0.8)
                         } else {
@@ -552,6 +559,7 @@ struct FriendRequestRowView: View {
                     .foregroundColor(.green)
                     .frame(width: 32, height: 32)
                     .background(Circle().fill(Color.green.opacity(0.1)))
+                    .disabled(friendsService.isLoading)
                 }
             } else {
                 // Status for outgoing requests

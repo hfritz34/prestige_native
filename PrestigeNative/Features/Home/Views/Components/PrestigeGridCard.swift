@@ -27,17 +27,17 @@ struct PrestigeGridCard: View {
         VStack(spacing: 8) {
             // Main card with artwork and prestige frame
             ZStack {
-                // Prestige tier background image - properly contained with padding
+                // Prestige tier background image - fills available space
                 if item.prestigeLevel != .none && !item.prestigeLevel.imageName.isEmpty {
                     Image(item.prestigeLevel.imageName)
                         .resizable()
                         .aspectRatio(contentMode: .fill)
+                        .scaleEffect(1.1)
                         .opacity(0.8)
-                        .scaleEffect(prestigeBackgroundScale)
-                        .clipShape(RoundedRectangle(cornerRadius: 12))
+                        .clipShape(RoundedRectangle(cornerRadius: 8))
                 }
                 
-                VStack(spacing: 8) {
+                VStack(spacing: 4) {
                     // Rating badge for albums/artists only (no trophy pins for tracks)
                     HStack {
                         Spacer()
@@ -67,6 +67,8 @@ struct PrestigeGridCard: View {
                         maxWidth: spotifyImageSize,
                         maxHeight: spotifyImageSize
                     )
+                    .frame(width: spotifyImageSize, height: spotifyImageSize)  // Enforce strict size
+                    .clipped()  // Ensure no overflow
                     .clipShape(RoundedRectangle(cornerRadius: 8))
                     .shadow(color: .black.opacity(0.2), radius: 2, x: 0, y: 1)
                     
@@ -106,9 +108,12 @@ struct PrestigeGridCard: View {
                         }
                     }
                 }
-                .padding(8)
+                .padding(2)
+                .frame(maxWidth: .infinity, maxHeight: .infinity)
             }
+            .frame(maxWidth: .infinity, maxHeight: .infinity)
             .aspectRatio(1, contentMode: .fit)
+            .clipped()
             
             // Title and subtitle
             VStack(spacing: 2) {
@@ -207,30 +212,45 @@ struct PrestigeGridCard: View {
     
     // MARK: - Dynamic Sizing Based on Grid Columns
     
-    private var prestigeBackgroundScale: CGFloat {
-        switch gridColumnCount {
-        case 2:
-            return 1.4  // Scale up for 2 columns
-        case 3:
-            return 1.1  // Perfect scale (reference)
-        case 4:
-            return 0.9  // Scale down for 4 columns to prevent overlap
-        default:
-            return 1.1
-        }
-    }
-    
     private var spotifyImageSize: CGFloat {
-        switch gridColumnCount {
-        case 2:
-            return 180  // Larger test size for 2 columns
-        case 3:
-            return 110  // Perfect size (reference)
-        case 4:
-            return 85   // Scale down for 4 columns
-        default:
-            return 110
+        // **TRIED AND FAILED VALUES:**
+        // iPhone 16 Pro Max: baseImageSize 110pt with 1.8x, 1.1x, 0.85x caused cutoffs and overlaps
+        
+        let screenWidth = UIScreen.main.bounds.width
+        
+        // More moderate base sizing - smaller than previous attempt
+        let baseImageSize: CGFloat
+        switch screenWidth {
+        case ..<375:    // iPhone SE 1st gen (320pt)
+            baseImageSize = 60   // Conservative increase from 70 original
+        case ..<390:    // iPhone SE 2nd/3rd, iPhone 8-13 mini (375pt)
+            baseImageSize = 70   // Conservative increase from 80 original
+        case ..<400:    // iPhone 12/13/14/15 standard (390-393pt)
+            baseImageSize = 100   // Conservative increase from 85 original
+        case ..<420:    // iPhone 16 Pro (402pt), iPhone 11/XR (414pt)
+            baseImageSize = 100  // Conservative increase from 90 original
+        case ..<440:    // iPhone 12/13/14/15 Pro Max/Plus (428-430pt)
+            baseImageSize = 100   // Conservative increase from 95 original
+        default:        // iPhone 16 Pro Max (440pt+)
+            baseImageSize = 100   // Conservative increase from 75 original
         }
+        
+        // Same scaling factors as before
+        let scaleFactor: CGFloat = {
+            switch gridColumnCount {
+            case 2: return 1.6   // Less than 1.8x
+            case 3: return 1.0   // Base size, no scaling
+            case 4: return 0.75  // Less than 0.85x, more conservative
+            default: return 1.0
+            }
+        }()
+        
+        // iPhone 12 (390pt) special handling - maintain proportion
+        if screenWidth >= 390 && screenWidth < 394 && gridColumnCount == 3 {
+            return baseImageSize * 0.85  // Same ratio as before
+        }
+        
+        return baseImageSize * scaleFactor
     }
 }
 

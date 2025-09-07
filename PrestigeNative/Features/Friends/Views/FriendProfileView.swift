@@ -110,9 +110,7 @@ struct FriendProfileView: View {
                         // Update all the individual section types
                         selectedTopType = type
                         selectedFavoriteType = type
-                        if type != .tracks {
-                            selectedRatingType = type == .albums ? .album : .artist
-                        }
+                        // No need to update selectedRatingType as we handle all types
                     }
                 }) {
                     VStack(spacing: 4) {
@@ -256,7 +254,7 @@ struct FriendProfileView: View {
             // Ratings carousel
             ScrollView(.horizontal, showsIndicators: false) {
                 HStack(alignment: .top, spacing: 6) {
-                    if viewModel.currentRatings.isEmpty {
+                    if getCurrentRatingItems().isEmpty {
                         // Empty state
                         VStack {
                             RoundedRectangle(cornerRadius: 12)
@@ -276,14 +274,15 @@ struct FriendProfileView: View {
                         }
                     } else {
                         // Display rated items
-                        ForEach(Array(viewModel.currentRatings.prefix(25).enumerated()), id: \.element.id) { index, ratedItem in
+                        ForEach(Array(getCurrentRatingItems().prefix(25).enumerated()), id: \.element.id) { index, ratedItem in
                             VStack(spacing: 4) {
+                                // Item image with rating overlay - match ProfileView exactly
                                 CachedAsyncImage(
                                     url: ratedItem.imageUrl,
                                     placeholder: Image(systemName: getIconForRatingType(ratedItem.itemData.itemType)),
                                     contentMode: .fill,
-                                    maxWidth: 120,
-                                    maxHeight: 120
+                                    maxWidth: 160,
+                                    maxHeight: 160
                                 )
                                 .clipShape(RoundedRectangle(cornerRadius: 8))
                                 .overlay(
@@ -305,20 +304,33 @@ struct FriendProfileView: View {
                                     .padding(6)
                                 )
                                 
-                                Text(ratedItem.displayTitle)
-                                    .font(.caption)
-                                    .fontWeight(.medium)
-                                    .lineLimit(1)
-                                    .frame(width: 120)
-                                
-                                if !ratedItem.displaySubtitle.isEmpty {
-                                    Text(ratedItem.displaySubtitle)
-                                        .font(.caption2)
-                                        .foregroundColor(.secondary)
+                                // Item details - match ProfileView exactly
+                                VStack(spacing: 1) {
+                                    Text(ratedItem.displayTitle)
+                                        .font(.caption)
+                                        .fontWeight(.medium)
                                         .lineLimit(1)
-                                        .frame(width: 120)
+                                        .foregroundColor(.primary)
+                                        .multilineTextAlignment(.center)
+                                    
+                                    if !ratedItem.displaySubtitle.isEmpty {
+                                        Text(ratedItem.displaySubtitle)
+                                            .font(.caption2)
+                                            .foregroundColor(.secondary)
+                                            .lineLimit(1)
+                                            .multilineTextAlignment(.center)
+                                    }
+                                    
+                                    // Prestige badge at bottom (match ProfileView pattern)
+                                    let prestigeLevel = getPrestigeLevelForRatedItem(ratedItem)
+                                    if prestigeLevel != .none {
+                                        PrestigeBadge(tier: prestigeLevel)
+                                            .scaleEffect(0.6)
+                                    }
                                 }
+                                .frame(maxWidth: .infinity)
                             }
+                            .frame(width: 160)
                             .onTapGesture {
                                 selectedPrestige = PrestigeSelection(
                                     item: convertRatedItemToPrestigeDisplayItem(ratedItem),
@@ -538,34 +550,15 @@ struct FriendProfileView: View {
                 )
                 .padding(.horizontal)
             } else {
-                ScrollView(.horizontal, showsIndicators: false) {
-                    HStack(spacing: 12) {
-                        ForEach(Array(viewModel.recentlyPlayed.prefix(10).enumerated()), id: \.offset) { index, recentItem in
-                            VStack(spacing: 4) {
-                                CachedAsyncImage(
-                                    url: recentItem.imageUrl,
-                                    placeholder: Image(systemName: "music.note"),
-                                    contentMode: .fill,
-                                    maxWidth: 80,
-                                    maxHeight: 80
-                                )
-                                .clipShape(RoundedRectangle(cornerRadius: 8))
-                                
-                                Text(recentItem.trackName)
-                                    .font(.caption)
-                                    .fontWeight(.medium)
-                                    .lineLimit(1)
-                                    .frame(width: 80)
-                                
-                                Text(recentItem.artistName)
-                                    .font(.caption2)
-                                    .foregroundColor(.secondary)
-                                    .lineLimit(1)
-                                    .frame(width: 80)
-                            }
+                ForEach(Array(viewModel.recentlyPlayed.prefix(30).enumerated()), id: \.offset) { index, track in
+                    RecentTrackRow(track: track)
+                        .padding(.horizontal)
+                        .onTapGesture {
+                            selectedPrestige = PrestigeSelection(
+                                item: convertRecentTrackToPrestigeDisplayItem(track),
+                                rank: index + 1
+                            )
                         }
-                    }
-                    .padding(.horizontal)
                 }
             }
         }
@@ -636,5 +629,26 @@ struct FriendProfileView: View {
         case .album: return "square.stack"
         case .artist: return "music.mic"
         }
+    }
+    
+    private func getCurrentRatingItems() -> [RatedItem] {
+        return viewModel.getCurrentRatingItems(for: selectedContentType)
+    }
+    
+    private func convertRecentTrackToPrestigeDisplayItem(_ track: RecentlyPlayedResponse) -> PrestigeDisplayItem {
+        return PrestigeDisplayItem(
+            name: track.trackName,
+            subtitle: track.artistName,
+            imageUrl: track.imageUrl,
+            totalTimeMilliseconds: 0, // Recent tracks don't have total listening time
+            prestigeLevel: .none, // Recent tracks don't have prestige levels
+            spotifyId: track.id,
+            contentType: .tracks,
+            albumPosition: nil,
+            rating: nil,
+            isPinned: false,
+            albumId: nil, // Recent tracks don't have album ID in this context
+            albumName: nil // Recent tracks don't have album name in this context
+        )
     }
 }

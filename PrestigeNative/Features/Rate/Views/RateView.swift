@@ -27,46 +27,66 @@ struct RateView: View {
     @State private var isCacheReady = false
     @State private var hasInitialLoad = false
     
-    // Adaptive grid columns with device compatibility and artist spacing
+    // Fixed 3-column grid for all devices
     private var adaptiveGridColumns: [GridItem] {
         let screenWidth = UIScreen.main.bounds.width
         
         // Safety check for invalid screen width
         guard screenWidth.isFinite && screenWidth > 0 else {
-            // Fallback to safe static grid with adjusted spacing for artists
-            let spacing: CGFloat = (viewModel.selectedItemType == .artist) ? 12 : 8
-            return [
-                GridItem(.flexible(minimum: 100, maximum: 140), spacing: spacing),
-                GridItem(.flexible(minimum: 100, maximum: 140), spacing: spacing),
-                GridItem(.flexible(minimum: 100, maximum: 140), spacing: spacing)
-            ]
+            return Array(repeating: GridItem(.flexible(), spacing: 8), count: 3)
         }
         
-        let padding: CGFloat = 32 // Total horizontal padding (16 on each side)
+        let isArtist = (viewModel.selectedItemType == .artist)
+        let spacing = adaptiveItemSpacing(screenWidth: screenWidth, isArtist: isArtist)
         
-        // Adjust spacing based on item type - circular artist images need more space
-        let spacing: CGFloat = (viewModel.selectedItemType == .artist) ? 12 : 8
-        let totalSpacing: CGFloat = spacing * 2 // Space between 3 columns
-        let availableWidth = screenWidth - padding - totalSpacing
-        let itemWidth = availableWidth / 3
+        // Always use 3 columns for Rate page
+        return Array(repeating: GridItem(.flexible(), spacing: spacing), count: 3)
+    }
+    
+    // Calculate ideal item width for 3-column grid
+    private func idealItemWidth(screenWidth: CGFloat) -> CGFloat {
+        let targetColumns: CGFloat = 3  // Always 3 columns for Rate page
+        let totalHorizontalPadding: CGFloat = 32 // 16 on each side
+        let isArtist = (viewModel.selectedItemType == .artist)
+        let spacing = adaptiveItemSpacing(screenWidth: screenWidth, isArtist: isArtist)
+        let totalSpacing = (targetColumns - 1) * spacing
+        let availableWidth = screenWidth - totalHorizontalPadding - totalSpacing
+        let computed = availableWidth / targetColumns
         
-        // For artists, use slightly smaller max width to prevent circular overlap
-        let maxWidthMultiplier: CGFloat = (viewModel.selectedItemType == .artist) ? 1.1 : 1.2
+        // Keep a sensible minimum so content isn't cramped
+        return max(100, floor(computed))
+    }
+    
+    // Dynamic spacing based on screen size - moderate spacing to maximize grid space
+    private func adaptiveItemSpacing(screenWidth: CGFloat, isArtist: Bool) -> CGFloat {
+        switch screenWidth {
+        case ..<380:    // iPhone SE (375)
+            return 4
+        case 380..<400: // iPhone 12/13/14/15 mini (375), iPhone 12/13 Pro, iPhone 14/15 (390-393)
+            return 5  // Moderate spacing for iPhone 12
+        case 400..<420: // iPhone 16 Pro (402), iPhone 11/XR (414)
+            return 6
+        case 420..<435: // iPhone 12/13/14/15 Pro Max/Plus (428-430)
+            return 7
+        default:        // iPhone 16 Pro Max (440+)
+            return 8  // Less spacing to maximize grid space
+        }
+    }
+    
+    // Dynamic row spacing for LazyVGrid - much more aggressive vertical spacing
+    private var gridRowSpacing: CGFloat {
+        let screenWidth = UIScreen.main.bounds.width
         
-        // Ensure minimum and maximum constraints work across all devices with NaN protection
-        let minWidth = max(itemWidth * 0.8, 90).isFinite ? max(itemWidth * 0.8, 90) : 90
-        let maxWidth = min(itemWidth * maxWidthMultiplier, 160).isFinite ? min(itemWidth * maxWidthMultiplier, 160) : 160
-        
-        // Final safety check
-        let safeMinWidth = minWidth.isFinite ? minWidth : 90
-        let safeMaxWidth = maxWidth.isFinite ? maxWidth : 160
-        let safeSpacing = spacing.isFinite ? spacing : 8
-        
-        return [
-            GridItem(.flexible(minimum: safeMinWidth, maximum: safeMaxWidth), spacing: safeSpacing),
-            GridItem(.flexible(minimum: safeMinWidth, maximum: safeMaxWidth), spacing: safeSpacing),
-            GridItem(.flexible(minimum: safeMinWidth, maximum: safeMaxWidth), spacing: safeSpacing)
-        ]
+        switch screenWidth {
+        case ..<380:    // iPhone SE, iPhone 8
+            return 12
+        case 380..<400: // iPhone 12 mini and iPhone 12
+            return 16  // Much more vertical spacing for iPhone 12
+        case 400..<430: // iPhone 13, iPhone 14, iPhone 15
+            return 18
+        default:        // iPhone 16 Pro Max, etc.
+            return 20
+        }
     }
     
     var body: some View {
@@ -354,7 +374,7 @@ struct RateView: View {
                 
                 if isGridView {
                     // Grid layout - responsive columns
-                    LazyVGrid(columns: adaptiveGridColumns, spacing: viewModel.selectedItemType == .artist ? 16 : 12) {
+                    LazyVGrid(columns: adaptiveGridColumns, spacing: gridRowSpacing) {
                         ForEach(items, id: \.id) { item in
                             GridRatingCard(
                                 itemData: item,
@@ -373,7 +393,7 @@ struct RateView: View {
                             }
                         }
                     }
-                    .padding(.horizontal, 16)
+                    .padding(.horizontal, 8)  // Less horizontal padding to maximize grid space
                 } else {
                     // List layout
                     ForEach(items, id: \.id) { item in
@@ -419,7 +439,7 @@ struct RateView: View {
                 
                 if isGridView {
                     // Grid layout - responsive columns
-                    LazyVGrid(columns: adaptiveGridColumns, spacing: viewModel.selectedItemType == .artist ? 16 : 12) {
+                    LazyVGrid(columns: adaptiveGridColumns, spacing: gridRowSpacing) {
                         ForEach(Array(items.enumerated()), id: \.element.id) { _, item in
                             GridRatingCard(
                                 itemData: item.itemData,
@@ -442,7 +462,7 @@ struct RateView: View {
                             }
                         }
                     }
-                    .padding(.horizontal, 16)
+                    .padding(.horizontal, 8)  // Less horizontal padding to maximize grid space
                 } else {
                     // List layout
                     ForEach(Array(items.enumerated()), id: \.element.id) { _, item in
@@ -495,7 +515,7 @@ struct RateView: View {
                 
                 if isGridView {
                     // Grid layout - responsive columns
-                    LazyVGrid(columns: adaptiveGridColumns, spacing: viewModel.selectedItemType == .artist ? 16 : 12) {
+                    LazyVGrid(columns: adaptiveGridColumns, spacing: gridRowSpacing) {
                         ForEach(items, id: \.id) { item in
                             GridRatingCard(
                                 itemData: item.itemData,
@@ -518,7 +538,7 @@ struct RateView: View {
                             }
                         }
                     }
-                    .padding(.horizontal, 16)
+                    .padding(.horizontal, 8)  // Less horizontal padding to maximize grid space
                 } else {
                     // List layout
                     ForEach(items, id: \.id) { item in

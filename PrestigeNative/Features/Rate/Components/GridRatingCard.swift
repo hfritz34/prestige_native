@@ -14,16 +14,16 @@ struct GridRatingCard: View {
     var body: some View {
         Button(action: onTap) {
             VStack(spacing: 4) {
-                // Artwork
+                // Artwork - constrained sizing for better grid layout
                 CachedAsyncImage(
                     url: itemData.imageUrl,
                     placeholder: Image(systemName: iconForItemType),
                     contentMode: .fill,
-                    maxWidth: nil,
-                    maxHeight: nil
+                    maxWidth: imageSize,
+                    maxHeight: imageSize
                 )
                 .aspectRatio(1, contentMode: .fill)
-                .frame(maxWidth: .infinity, maxHeight: .infinity)
+                .frame(width: imageSize, height: imageSize)
                 .clipped()
                 .modifier(ImageShapeModifier(itemType: itemData.itemType))
                 .overlay(
@@ -67,7 +67,7 @@ struct GridRatingCard: View {
                 .frame(maxWidth: .infinity, minHeight: 28, alignment: .topLeading)
             }
             .frame(maxWidth: .infinity)
-            .frame(minHeight: 160) // Ensure consistent minimum height
+            .frame(minHeight: cardHeight) // Device-specific minimum height
         }
         .buttonStyle(PlainButtonStyle())
         .contextMenu {
@@ -107,17 +107,50 @@ struct GridRatingCard: View {
             return "Artist"
         }
     }
+    
+    // Device-specific image sizing based on actual device widths
+    private var imageSize: CGFloat {
+        let screenWidth = UIScreen.main.bounds.width
+        
+        switch screenWidth {
+        case ..<380:    // iPhone SE (375)
+            return 85
+        case 380..<400: // iPhone 12/13/14/15 mini (375), iPhone 12/13 Pro, iPhone 14/15 (390-393)
+            return 95  // Smaller images for iPhone 12 to prevent overlap
+        case 400..<420: // iPhone 16 Pro (402), iPhone 11/XR (414)
+            return 105
+        case 420..<435: // iPhone 12/13/14/15 Pro Max/Plus (428-430)
+            return 115
+        default:        // iPhone 16 Pro Max (440+)
+            return 125  // Larger images for bigger screens
+        }
+    }
+    
+    // Device-specific card height based on actual device widths
+    private var cardHeight: CGFloat {
+        let screenWidth = UIScreen.main.bounds.width
+        
+        switch screenWidth {
+        case ..<380:    // iPhone SE (375)
+            return 135
+        case 380..<400: // iPhone 12/13/14/15 mini (375), iPhone 12/13 Pro, iPhone 14/15 (390-393)
+            return 145
+        case 400..<420: // iPhone 16 Pro (402), iPhone 11/XR (414)
+            return 155
+        case 420..<435: // iPhone 12/13/14/15 Pro Max/Plus (428-430)
+            return 165
+        default:        // iPhone 16 Pro Max (440+)
+            return 175
+        }
+    }
 }
 
 struct ImageShapeModifier: ViewModifier {
     let itemType: RatingItemType
     
     func body(content: Content) -> some View {
-        if itemType == .artist {
-            content.clipShape(Circle())
-        } else {
-            content.clipShape(RoundedRectangle(cornerRadius: 6))
-        }
+        // Use consistent rounded rectangle shape for all content types
+        content.clipShape(RoundedRectangle(cornerRadius: 6))
     }
 }
 

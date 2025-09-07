@@ -150,6 +150,20 @@ struct RateView: View {
         .onChange(of: viewModel.selectedItemType) { oldValue, newValue in
             updateCachedRatings()
         }
+        .onChange(of: viewModel.isLoading) { oldValue, newValue in
+            // When loading completes, update cache and mark ready
+            if oldValue && !newValue {
+                // Add a delay to ensure all data is properly loaded and avoid empty state flash
+                Task {
+                    try? await Task.sleep(nanoseconds: 300_000_000) // 0.3 seconds
+                    await MainActor.run {
+                        updateCachedRatingsWithoutMarkingReady()
+                        preloadRatingImages()
+                        isCacheReady = true
+                    }
+                }
+            }
+        }
     }
     
     // MARK: - View Components
@@ -240,49 +254,13 @@ struct RateView: View {
                         // Don't do anything if already selected
                         guard itemType != viewModel.selectedItemType else { return }
                         
-                        // Immediately update UI state for instant feedback
-                        withAnimation(.easeInOut(duration: 0.15)) {
-                            viewModel.selectedItemType = itemType
-                            viewModel.isLoading = true
-                            viewModel.loadingMessage = "Loading \(itemType.displayName.lowercased())..."
-                            print("🔄 Setting loading state: isLoading=\(viewModel.isLoading), message=\(viewModel.loadingMessage)")
-                        }
-                        
                         // Clear cache immediately to prevent showing stale data
                         cachedTopRatedItems = []
                         cachedAllRatedItems = []
                         isCacheReady = false
                         
-                        Task {
-                            print("📥 Starting data load for \(itemType.displayName)")
-                            
-                            // Load data for the new type (without changing selectedItemType again)
-                            await viewModel.loadUserRatings()
-                            print("✅ loadUserRatings complete")
-                            
-                            await viewModel.loadUnratedItems()
-                            print("✅ loadUnratedItems complete: \(viewModel.unratedItems.count) items")
-                            
-                            await viewModel.ensureMetadataLoaded()
-                            print("✅ ensureMetadataLoaded complete")
-                            
-                            // Complete loading and update UI
-                            await MainActor.run {
-                                print("🔄 Updating cache and finalizing...")
-                                
-                                // Update cached content for new item type WITHOUT setting isCacheReady yet
-                                updateCachedRatingsWithoutMarkingReady()
-                                
-                                // Preload images for new item type
-                                preloadRatingImages()
-                                
-                                // NOW we can mark as ready and clear loading state
-                                print("✅ All done, manually setting isCacheReady = true and clearing loading state")
-                                isCacheReady = true
-                                viewModel.isLoading = false
-                                viewModel.loadingMessage = ""
-                            }
-                        }
+                        // Use the new debounced switchItemType method
+                        viewModel.switchItemType(to: itemType)
                     }
                 )
             }
@@ -345,11 +323,11 @@ struct RateView: View {
                 }
             }
             
-            // Loading overlay - show during any loading state or when cache is not ready
+            // Loading overlay - show full screen loading for initial load or category switches  
             if viewModel.isLoading || !isCacheReady {
                 BeatVisualizerLoadingView(message: viewModel.loadingMessage.isEmpty ? "Loading..." : viewModel.loadingMessage)
                     .background(Color(UIColor.systemBackground).opacity(0.9))
-                    .transition(.opacity)
+                    .transition(.opacity.combined(with: .scale(scale: 0.95)))
                     .onAppear {
                         print("🔄 Loading overlay appeared: isLoading=\(viewModel.isLoading), isCacheReady=\(isCacheReady), message='\(viewModel.loadingMessage)'")
                     }
@@ -357,18 +335,49 @@ struct RateView: View {
                         print("✅ Loading overlay disappeared")
                     }
             }
+            
+            // Subtle loading overlay for category switches when we have content
+            else if viewModel.isLoading && hasInitialLoad {
+                Color.black.opacity(0.3)
+                    .overlay(
+                        VStack(spacing: 12) {
+                            ProgressView()
+                                .scaleEffect(1.2)
+                                .progressViewStyle(CircularProgressViewStyle(tint: .white))
+                            
+                            Text(viewModel.loadingMessage.isEmpty ? "Loading..." : viewModel.loadingMessage)
+                                .font(.subheadline)
+                                .fontWeight(.medium)
+                                .foregroundColor(.white)
+                        }
+                        .padding(24)
+                        .background(Color.black.opacity(0.7))
+                        .cornerRadius(12)
+                    )
+                    .transition(.opacity)
+                    .onAppear {
+                        print("🔄 Subtle loading overlay appeared: message='\(viewModel.loadingMessage)'")
+                    }
+            }
         }
     }
     
     private var unratedContent: some View {
         Group {
-            if filteredUnratedItems.isEmpty && isCacheReady && hasInitialLoad {
-                EmptyStateView(
-                    icon: "music.note",
-                    title: "All Caught Up!",
-                    subtitle: "You've rated all your \(viewModel.selectedItemType.displayName.lowercased())"
-                )
-                .padding(.top, 60)
+            // Always show loading instead of empty state for better UX
+            if filteredUnratedItems.isEmpty {
+                // Show loading animation instead of "All Caught Up"
+                VStack(spacing: 20) {
+                    ProgressView()
+                        .scaleEffect(1.2)
+                        .progressViewStyle(CircularProgressViewStyle(tint: .blue))
+                    
+                    Text("Loading unrated \(viewModel.selectedItemType.displayName.lowercased())...")
+                        .font(.subheadline)
+                        .foregroundColor(.secondary)
+                }
+                .frame(maxWidth: .infinity, maxHeight: .infinity)
+                .padding(.top, 100)
             } else if !filteredUnratedItems.isEmpty {
                 let items = Array(filteredUnratedItems.prefix(unratedLimit))
                 
@@ -427,13 +436,19 @@ struct RateView: View {
     
     private var topRatedContent: some View {
         Group {
-            if topRatedItems.isEmpty && isCacheReady && hasInitialLoad {
-                EmptyStateView(
-                    icon: "star.fill",
-                    title: "No Top Ratings Yet",
-                    subtitle: "Rate some \(viewModel.selectedItemType.displayName.lowercased()) to see your favorites here"
-                )
-                .padding(.top, 60)
+            // Always show loading instead of empty state for better UX
+            if topRatedItems.isEmpty {
+                VStack(spacing: 20) {
+                    ProgressView()
+                        .scaleEffect(1.2)
+                        .progressViewStyle(CircularProgressViewStyle(tint: .blue))
+                    
+                    Text("Loading top \(viewModel.selectedItemType.displayName.lowercased())...")
+                        .font(.subheadline)
+                        .foregroundColor(.secondary)
+                }
+                .frame(maxWidth: .infinity, maxHeight: .infinity)
+                .padding(.top, 100)
             } else if !topRatedItems.isEmpty {
                 let items = Array(topRatedItems.prefix(topRatedLimit))
                 
@@ -503,13 +518,19 @@ struct RateView: View {
     
     private var yourRatingsContent: some View {
         Group {
-            if allRatedItems.isEmpty && isCacheReady && hasInitialLoad {
-                EmptyStateView(
-                    icon: "heart",
-                    title: "No Ratings Yet",
-                    subtitle: "Start rating \(viewModel.selectedItemType.displayName.lowercased()) to build your collection"
-                )
-                .padding(.top, 60)
+            // Always show loading instead of empty state for better UX  
+            if allRatedItems.isEmpty {
+                VStack(spacing: 20) {
+                    ProgressView()
+                        .scaleEffect(1.2)
+                        .progressViewStyle(CircularProgressViewStyle(tint: .blue))
+                    
+                    Text("Loading your \(viewModel.selectedItemType.displayName.lowercased())...")
+                        .font(.subheadline)
+                        .foregroundColor(.secondary)
+                }
+                .frame(maxWidth: .infinity, maxHeight: .infinity)
+                .padding(.top, 100)
             } else if !allRatedItems.isEmpty {
                 let items = Array(allRatedItems.prefix(yourRatingsLimit))
                 

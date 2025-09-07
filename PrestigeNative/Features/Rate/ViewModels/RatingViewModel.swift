@@ -46,6 +46,11 @@ class RatingViewModel: ObservableObject {
     @Published var showRatingModal = false
     @Published var ratingState: RatingFlowState = .idle
     
+    // Debouncing for category switching
+    private var currentSwitchTask: Task<Void, Never>?
+    private var lastSwitchTime: Date = Date()
+    private let switchDebounceInterval: TimeInterval = 0.3
+    
     // MARK: - Services
     
     private let ratingService = RatingService.shared
@@ -158,15 +163,45 @@ class RatingViewModel: ObservableObject {
         }
     }
     
-    /// Handles switching to a new item type with proper loading states
-    func switchItemType(to newType: RatingItemType) async {
-        // Set loading state immediately
-        isLoading = true
-        loadingProgress = 0.0
-        loadingMessage = "Loading \(newType.displayName.lowercased())..."
+    /// Handles switching to a new item type with debouncing and proper loading states
+    func switchItemType(to newType: RatingItemType) {
+        // Cancel any existing switch task
+        currentSwitchTask?.cancel()
         
-        // Update the selected type
-        selectedItemType = newType
+        // Check if switching too quickly
+        let now = Date()
+        let timeSinceLastSwitch = now.timeIntervalSince(lastSwitchTime)
+        lastSwitchTime = now
+        
+        // Create new debounced task - ALL state changes happen after debounce
+        currentSwitchTask = Task {
+            // Wait for debounce interval if switching too quickly
+            if timeSinceLastSwitch < switchDebounceInterval {
+                let remainingWait = switchDebounceInterval - timeSinceLastSwitch
+                try? await Task.sleep(nanoseconds: UInt64(remainingWait * 1_000_000_000))
+            }
+            
+            // Check if we were cancelled during debounce
+            if Task.isCancelled { return }
+            
+            // NOW set loading state and clear data - only for the final tap
+            await MainActor.run {
+                isLoading = true
+                loadingMessage = "Loading \(newType.displayName.lowercased())..."
+                selectedItemType = newType
+                
+                // Clear previous data to prevent stale display
+                userRatings[newType.rawValue] = []
+                unratedItems = []
+            }
+            
+            await performItemTypeSwitch(to: newType)
+        }
+    }
+    
+    /// Performs the actual item type switch after debouncing
+    private func performItemTypeSwitch(to newType: RatingItemType) async {
+        loadingProgress = 0.0
         
         do {
             loadingProgress = 0.3
@@ -175,11 +210,17 @@ class RatingViewModel: ObservableObject {
             // Load ratings for the new type
             await loadUserRatings()
             
+            // Check if cancelled
+            if Task.isCancelled { return }
+            
             loadingProgress = 0.7
             loadingMessage = "Loading unrated items..."
             
             // Load unrated items for the new type
             await loadUnratedItems()
+            
+            // Check if cancelled
+            if Task.isCancelled { return }
             
             loadingProgress = 0.9
             loadingMessage = "Preparing metadata..."
@@ -187,18 +228,29 @@ class RatingViewModel: ObservableObject {
             // Ensure metadata is loaded
             await ensureMetadataLoaded()
             
+            // Check if cancelled
+            if Task.isCancelled { return }
+            
             loadingProgress = 1.0
             loadingMessage = "Ready!"
             
         } catch {
-            print("Failed to switch item type: \(error)")
-            self.error = error.localizedDescription
+            if !Task.isCancelled {
+                print("Failed to switch item type: \(error)")
+                await MainActor.run {
+                    self.error = error.localizedDescription
+                }
+            }
         }
         
-        // Complete loading
-        isLoading = false
-        loadingProgress = 0.0
-        loadingMessage = ""
+        // Only clear loading state if not cancelled
+        if !Task.isCancelled {
+            await MainActor.run {
+                isLoading = false
+                loadingProgress = 0.0
+                loadingMessage = ""
+            }
+        }
     }
 
     func loadUserRatings() async {

@@ -921,17 +921,10 @@ struct TabSelectorButton: View {
                     .font(.subheadline)
                     .fontWeight(isSelected ? .semibold : .medium)
                     .foregroundColor(isSelected ? .primary : .secondary)
-                    .padding(.vertical, 8)
-                    .padding(.horizontal, 12)
-                    .background(
-                        isSelected ? Color.primary.opacity(0.1) : Color.clear
-                    )
-                    .clipShape(Capsule())
                 
                 Rectangle()
                     .frame(height: 2)
                     .foregroundColor(isSelected ? .primary : .clear)
-                    .clipShape(Capsule())
             }
         }
         .frame(maxWidth: .infinity)

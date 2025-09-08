@@ -12,6 +12,8 @@ struct FriendsView: View {
     @State private var showingSearchResults = false
     @State private var selectedFriend: FriendResponse?
     @State private var selectedTab: FriendsTab = .myFriends
+    @State private var friendToRemove: FriendResponse?
+    @State private var showingRemoveConfirmation = false
     
     enum FriendsTab: String, CaseIterable {
         case myFriends = "My Friends"
@@ -84,6 +86,16 @@ struct FriendsView: View {
                 await friendsService.refreshFriendsData()
                 await viewModel.loadFriends()
             }
+            .alert("Remove Friend", isPresented: $showingRemoveConfirmation, presenting: friendToRemove) { friend in
+                Button("Cancel", role: .cancel) { }
+                Button("Remove", role: .destructive) {
+                    Task {
+                        await viewModel.removeFriend(friendId: friend.friendId)
+                    }
+                }
+            } message: { friend in
+                Text("Are you sure you want to remove \(friend.nickname ?? friend.name) from your friends list?")
+            }
         }
     }
     
@@ -146,6 +158,22 @@ struct FriendsView: View {
                         FriendRowView(friend: friend)
                             .onTapGesture {
                                 selectedFriend = friend
+                            }
+                            .contextMenu {
+                                Button {
+                                    selectedFriend = friend
+                                } label: {
+                                    Label("View Profile", systemImage: "person.circle")
+                                }
+                                
+                                Divider()
+                                
+                                Button(role: .destructive) {
+                                    friendToRemove = friend
+                                    showingRemoveConfirmation = true
+                                } label: {
+                                    Label("Remove Friend", systemImage: "person.badge.minus")
+                                }
                             }
                     }
                 }
@@ -333,8 +361,18 @@ struct FriendRowView: View {
             
             // Friend Info
             VStack(alignment: .leading, spacing: 4) {
-                Text(friend.nickname ?? friend.name)
-                    .font(.headline)
+                HStack(spacing: 4) {
+                    Text(friend.nickname ?? friend.name)
+                        .font(.headline)
+                    
+                    // Verification badge
+                    if friend.isVerified {
+                        Image(systemName: "checkmark.seal.fill")
+                            .font(.system(size: 12))
+                            .foregroundColor(.blue)
+                            .accessibilityLabel("Verified user")
+                    }
+                }
                 
                 if let nickname = friend.nickname, nickname != friend.name {
                     Text("@\(friend.name)")
@@ -383,8 +421,18 @@ struct UserSearchRowView: View {
             
             // User Info
             VStack(alignment: .leading, spacing: 4) {
-                Text(user.nickname ?? user.name)
-                    .font(.headline)
+                HStack(spacing: 4) {
+                    Text(user.nickname ?? user.name)
+                        .font(.headline)
+                    
+                    // Verification badge
+                    if user.isVerified {
+                        Image(systemName: "checkmark.seal.fill")
+                            .font(.system(size: 12))
+                            .foregroundColor(.blue)
+                            .accessibilityLabel("Verified user")
+                    }
+                }
                 
                 Text("@\(user.name)")
                     .font(.caption)
@@ -493,6 +541,7 @@ struct FriendRequestRowView: View {
             let profilePicUrl = isIncoming ? request.fromUserProfilePicUrl : request.toUserProfilePicUrl
             let displayName = isIncoming ? (request.fromUserNickname ?? request.fromUserName) : (request.toUserNickname ?? request.toUserName)
             let username = isIncoming ? request.fromUserName : request.toUserName
+            let isVerified = isIncoming ? request.fromUserIsVerified : request.toUserIsVerified
             
             if let profilePicUrl = profilePicUrl {
                 CachedAsyncImage(
@@ -508,8 +557,18 @@ struct FriendRequestRowView: View {
             
             // Request Info
             VStack(alignment: .leading, spacing: 4) {
-                Text(displayName)
-                    .font(.headline)
+                HStack(spacing: 4) {
+                    Text(displayName)
+                        .font(.headline)
+                    
+                    // Verification badge
+                    if isVerified {
+                        Image(systemName: "checkmark.seal.fill")
+                            .font(.system(size: 12))
+                            .foregroundColor(.blue)
+                            .accessibilityLabel("Verified user")
+                    }
+                }
                 
                 if displayName != username {
                     Text("@\(username)")

@@ -138,23 +138,33 @@ struct FriendProfileView: View {
             HStack(alignment: .top, spacing: 14) {
                 // LEFT: name, handle, bio
                 VStack(alignment: .leading, spacing: 4) {
-                    // Display name
-                    if let nickname = viewModel.friend?.nickname {
-                        Text(nickname)
-                            .font(.system(size: 28, weight: .bold))
-                            .lineLimit(1)
-                            .minimumScaleFactor(0.85)
-                            .foregroundColor(.white)
-                    } else if let name = viewModel.friend?.name {
-                        Text(name)
-                            .font(.system(size: 28, weight: .bold))
-                            .lineLimit(1)
-                            .minimumScaleFactor(0.85)
-                            .foregroundColor(.white)
-                    } else {
-                        Text("Loading...")
-                            .font(.system(size: 28, weight: .bold))
-                            .foregroundColor(.secondary)
+                    // Display name with verification badge
+                    HStack(spacing: 6) {
+                        if let nickname = viewModel.friend?.nickname {
+                            Text(nickname)
+                                .font(.system(size: 28, weight: .bold))
+                                .lineLimit(1)
+                                .minimumScaleFactor(0.85)
+                                .foregroundColor(.white)
+                        } else if let name = viewModel.friend?.name {
+                            Text(name)
+                                .font(.system(size: 28, weight: .bold))
+                                .lineLimit(1)
+                                .minimumScaleFactor(0.85)
+                                .foregroundColor(.white)
+                        } else {
+                            Text("Loading...")
+                                .font(.system(size: 28, weight: .bold))
+                                .foregroundColor(.secondary)
+                        }
+                        
+                        // Verification badge
+                        if viewModel.friend?.isVerified == true {
+                            Image(systemName: "checkmark.seal.fill")
+                                .font(.system(size: 20))
+                                .foregroundColor(.blue)
+                                .accessibilityLabel("Verified user")
+                        }
                     }
 
                     // Spotify handle

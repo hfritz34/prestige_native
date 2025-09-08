@@ -143,21 +143,31 @@ struct ProfileView: View {
             HStack(alignment: .top, spacing: 14) {
                 // LEFT: name, handle, bio
                 VStack(alignment: .leading, spacing: 4) {
-                    // Display name (use nickname if available, fallback to name)
-                    if let profile = viewModel.userProfile {
-                        Text(profile.nickname.isEmpty ? profile.name : profile.nickname)
-                            .font(.system(size: 28, weight: .bold))
-                            .lineLimit(1)
-                            .minimumScaleFactor(0.85)
-                            .foregroundColor(.primary)
-                    } else if viewModel.isLoading {
-                        Text("Loading...")
-                            .font(.system(size: 28, weight: .bold))
-                            .foregroundColor(.secondary)
-                    } else {
-                        Text("User")
-                            .font(.system(size: 28, weight: .bold))
-                            .foregroundColor(.primary)
+                    // Display name with verification badge
+                    HStack(spacing: 6) {
+                        if let profile = viewModel.userProfile {
+                            Text(profile.nickname.isEmpty ? profile.name : profile.nickname)
+                                .font(.system(size: 28, weight: .bold))
+                                .lineLimit(1)
+                                .minimumScaleFactor(0.85)
+                                .foregroundColor(.primary)
+                        } else if viewModel.isLoading {
+                            Text("Loading...")
+                                .font(.system(size: 28, weight: .bold))
+                                .foregroundColor(.secondary)
+                        } else {
+                            Text("User")
+                                .font(.system(size: 28, weight: .bold))
+                                .foregroundColor(.primary)
+                        }
+                        
+                        // Verification badge
+                        if viewModel.userProfile?.isVerified == true {
+                            Image(systemName: "checkmark.seal.fill")
+                                .font(.system(size: 20))
+                                .foregroundColor(.blue)
+                                .accessibilityLabel("Verified user")
+                        }
                     }
 
 

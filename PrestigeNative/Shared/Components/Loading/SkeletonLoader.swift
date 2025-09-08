@@ -38,51 +38,91 @@ struct SkeletonGridCard: View {
     
     var body: some View {
         VStack(spacing: 8) {
-            // Card skeleton
-            RoundedRectangle(cornerRadius: 12)
-                .fill(Color.gray.opacity(0.1))
-                .aspectRatio(1, contentMode: .fit)
-                .overlay(
-                    VStack(spacing: 8) {
-                        // Rank badge skeleton
-                        HStack {
-                            Circle()
-                                .fill(Color.gray.opacity(0.2))
-                                .frame(width: 20, height: 20)
-                            Spacer()
-                        }
-                        
-                        // Image skeleton
-                        RoundedRectangle(cornerRadius: 8)
-                            .fill(Color.gray.opacity(0.2))
-                            .frame(width: 80, height: 80)
-                        
-                        // Badge skeleton
-                        RoundedRectangle(cornerRadius: 4)
-                            .fill(Color.gray.opacity(0.2))
-                            .frame(width: 60, height: 20)
-                    }
-                    .padding(8)
-                )
-                .shimmer(isAnimating: $isAnimating)
-            
-            // Title skeleton
-            VStack(spacing: 4) {
-                RoundedRectangle(cornerRadius: 2)
-                    .fill(Color.gray.opacity(0.2))
-                    .frame(height: 12)
+            // Main prestige card skeleton - matches exact PrestigeGridCard structure
+            ZStack {
+                // Prestige tier background skeleton (full square)
+                RoundedRectangle(cornerRadius: 8)
+                    .fill(Color.gray.opacity(0.08))
+                    .aspectRatio(1, contentMode: .fit)
                     .shimmer(isAnimating: $isAnimating)
                 
+                VStack(spacing: 4) {
+                    // Rating badge area (top right) - only for albums/artists
+                    HStack {
+                        Spacer()
+                        RoundedRectangle(cornerRadius: 4)
+                            .fill(Color.gray.opacity(0.12))
+                            .frame(width: 35, height: 14)
+                    }
+                    
+                    // Album artwork skeleton (19/20 ratio of container) 
+                    RoundedRectangle(cornerRadius: 8)
+                        .fill(Color.gray.opacity(0.15))
+                        .frame(width: spotifyImageSize, height: spotifyImageSize)
+                        .shadow(color: .black.opacity(0.1), radius: 2, x: 0, y: 1)
+                        .shimmer(isAnimating: $isAnimating)
+                    
+                    // Prestige badge and friend count area (bottom)
+                    HStack(spacing: 4) {
+                        // Prestige badge skeleton
+                        Circle()
+                            .fill(Color.gray.opacity(0.12))
+                            .frame(width: 14, height: 14)
+                        
+                        Spacer()
+                    }
+                }
+                .padding(2)
+            }
+            .frame(maxWidth: .infinity, maxHeight: .infinity)
+            .aspectRatio(1, contentMode: .fit)
+            .clipped()
+            
+            // Text skeleton area OUTSIDE the square - matches PrestigeGridCard
+            VStack(spacing: 2) {
+                // Title with rank number
                 RoundedRectangle(cornerRadius: 2)
                     .fill(Color.gray.opacity(0.15))
-                    .frame(height: 10)
+                    .frame(height: 16)
+                    .shimmer(isAnimating: $isAnimating)
+                
+                // Subtitle (artist name)
+                RoundedRectangle(cornerRadius: 2)
+                    .fill(Color.gray.opacity(0.12))
+                    .frame(height: 14)
+                    .padding(.horizontal, 6)
+                    .shimmer(isAnimating: $isAnimating)
+                
+                // Time formatted text
+                RoundedRectangle(cornerRadius: 2)
+                    .fill(Color.gray.opacity(0.12))
+                    .frame(height: 14)
                     .padding(.horizontal, 10)
                     .shimmer(isAnimating: $isAnimating)
             }
+            .frame(height: 50) // Fixed height to prevent layout shifts
         }
         .onAppear {
             isAnimating = true
         }
+    }
+    
+    // Calculate image size using same 19/20 ratio as PrestigeGridCard
+    private var spotifyImageSize: CGFloat {
+        let screenWidth = UIScreen.main.bounds.width
+        let availableWidth = screenWidth - 32 // Account for padding
+        let gridColumnCount = 3 // Default for skeleton
+        let spacing: CGFloat = 16 // Grid spacing
+        let totalSpacing = CGFloat(gridColumnCount - 1) * spacing
+        let columnWidth = (availableWidth - totalSpacing) / CGFloat(gridColumnCount)
+        
+        // Prestige background size (square)
+        let prestigeBackgroundSize = columnWidth
+        
+        // Image should be 19/20 the size of the prestige background
+        let imageSize = prestigeBackgroundSize * (19.0 / 20.0)
+        
+        return imageSize
     }
 }
 

@@ -623,6 +623,7 @@ struct FriendPrestigeDetailView: View {
             nickname: friendName,
             profilePicUrl: nil,
             bio: nil,
+            isVerified: false, // Default to false for friend data
             friendshipDate: nil,
             mutualFriends: nil,
             status: nil,

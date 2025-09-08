@@ -684,6 +684,7 @@ extension APIClient {
                 nickname: nil,
                 profilePicUrl: nil,
                 bio: nil, // Placeholder - will be updated when friends list is refreshed
+                isVerified: false, // Default to false for placeholder
                 friendshipDate: Date(),
                 mutualFriends: nil,
                 status: 0, // 0 = pending

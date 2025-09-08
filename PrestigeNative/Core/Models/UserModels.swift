@@ -19,11 +19,12 @@ struct UserResponse: Codable, Identifiable {
     let profilePictureUrl: String?
     let bio: String?
     let isSetup: Bool
+    let isVerified: Bool
     let createdAt: Date?
     let spotifyConnected: Bool?
     
     enum CodingKeys: String, CodingKey {
-        case id, name, email, bio, isSetup, createdAt, spotifyConnected
+        case id, name, email, bio, isSetup, isVerified, createdAt, spotifyConnected
         case nickname = "nickName"
         case profilePictureUrl = "profilePicURL"
     }
@@ -58,6 +59,7 @@ struct FriendResponse: Codable, Identifiable {
     let nickname: String?
     let profilePicUrl: String?
     let bio: String?
+    let isVerified: Bool
     let friendshipDate: Date?
     let mutualFriends: Int?
     let status: Int?
@@ -80,7 +82,7 @@ struct FriendResponse: Codable, Identifiable {
     }
     
     enum CodingKeys: String, CodingKey {
-        case id, name, nickname, profilePicUrl, bio, friendshipDate, mutualFriends, status
+        case id, name, nickname, profilePicUrl, bio, isVerified, friendshipDate, mutualFriends, status
         case favoriteTracks, favoriteAlbums, favoriteArtists
         case topTracks, topAlbums, topArtists
         case ratedTracks, ratedAlbums, ratedArtists, recentlyPlayed
@@ -124,16 +126,18 @@ struct FriendRequestResponse: Codable, Identifiable {
     let fromUserName: String
     let fromUserNickname: String?
     let fromUserProfilePicUrl: String?
+    let fromUserIsVerified: Bool
     let toUserName: String
     let toUserNickname: String?
     let toUserProfilePicUrl: String?
+    let toUserIsVerified: Bool
     let status: FriendRequestStatus
     let requestDate: Date
     let acceptedDate: Date?
     
     enum CodingKeys: String, CodingKey {
-        case id, fromUserId, toUserId, fromUserName, fromUserNickname, fromUserProfilePicUrl
-        case toUserName, toUserNickname, toUserProfilePicUrl, status, requestDate, acceptedDate
+        case id, fromUserId, toUserId, fromUserName, fromUserNickname, fromUserProfilePicUrl, fromUserIsVerified
+        case toUserName, toUserNickname, toUserProfilePicUrl, toUserIsVerified, status, requestDate, acceptedDate
     }
     
     // Convenience properties for backward compatibility

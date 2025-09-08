@@ -334,8 +334,8 @@ class FriendsService: ObservableObject {
                 }
             } else {
                 let friendRequest = try await apiClient.sendFriendRequest(friendId: friendId)
-                // Refresh outgoing requests to get the actual request from server
-                await fetchOutgoingFriendRequests()
+                // Refresh outgoing requests to get the actual request from server (without setting loading state)
+                await fetchOutgoingFriendRequests(setLoading: false)
                 await MainActor.run {
                     // Remove from search results if present
                     self.searchResults.removeAll { $0.id == friendId }
@@ -424,54 +424,70 @@ class FriendsService: ObservableObject {
     }
     
     /// Fetch incoming friend requests
-    func fetchIncomingFriendRequests() async {
-        await MainActor.run { isLoading = true }
+    func fetchIncomingFriendRequests(setLoading: Bool = true) async {
+        if setLoading {
+            await MainActor.run { isLoading = true }
+        }
         
         do {
             let requests = try await apiClient.getIncomingFriendRequests()
             await MainActor.run {
                 self.incomingFriendRequests = requests
-                self.isLoading = false
+                if setLoading {
+                    self.isLoading = false
+                }
                 self.error = nil
                 print("📦 Incoming friend requests loaded: \(requests.count) requests")
             }
         } catch let apiError as APIError {
             await MainActor.run {
                 self.error = apiError
-                self.isLoading = false
+                if setLoading {
+                    self.isLoading = false
+                }
                 print("❌ Failed to fetch incoming friend requests: \(apiError.localizedDescription)")
             }
         } catch {
             await MainActor.run {
                 self.error = .networkError(error)
-                self.isLoading = false
+                if setLoading {
+                    self.isLoading = false
+                }
                 print("❌ Network error fetching incoming friend requests: \(error.localizedDescription)")
             }
         }
     }
     
     /// Fetch outgoing friend requests
-    func fetchOutgoingFriendRequests() async {
-        await MainActor.run { isLoading = true }
+    func fetchOutgoingFriendRequests(setLoading: Bool = true) async {
+        if setLoading {
+            await MainActor.run { isLoading = true }
+        }
         
         do {
             let requests = try await apiClient.getOutgoingFriendRequests()
             await MainActor.run {
                 self.outgoingFriendRequests = requests
-                self.isLoading = false
+                if setLoading {
+                    self.isLoading = false
+                }
                 self.error = nil
                 print("📦 Outgoing friend requests loaded: \(requests.count) requests")
             }
         } catch let apiError as APIError {
             await MainActor.run {
                 self.error = apiError
-                self.isLoading = false
+                if setLoading {
+                    self.isLoading = false
+                }
                 print("❌ Failed to fetch outgoing friend requests: \(apiError.localizedDescription)")
             }
         } catch {
             await MainActor.run {
                 self.error = .networkError(error)
-                self.isLoading = false
+                if setLoading {
+                    self.isLoading = false
+                }
                 print("❌ Network error fetching outgoing friend requests: \(error.localizedDescription)")
             }
         }
@@ -509,9 +525,17 @@ class FriendsService: ObservableObject {
     
     /// Force refresh all friends data from server
     func refreshFriendsData() async {
-        await fetchFriends(forceRefresh: true)
-        await fetchIncomingFriendRequests()
-        await fetchOutgoingFriendRequests()
+        await MainActor.run { isLoading = true }
+        
+        // Fetch all data in parallel without individual loading states
+        async let friendsTask = fetchFriends(forceRefresh: true)
+        async let incomingTask = fetchIncomingFriendRequests(setLoading: false)
+        async let outgoingTask = fetchOutgoingFriendRequests(setLoading: false)
+        
+        // Wait for all to complete
+        let _ = await (friendsTask, incomingTask, outgoingTask)
+        
+        await MainActor.run { isLoading = false }
     }
     
     /// Clear all friends cache

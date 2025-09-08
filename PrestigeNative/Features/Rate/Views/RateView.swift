@@ -360,9 +360,8 @@ struct RateView: View {
             if filteredUnratedItems.isEmpty {
                 // Show loading animation instead of "All Caught Up"
                 VStack(spacing: 20) {
-                    ProgressView()
-                        .scaleEffect(1.2)
-                        .progressViewStyle(CircularProgressViewStyle(tint: .blue))
+                    CompactBeatVisualizer(isPlaying: true)
+                        .frame(width: 60, height: 30)
                     
                     Text("Loading unrated \(viewModel.selectedItemType.displayName.lowercased())...")
                         .font(.subheadline)
@@ -431,9 +430,8 @@ struct RateView: View {
             // Always show loading instead of empty state for better UX
             if topRatedItems.isEmpty {
                 VStack(spacing: 20) {
-                    ProgressView()
-                        .scaleEffect(1.2)
-                        .progressViewStyle(CircularProgressViewStyle(tint: .blue))
+                    CompactBeatVisualizer(isPlaying: true)
+                        .frame(width: 60, height: 30)
                     
                     Text("Loading top \(viewModel.selectedItemType.displayName.lowercased())...")
                         .font(.subheadline)
@@ -513,9 +511,8 @@ struct RateView: View {
             // Always show loading instead of empty state for better UX  
             if allRatedItems.isEmpty {
                 VStack(spacing: 20) {
-                    ProgressView()
-                        .scaleEffect(1.2)
-                        .progressViewStyle(CircularProgressViewStyle(tint: .blue))
+                    CompactBeatVisualizer(isPlaying: true)
+                        .frame(width: 60, height: 30)
                     
                     Text("Loading your \(viewModel.selectedItemType.displayName.lowercased())...")
                         .font(.subheadline)
@@ -591,81 +588,83 @@ struct RateView: View {
     }
     
     private var searchResultsView: some View {
-        VStack(spacing: 16) {
-            if viewModel.isSearching {
-                CompactBeatVisualizer(isPlaying: true)
-                    .padding(.vertical, 16)
-                    .padding()
-            } else if viewModel.searchResults.isEmpty {
-                EmptyStateView(
-                    icon: "magnifyingglass",
-                    title: "No Results",
-                    subtitle: "No items found for '\(searchText)'"
-                )
-                .padding(.top, 60)
-            } else {
-                ScrollView {
-                    LazyVStack(spacing: 12) {
-                        Text("\(viewModel.searchResults.count) result\(viewModel.searchResults.count == 1 ? "" : "s") for '\(searchText)'")
-                            .font(.subheadline)
-                            .foregroundColor(.secondary)
-                            .frame(maxWidth: .infinity, alignment: .leading)
-                            .padding(.horizontal)
-                            .padding(.top, 8)
+        ScrollView(.vertical, showsIndicators: true) {
+            LazyVStack(spacing: 12, pinnedViews: []) {
+                if viewModel.isSearching {
+                    CompactBeatVisualizer(isPlaying: true)
+                        .padding(.vertical, 40)
+                        .frame(maxWidth: .infinity)
+                } else if viewModel.searchResults.isEmpty {
+                    EmptyStateView(
+                        icon: "magnifyingglass",
+                        title: "No Results",
+                        subtitle: "No items found for '\(searchText)'"
+                    )
+                    .padding(.top, 100)
+                } else {
+                    Text("\(viewModel.searchResults.count) result\(viewModel.searchResults.count == 1 ? "" : "s") for '\(searchText)'")
+                        .font(.subheadline)
+                        .foregroundColor(.secondary)
+                        .frame(maxWidth: .infinity, alignment: .leading)
+                        .padding(.horizontal)
+                        .padding(.top, 8)
+                    
+                    let items = Array(viewModel.searchResults.prefix(searchLimit))
+                    ForEach(items, id: \.id) { item in
+                        let existingRating = viewModel.userRatings[item.itemType.rawValue]?.first { $0.itemId == item.id }
                         
-                        let items = Array(viewModel.searchResults.prefix(searchLimit))
-                        ForEach(items, id: \.id) { item in
-                            let existingRating = viewModel.userRatings[item.itemType.rawValue]?.first { $0.itemId == item.id }
-                            
-                            RatingItemCard(
-                                itemData: item,
-                                rating: existingRating,
-                                showRating: existingRating != nil
-                            ) {
-                                Task {
-                                    await viewModel.startRating(for: item)
-                                }
-                            } onSwipeRight: {
-                                Task { await viewModel.startRating(for: item) }
-                            } onSwipeLeft: {
-                                if let rating = existingRating {
-                                    Task { await viewModel.deleteRating(rating) }
-                                }
+                        RatingItemCard(
+                            itemData: item,
+                            rating: existingRating,
+                            showRating: existingRating != nil
+                        ) {
+                            Task {
+                                await viewModel.startRating(for: item)
                             }
-                            .onAppear {
-                                if item.id == items.last?.id, searchLimit < viewModel.searchResults.count {
-                                    searchLimit += 50
-                                }
-                            }
-                            .contextMenu {
-                                if let rating = existingRating {
-                                    Button("Rate Again", systemImage: "star.circle") {
-                                        Task {
-                                            await viewModel.startRating(for: item)
-                                        }
-                                    }
-                                    
-                                    Button("Remove Rating", systemImage: "trash", role: .destructive) {
-                                        Task {
-                                            await viewModel.deleteRating(rating)
-                                        }
-                                    }
-                                } else {
-                                    Button("Rate Item", systemImage: "star") {
-                                        Task {
-                                            await viewModel.startRating(for: item)
-                                        }
-                                    }
-                                }
+                        } onSwipeRight: {
+                            Task { await viewModel.startRating(for: item) }
+                        } onSwipeLeft: {
+                            if let rating = existingRating {
+                                Task { await viewModel.deleteRating(rating) }
                             }
                         }
-                        if searchLimit < viewModel.searchResults.count {
-                            loadMoreButton { searchLimit += 50 }
+                        .onAppear {
+                            if item.id == items.last?.id, searchLimit < viewModel.searchResults.count {
+                                searchLimit += 50
+                            }
+                        }
+                        .contextMenu {
+                            if let rating = existingRating {
+                                Button("Rate Again", systemImage: "star.circle") {
+                                    Task {
+                                        await viewModel.startRating(for: item)
+                                    }
+                                }
+                                
+                                Button("Remove Rating", systemImage: "trash", role: .destructive) {
+                                    Task {
+                                        await viewModel.deleteRating(rating)
+                                    }
+                                }
+                            } else {
+                                Button("Rate Item", systemImage: "star") {
+                                    Task {
+                                        await viewModel.startRating(for: item)
+                                    }
+                                }
+                            }
                         }
                     }
-                    .padding(.horizontal)
+                    if searchLimit < viewModel.searchResults.count {
+                        loadMoreButton { searchLimit += 50 }
+                    }
                 }
+                
+                // Bottom padding for safe scrolling
+                Color.clear.frame(height: 100)
             }
+            .padding(.horizontal)
+            .padding(.top, 16)
         }
     }
     

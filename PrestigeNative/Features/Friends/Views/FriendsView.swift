@@ -78,8 +78,10 @@ struct FriendsView: View {
             .onAppear {
                 // Refresh requests when view appears to handle state restoration
                 Task {
-                    await friendsService.fetchIncomingFriendRequests()
-                    await friendsService.fetchOutgoingFriendRequests()
+                    // Load requests in parallel without conflicting loading states
+                    async let incomingTask = friendsService.fetchIncomingFriendRequests(setLoading: false)
+                    async let outgoingTask = friendsService.fetchOutgoingFriendRequests(setLoading: false)
+                    let _ = await (incomingTask, outgoingTask)
                 }
             }
             .refreshable {
@@ -102,10 +104,10 @@ struct FriendsView: View {
     // MARK: - Tab Selector
     
     private var tabSelectorView: some View {
-        HStack(spacing: 0) {
+        HStack(spacing: 12) {
             ForEach(FriendsTab.allCases, id: \.rawValue) { tab in
                 Button(action: {
-                    withAnimation(.easeInOut(duration: 0.3)) {
+                    withAnimation(.interactiveSpring(response: 0.4, dampingFraction: 0.8)) {
                         selectedTab = tab
                         // Clear search when switching tabs
                         searchText = ""
@@ -114,7 +116,7 @@ struct FriendsView: View {
                 }) {
                     HStack(spacing: 8) {
                         Image(systemName: tab.icon)
-                            .font(.system(size: 16))
+                            .font(.system(size: 14, weight: .medium))
                         
                         Text(tab.displayName)
                             .font(.subheadline)
@@ -130,14 +132,20 @@ struct FriendsView: View {
                                 .background(Circle().fill(Color.red))
                         }
                     }
-                    .foregroundColor(selectedTab == tab ? .white : .secondary)
-                    .frame(maxWidth: .infinity)
-                    .padding(.vertical, 12)
+                    .foregroundColor(selectedTab == tab ? .white : .primary)
+                    .padding(.horizontal, 16)
+                    .padding(.vertical, 10)
                     .background(
-                        RoundedRectangle(cornerRadius: 8)
-                            .fill(selectedTab == tab ? Color.purple.opacity(0.1) : Color.clear)
+                        selectedTab == tab ? Color(hex: "#E0AFFF") : Color.clear
+                    )
+                    .clipShape(Capsule())
+                    .overlay(
+                        Capsule()
+                            .stroke(selectedTab == tab ? Color.clear : Color.primary.opacity(0.2), lineWidth: 0.5)
                     )
                 }
+                .buttonStyle(.plain)
+                .hoverEffect(.highlight)
             }
         }
         .padding(.horizontal)
@@ -197,9 +205,13 @@ struct FriendsView: View {
                         hasSentRequest: friendsService.hasSentRequestTo(friendId: user.id),
                         onAddFriend: {
                             Task {
-                                await friendsService.sendFriendRequest(friendId: user.id)
-                                // Refresh to update UI state
-                                await viewModel.searchUsers(query: searchText)
+                                let success = await friendsService.sendFriendRequest(friendId: user.id)
+                                if success {
+                                    // Refresh search results to update button states
+                                    await viewModel.searchUsers(query: searchText)
+                                    // Refresh outgoing requests to show the new request
+                                    await friendsService.fetchOutgoingFriendRequests()
+                                }
                             }
                         }
                     )
@@ -231,6 +243,8 @@ struct FriendsView: View {
                                         Task {
                                             let success = await friendsService.acceptFriendRequest(request: request)
                                             if success {
+                                                // Refresh friends list to show the new friend
+                                                await viewModel.loadFriends()
                                                 print("✅ Friend request accepted successfully")
                                             }
                                         }
@@ -239,7 +253,7 @@ struct FriendsView: View {
                                         Task {
                                             let success = await friendsService.declineFriendRequest(request: request)
                                             if success {
-                                                print("✅ Friend request declined successfully")  
+                                                print("✅ Friend request declined successfully")
                                             }
                                         }
                                     }
@@ -452,8 +466,15 @@ struct UserSearchRowView: View {
                     .foregroundColor(.orange)
             } else {
                 Button(action: {
-                    isLoading = true
-                    onAddFriend()
+                    Task {
+                        isLoading = true
+                        onAddFriend()
+                        // Reset loading state after a short delay to show feedback
+                        try? await Task.sleep(nanoseconds: 500_000_000) // 0.5 seconds
+                        await MainActor.run {
+                            isLoading = false
+                        }
+                    }
                 }) {
                     if isLoading {
                         ProgressView()
@@ -461,7 +482,7 @@ struct UserSearchRowView: View {
                     } else {
                         Label("Add", systemImage: "person.badge.plus")
                             .font(.caption)
-                            .foregroundColor(.purple)
+                            .foregroundColor(.white)
                     }
                 }
                 .buttonStyle(.bordered)

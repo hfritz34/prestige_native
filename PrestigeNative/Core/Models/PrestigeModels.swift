@@ -15,19 +15,20 @@ enum PrestigeLevel: String, CaseIterable, Codable {
     case none = "None"
     case bronze = "Bronze"
     case silver = "Silver"
-    case peridot = "Peridot"
     case gold = "Gold"
     case emerald = "Emerald"
-    case sapphire = "Sapphire"
-    case ruby = "Ruby"
     case amber = "Amber"
-    case jade = "Jade"
     case amethyst = "Amethyst"
-    case jet = "Jet"
+    case quartz = "Quartz"
     case diamond = "Diamond"
-    case opal = "Opal"
-    case darkMatter = "Dark Matter"
-    case cosmic = "Cosmic"
+    case jade = "Jade"
+    case ruby = "Ruby"
+    case pearl = "Pearl"
+    case loveydovey = "Loveydovey"
+    case tourmaline = "Tourmaline"
+    case topaz = "Topaz"
+    case tanazanite = "Tanazanite"
+    case prestige = "Prestige"
     
     /// Display name for UI
     var displayName: String {
@@ -35,19 +36,20 @@ enum PrestigeLevel: String, CaseIterable, Codable {
         case .none: return "No Badge"
         case .bronze: return "Bronze"
         case .silver: return "Silver"
-        case .peridot: return "Peridot"
         case .gold: return "Gold"
         case .emerald: return "Emerald"
-        case .sapphire: return "Sapphire"
-        case .ruby: return "Ruby"
         case .amber: return "Amber"
-        case .jade: return "Jade"
         case .amethyst: return "Amethyst"
-        case .jet: return "Jet"
+        case .quartz: return "Quartz"
         case .diamond: return "Diamond"
-        case .opal: return "Opal"
-        case .darkMatter: return "Dark Matter"
-        case .cosmic: return "Cosmic"
+        case .jade: return "Jade"
+        case .ruby: return "Ruby"
+        case .pearl: return "Pearl"
+        case .loveydovey: return "Lovey Dovey"
+        case .tourmaline: return "Tourmaline"
+        case .topaz: return "Topaz"
+        case .tanazanite: return "Tanazanite"
+        case .prestige: return "Prestige"
         }
     }
     
@@ -57,19 +59,20 @@ enum PrestigeLevel: String, CaseIterable, Codable {
         case .none: return ""
         case .bronze: return "bronze"
         case .silver: return "silver"
-        case .peridot: return "peridot"
         case .gold: return "gold"
         case .emerald: return "emerald"
-        case .sapphire: return "sapphire"
-        case .ruby: return "ruby"
         case .amber: return "amber"
-        case .jade: return "jade"
         case .amethyst: return "amethyst"
-        case .jet: return "jet"
+        case .quartz: return "quartz"
         case .diamond: return "diamond"
-        case .opal: return "opal"
-        case .darkMatter: return "darkmatter"
-        case .cosmic: return "cosmic"
+        case .jade: return "jade"
+        case .ruby: return "ruby"
+        case .pearl: return "pearl"
+        case .loveydovey: return "loveydovey"
+        case .tourmaline: return "tourmaline"
+        case .topaz: return "topaz"
+        case .tanazanite: return "tanazanite"
+        case .prestige: return "prestige"
         }
     }
     
@@ -79,19 +82,20 @@ enum PrestigeLevel: String, CaseIterable, Codable {
         case .none: return "#6B7280"      // Gray
         case .bronze: return "#CD7F32"    // Bronze
         case .silver: return "#C0C0C0"    // Silver
-        case .peridot: return "#9ACD32"   // Yellow-green
         case .gold: return "#FFD700"      // Gold
         case .emerald: return "#50C878"   // Emerald green
-        case .sapphire: return "#0F52BA"  // Sapphire blue
-        case .ruby: return "#E0115F"      // Ruby red
         case .amber: return "#FFBF00"     // Amber gold
-        case .jade: return "#00A86B"      // Jade green
         case .amethyst: return "#9966CC"  // Amethyst purple
-        case .jet: return "#343434"       // Jet black
+        case .quartz: return "#F0E8E8"    // Quartz white-pink
         case .diamond: return "#B9F2FF"   // Diamond blue
-        case .opal: return "#FFEFDB"      // Opal white
-        case .darkMatter: return "#301934" // Dark purple
-        case .cosmic: return "#4B0082"    // Cosmic indigo
+        case .jade: return "#00A86B"      // Jade green
+        case .ruby: return "#E0115F"      // Ruby red
+        case .pearl: return "#FAF0E6"     // Pearl white
+        case .loveydovey: return "#FF69B4"// Hot pink
+        case .tourmaline: return "#86608E" // Tourmaline purple
+        case .topaz: return "#FFC87C"     // Topaz yellow
+        case .tanazanite: return "#4B61D1" // Tanzanite blue-violet
+        case .prestige: return "#FFD700"  // Prestige gold
         }
     }
     
@@ -101,27 +105,28 @@ enum PrestigeLevel: String, CaseIterable, Codable {
         case .none: return 0
         case .bronze: return 1
         case .silver: return 2
-        case .peridot: return 3
-        case .gold: return 4
-        case .emerald: return 5
-        case .sapphire: return 6
-        case .ruby: return 7        // New tier
-        case .amber: return 8
-        case .jade: return 9        // New tier
-        case .amethyst: return 10   // New tier
-        case .jet: return 11
-        case .diamond: return 12
-        case .opal: return 13
-        case .darkMatter: return 14
-        case .cosmic: return 15     // Final ultimate tier
+        case .gold: return 3
+        case .emerald: return 4
+        case .amber: return 5
+        case .amethyst: return 6
+        case .quartz: return 7
+        case .diamond: return 8
+        case .jade: return 9
+        case .ruby: return 10
+        case .pearl: return 11
+        case .loveydovey: return 12
+        case .tourmaline: return 13
+        case .topaz: return 14
+        case .tanazanite: return 15
+        case .prestige: return 16     // Final ultimate tier
         }
     }
     
     /// Convert backend tier format to iOS enum
     static func fromBackendTier(_ backendTier: String) -> PrestigeLevel {
-        // Handle the main difference: "DarkMatter" -> "Dark Matter"
-        let normalizedTier = backendTier == "DarkMatter" ? "Dark Matter" : backendTier
-        return PrestigeLevel(rawValue: normalizedTier) ?? .none
+        // Backend sends "Loveydovey" with capital L, we use "Loveydovey" in our enum
+        // All other tiers should match directly
+        return PrestigeLevel(rawValue: backendTier) ?? .none
     }
 }
 

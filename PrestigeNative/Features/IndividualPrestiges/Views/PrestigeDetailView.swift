@@ -29,6 +29,15 @@ struct PrestigeDetailView: View {
     @State private var isLoadingArtistAlbums = false
     @State private var showAllAlbums = false
     
+    // Computed properties for consistent sizing with 19:20 ratio
+    private var prestigeDetailBackgroundSize: CGFloat {
+        return 220  // Detail view background frame size
+    }
+    
+    private var prestigeDetailSpotifySize: CGFloat {
+        return prestigeDetailBackgroundSize * (17.0 / 20.0)  // 17:20 ratio
+    }
+    
     var body: some View {
         NavigationView {
             ScrollView {
@@ -121,13 +130,13 @@ struct PrestigeDetailView: View {
                     url: item.imageUrl,
                     placeholder: Image(systemName: item.contentType.iconName),
                     contentMode: .fill,
-                    maxWidth: 180,
-                    maxHeight: 180
+                    maxWidth: prestigeDetailSpotifySize,
+                    maxHeight: prestigeDetailSpotifySize
                 )
                 .clipShape(RoundedRectangle(cornerRadius: 14))
                 .shadow(radius: 8)
             }
-            .frame(width: 220, height: 220)
+            .frame(width: prestigeDetailBackgroundSize, height: prestigeDetailBackgroundSize)
             
             // Title and subtitle
             VStack(spacing: 8) {

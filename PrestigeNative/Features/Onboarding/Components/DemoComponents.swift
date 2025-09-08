@@ -20,6 +20,15 @@ struct DemoAlbumCard: View {
     var artistName: String = "fakemink"
     var imageSize: CGFloat = 110  // Default grid size
     
+    // Computed properties for consistent sizing with 5:6 ratio
+    private var prestigeBackgroundSize: CGFloat {
+        return imageSize + 30  // Background frame size
+    }
+    
+    private var spotifyImageSize: CGFloat {
+        return prestigeBackgroundSize * (19.0 / 20.0)  // 19:20 ratio
+    }
+    
     // Computed properties to use personalized data when available
     private var finalImageUrl: String {
         return albumData?.imageUrl ?? albumImageUrl
@@ -58,7 +67,7 @@ struct DemoAlbumCard: View {
                     Rectangle()
                         .fill(Color.gray.opacity(0.3))
                 }
-                .frame(width: imageSize, height: imageSize)
+                .frame(width: spotifyImageSize, height: spotifyImageSize)
                 .clipShape(RoundedRectangle(cornerRadius: 8))
                 .shadow(color: .black.opacity(0.2), radius: 2, x: 0, y: 1)
                 
@@ -70,7 +79,7 @@ struct DemoAlbumCard: View {
                         .padding(.bottom, 8)
                 }
             }
-            .frame(width: imageSize + 30, height: imageSize + 30)
+            .frame(width: prestigeBackgroundSize, height: prestigeBackgroundSize)
             .aspectRatio(1, contentMode: .fit)
             .scaleEffect(isVisible ? 1.0 : 0.8)
             .opacity(isVisible ? 1.0 : 0.0)
@@ -270,7 +279,7 @@ struct DemoFriendsComparison: View {
                         .foregroundColor(.primary)
                     
                     DemoAlbumCard(
-                        prestigeLevel: .diamond,
+                        prestigeLevel: .ruby,
                         listeningTime: "50h 0m",
                         showAnimation: false,
                         albumData: albumData,
@@ -280,9 +289,9 @@ struct DemoFriendsComparison: View {
                         imageSize: 140
                     )
                     
-                    Text("💎 Diamond")
+                    Text("💎 Ruby")
                         .font(.caption)
-                        .foregroundColor(.cyan)
+                        .foregroundColor(.red)
                 }
                 
                 VersusIndicator()
@@ -354,7 +363,7 @@ struct DemoProfileView: View {
                 GridItem(.flexible())
             ], spacing: 12) {
                 DemoStatCard(title: "Total Time", value: "248h", icon: "clock.fill", color: .blue)
-                DemoStatCard(title: "Top Tier", value: "Dark Matter", icon: "crown.fill", color: .purple)
+                DemoStatCard(title: "Top Tier", value: "Prestige", icon: "crown.fill", color: .yellow)
                 DemoStatCard(title: "Albums Rated", value: "127", icon: "star.fill", color: .yellow)
             }
             
@@ -422,7 +431,7 @@ struct DemoStatCard: View {
 
 #Preview {
     VStack(spacing: 20) {
-        DemoAlbumCard(prestigeLevel: .diamond, listeningTime: "50h 0m", showAnimation: true)
+        DemoAlbumCard(prestigeLevel: .ruby, listeningTime: "50h 0m", showAnimation: true)
         DemoRatingCard()
         DemoFriendsComparison()
         DemoProfileView()

@@ -53,32 +53,34 @@ struct PrestigeBadge: View {
             return .brown
         case .silver:
             return .gray
-        case .peridot:
-            return .green
         case .gold:
             return .yellow
         case .emerald:
             return .green
-        case .sapphire:
-            return .blue
         case .amber:
             return .orange
-        case .jet:
-            return .black
-        case .diamond:
-            return .cyan
-        case .opal:
-            return .purple
-        case .darkMatter:
-            return .purple
-        case .ruby:
-            return .red
-        case .jade:
-            return .green
         case .amethyst:
             return .purple
-        case .cosmic:
-            return .indigo
+        case .quartz:
+            return .pink
+        case .diamond:
+            return .cyan
+        case .jade:
+            return .green
+        case .ruby:
+            return .red
+        case .pearl:
+            return .white
+        case .loveydovey:
+            return .pink
+        case .tourmaline:
+            return .purple
+        case .topaz:
+            return .yellow
+        case .tanazanite:
+            return .blue
+        case .prestige:
+            return .yellow
         }
     }
 }
@@ -89,7 +91,7 @@ struct PrestigeBadge: View {
         PrestigeBadge(tier: .silver)
         PrestigeBadge(tier: .gold)
         PrestigeBadge(tier: .diamond)
-        PrestigeBadge(tier: .darkMatter)
+        PrestigeBadge(tier: .prestige)
     }
     .padding()
 }

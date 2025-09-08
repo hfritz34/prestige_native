@@ -54,8 +54,7 @@ struct PrestigeGridCard: View {
                             .foregroundColor(rating >= 7 ? .green : rating >= 4 ? .yellow : .red)
                             .padding(.horizontal, 6)
                             .padding(.vertical, 2)
-                            .background(Color.black.opacity(0.7))
-                            .cornerRadius(4)
+                            .background(.ultraThinMaterial, in: .rect(cornerRadius: 4))
                         }
                     }
                     
@@ -89,12 +88,11 @@ struct PrestigeGridCard: View {
                                         .font(.caption2)
                                         .fontWeight(.semibold)
                                 }
-                                .foregroundColor(.white)
-                                .padding(.horizontal, 6)
-                                .padding(.vertical, 3)
-                                .background(Color.blue.opacity(0.8))
-                                .cornerRadius(8)
                             }
+                            .buttonStyle(.borderedProminent)
+                            .buttonBorderShape(.capsule)
+                            .controlSize(.mini)
+                            .tint(.blue)
                         } else if isLoadingFriends {
                             HStack(spacing: 2) {
                                 ProgressView()
@@ -103,8 +101,7 @@ struct PrestigeGridCard: View {
                             }
                             .padding(.horizontal, 6)
                             .padding(.vertical, 3)
-                            .background(Color.gray.opacity(0.8))
-                            .cornerRadius(8)
+                            .background(.regularMaterial, in: .capsule)
                         }
                     }
                 }
@@ -115,24 +112,28 @@ struct PrestigeGridCard: View {
             .aspectRatio(1, contentMode: .fit)
             .clipped()
             
-            // Title and subtitle
+            // Title and subtitle - fixed height to prevent layout shift
             VStack(spacing: 2) {
                 Text("\(rank). \(item.name)")
                     .font(.caption)
                     .fontWeight(.semibold)
                     .lineLimit(1)
                     .foregroundColor(.primary)
+                    .frame(height: 16) // Fixed height
                 
                 Text(item.subtitle)
                     .font(.caption2)
                     .foregroundColor(.secondary)
                     .lineLimit(1)
+                    .frame(height: 14) // Fixed height
                 
                 Text(TimeFormatter.formatListeningTime(item.totalTimeMilliseconds))
                     .font(.caption2)
                     .fontWeight(.medium)
                     .foregroundColor(Color(hex: item.prestigeLevel.color) ?? .blue)
+                    .frame(height: 14) // Fixed height
             }
+            .frame(height: 50) // Fixed total height for text area
         }
         .onAppear {
             // Only load friend data if user actually has friends
@@ -154,6 +155,8 @@ struct PrestigeGridCard: View {
                 ),
                 friends: friendsWhoListened
             )
+            .presentationBackground(.regularMaterial)
+            .presentationCornerRadius(28)
         }
     }
     
@@ -210,47 +213,24 @@ struct PrestigeGridCard: View {
         }
     }
     
-    // MARK: - Dynamic Sizing Based on Grid Columns
+    // MARK: - Dynamic Sizing Based on Prestige Background Frame
     
     private var spotifyImageSize: CGFloat {
-        // **TRIED AND FAILED VALUES:**
-        // iPhone 16 Pro Max: baseImageSize 110pt with 1.8x, 1.1x, 0.85x caused cutoffs and overlaps
-        
         let screenWidth = UIScreen.main.bounds.width
+        let availableWidth = screenWidth - 32 // Account for padding
+        let spacing: CGFloat = 16 // Grid spacing
+        let totalSpacing = CGFloat(gridColumnCount - 1) * spacing
+        let columnWidth = (availableWidth - totalSpacing) / CGFloat(gridColumnCount)
         
-        // More moderate base sizing - smaller than previous attempt
-        let baseImageSize: CGFloat
-        switch screenWidth {
-        case ..<375:    // iPhone SE 1st gen (320pt)
-            baseImageSize = 60   // Conservative increase from 70 original
-        case ..<390:    // iPhone SE 2nd/3rd, iPhone 8-13 mini (375pt)
-            baseImageSize = 100   // Conservative increase from 80 original
-        case ..<400:    // iPhone 12/13/14/15 standard (390-393pt)
-            baseImageSize = 100  // Conservative increase from 85 original
-        case ..<420:    // iPhone 16 Pro (402pt), iPhone 11/XR (414pt)
-            baseImageSize = 105  // Conservative increase from 90 original
-        case ..<440:    // iPhone 12/13/14/15 Pro Max/Plus (428-430pt)
-            baseImageSize = 105   // Conservative increase from 95 original
-        default:        // iPhone 16 Pro Max (440pt+)
-            baseImageSize = 115   // Conservative increase from 75 original
-        }
+        // The prestige background frame size (square)
+        // This is what we want to keep consistent
+        let prestigeBackgroundSize = columnWidth
         
-        // Same scaling factors as before
-        let scaleFactor: CGFloat = {
-            switch gridColumnCount {
-            case 2: return 1.6   // Less than 1.8x
-            case 3: return 1.0   // Base size, no scaling
-            case 4: return 0.75  // Less than 0.85x, more conservative
-            default: return 1.0
-            }
-        }()
+        // Spotify image should be 7/8 the size of the prestige background
+        // This maintains perfect 7:8 ratio across all devices and column layouts
+        let spotifyImageSize = prestigeBackgroundSize * (19.0 / 20.0)
         
-        // iPhone 12 (390pt) special handling - maintain proportion
-        if screenWidth >= 390 && screenWidth < 394 && gridColumnCount == 3 {
-            return baseImageSize * 0.85  // Same ratio as before
-        }
-        
-        return baseImageSize * scaleFactor
+        return spotifyImageSize 
     }
 }
 

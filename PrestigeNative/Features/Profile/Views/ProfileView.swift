@@ -207,6 +207,7 @@ struct ProfileView: View {
                         .padding(.vertical, 6)
                 }
                 .buttonStyle(.borderedProminent)
+                .controlSize(.large)
                 .tint(.purple)
 
                 Button(action: {
@@ -218,6 +219,7 @@ struct ProfileView: View {
                         .padding(.vertical, 6)
                 }
                 .buttonStyle(.bordered)
+                .controlSize(.large)
                 .tint(.secondary)
             }
             .padding(.horizontal, 20)

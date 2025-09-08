@@ -9,6 +9,23 @@ struct FriendComparisonDetailView: View {
     let comparison: EnhancedItemComparisonResponse
     @Environment(\.dismiss) private var dismiss
     
+    // Computed properties for consistent sizing with 19:20 ratio
+    private var headerBackgroundSize: CGFloat {
+        return 120  // Header image background size
+    }
+    
+    private var headerSpotifySize: CGFloat {
+        return headerBackgroundSize * (17.0 / 20.0)  // 17:20 ratio
+    }
+    
+    private var comparisonBackgroundSize: CGFloat {
+        return 150  // Comparison card background size
+    }
+    
+    private var comparisonSpotifySize: CGFloat {
+        return comparisonBackgroundSize * (17.0 / 20.0)  // 17:20 ratio
+    }
+    
     var body: some View {
         NavigationView {
             ScrollView {
@@ -46,7 +63,7 @@ struct FriendComparisonDetailView: View {
                 placeholder: Image(systemName: getItemTypeIcon()),
                 contentMode: .fill
             )
-            .frame(width: 120, height: 120)
+            .frame(width: headerSpotifySize, height: headerSpotifySize)
             .clipShape(RoundedRectangle(cornerRadius: 12))
             .shadow(radius: 4)
             
@@ -94,7 +111,7 @@ struct FriendComparisonDetailView: View {
                             placeholder: Image(systemName: getItemTypeIcon()),
                             contentMode: .fill
                         )
-                        .frame(width: 110, height: 110)
+                        .frame(width: comparisonSpotifySize, height: comparisonSpotifySize)
                         .clipShape(RoundedRectangle(cornerRadius: 8))
                         .shadow(color: .black.opacity(0.2), radius: 2, x: 0, y: 1)
                         
@@ -109,7 +126,7 @@ struct FriendComparisonDetailView: View {
                             }
                         }
                     }
-                    .frame(width: 150, height: 150)
+                    .frame(width: comparisonBackgroundSize, height: comparisonBackgroundSize)
                     .aspectRatio(1, contentMode: .fit)
                     
                     // User info (matching home page design)
@@ -155,7 +172,7 @@ struct FriendComparisonDetailView: View {
                             placeholder: Image(systemName: getItemTypeIcon()),
                             contentMode: .fill
                         )
-                        .frame(width: 110, height: 110)
+                        .frame(width: comparisonSpotifySize, height: comparisonSpotifySize)
                         .clipShape(RoundedRectangle(cornerRadius: 8))
                         .shadow(color: .black.opacity(0.2), radius: 2, x: 0, y: 1)
                         
@@ -170,7 +187,7 @@ struct FriendComparisonDetailView: View {
                             }
                         }
                     }
-                    .frame(width: 150, height: 150)
+                    .frame(width: comparisonBackgroundSize, height: comparisonBackgroundSize)
                     .aspectRatio(1, contentMode: .fit)
                     
                     // Friend info (matching home page design)

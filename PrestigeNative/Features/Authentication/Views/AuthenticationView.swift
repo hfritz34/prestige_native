@@ -163,6 +163,14 @@ struct MainTabView: View {
                 }
         }
         .tint(.primary)
+        // iOS 18 Liquid Glass: Tab bar automatically adopts glass appearance
+        // Add scroll-based hiding when iOS 18.0 SDK features are available
+        .onAppear {
+            // Tab bar will use Liquid Glass material automatically in iOS 18+
+            if #available(iOS 18.0, *) {
+                // The system automatically applies glass effects
+            }
+        }
     }
 }
 

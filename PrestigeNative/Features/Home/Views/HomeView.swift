@@ -315,18 +315,13 @@ struct HomeView: View {
     }
     
     private var prestigeGridSection: some View {
-        VStack(alignment: .leading, spacing: 16) {
-            GeometryReader { geometry in
-                LazyVGrid(
-                    columns: adaptiveGridColumns(screenWidth: geometry.size.width),
-                    spacing: adaptiveRowSpacing(screenWidth: geometry.size.width)
-                ) {
-                    prestigeGridContent
-                }
-                .padding(.horizontal, 8)
-            }
-            .frame(minHeight: calculateGridHeight())
+        LazyVGrid(
+            columns: adaptiveGridColumns(screenWidth: UIScreen.main.bounds.width),
+            spacing: adaptiveRowSpacing(screenWidth: UIScreen.main.bounds.width)
+        ) {
+            prestigeGridContent
         }
+        .padding(.horizontal, 8)
     }
     
     // Fixed grid columns based on forced column count
@@ -431,36 +426,6 @@ struct HomeView: View {
         return baseRowSpacing * columnMultiplier
     }
     
-    // Estimate grid height to avoid GeometryReader layout issues
-    private func calculateGridHeight() -> CGFloat {
-        let itemCount = CGFloat(max(viewModel.topTracks.count, max(viewModel.topAlbums.count, viewModel.topArtists.count)))
-        let targetColumns: CGFloat = CGFloat(forceTargetColumns)
-        let rows = ceil(itemCount / targetColumns)
-        
-        // Use fixed, reasonable item heights to prevent blank space
-        let itemHeight: CGFloat = {
-            switch forceTargetColumns {
-            case 2: return 220  // Reduced from 240
-            case 3: return 180  // Reduced from 200
-            case 4: return 160  // Reduced from 180
-            default: return 180
-            }
-        }()
-        
-        // Use fixed row spacing instead of dynamic to prevent blank space issues
-        let rowSpacing: CGFloat = {
-            switch forceTargetColumns {
-            case 2: return 12
-            case 3: return 10
-            case 4: return 8
-            default: return 10
-            }
-        }()
-        
-        // Only add extra padding for 2-column display
-        let bottomPadding: CGFloat = forceTargetColumns == 2 ? 50 : 20  // Reduced padding
-        return (rows * itemHeight) + ((rows - 1) * rowSpacing) + bottomPadding
-    }
     
     @ViewBuilder
     private var prestigeGridContent: some View {

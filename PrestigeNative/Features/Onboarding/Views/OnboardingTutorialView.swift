@@ -183,7 +183,7 @@ struct OnboardingTutorialView: View {
                 GridItem(.flexible())
             ], spacing: 20) {
                 let progressionAlbums = personalizedDemo.isReady ? personalizedDemo.getProgressionAlbums() : []
-                let prestigeLevels: [PrestigeLevel] = [.bronze, .silver, .gold, .sapphire, .emerald, .darkMatter]
+                let prestigeLevels: [PrestigeLevel] = [.bronze, .silver, .gold, .emerald, .amber, .prestige]
                 let listeningTimes = ["3h 20m", "5h 50m", "16h 40m", "33h 20m", "66h 40m", "138h 53m"]
                 let delays = [0.0, 0.3, 0.6, 0.9, 1.2, 1.5]
                 
@@ -322,11 +322,8 @@ struct OnboardingTutorialView: View {
                         currentStep -= 1
                     }
                 }
-                .foregroundColor(.white.opacity(0.7))
-                .padding(.horizontal, 20)
-                .padding(.vertical, 10)
-                .background(Color.white.opacity(0.1))
-                .cornerRadius(20)
+                .buttonStyle(.bordered)
+                .tint(.white)
             }
             
             Spacer()
@@ -337,22 +334,16 @@ struct OnboardingTutorialView: View {
                         currentStep += 1
                     }
                 }
+                .buttonStyle(.borderedProminent)
+                .tint(.white)
                 .foregroundColor(.black)
-                .fontWeight(.semibold)
-                .padding(.horizontal, 20)
-                .padding(.vertical, 10)
-                .background(Color.white)
-                .cornerRadius(20)
             } else {
                 Button("Get Started") {
                     dismiss()
                 }
+                .buttonStyle(.borderedProminent)
+                .tint(.white)
                 .foregroundColor(.black)
-                .fontWeight(.semibold)
-                .padding(.horizontal, 20)
-                .padding(.vertical, 10)
-                .background(Color.white)
-                .cornerRadius(20)
             }
         }
         .padding(.horizontal, 40) // Increased horizontal padding to center buttons better

@@ -273,7 +273,7 @@ class ProfileService: ObservableObject {
         }
     }
     
-    /// Fetch user statistics (friends, ratings, prestiges)
+    /// Fetch user statistics (friends, ratings, prestiged items)
     func fetchUserStatistics(userId: String) async {
         await MainActor.run { isLoading = true }
         
@@ -283,7 +283,7 @@ class ProfileService: ObservableObject {
                 "/users/\(userId)/statistics",
                 responseType: UserStatisticsResponse.self
             )
-            print("✅ Successfully fetched user statistics: \(statistics.friendsCount) friends, \(statistics.ratingsCount) ratings, \(statistics.prestigesCount) prestiges")
+            print("✅ Successfully fetched user statistics: \(statistics.friendsCount) friends, \(statistics.ratingsCount) ratings, \(statistics.prestigesCount) prestiged items")
             await MainActor.run {
                 self.userStatistics = statistics
                 self.isLoading = false

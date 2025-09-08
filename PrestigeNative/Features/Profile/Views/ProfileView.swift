@@ -197,7 +197,7 @@ struct ProfileView: View {
                             Text("•")
                                 .foregroundColor(.secondary.opacity(0.5))
                             
-                            StatItem(value: stats.prestigesCount, label: stats.prestigesCount == 1 ? "Prestige" : "Prestiges")
+                            StatItem(value: stats.prestigesCount, label: "Prestiged")
                         }
                         .padding(.top, 8)
                     }

@@ -203,7 +203,7 @@ struct FriendProfileView: View {
                             Text("•")
                                 .foregroundColor(.secondary.opacity(0.5))
                             
-                            FriendStatItem(value: stats.prestigesCount, label: stats.prestigesCount == 1 ? "Prestige" : "Prestiges")
+                            FriendStatItem(value: stats.prestigesCount, label: "Prestiged")
                         }
                         .padding(.top, 8)
                     }

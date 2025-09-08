@@ -24,7 +24,7 @@ struct ProfileStatsView: View {
                 .frame(height: 20)
                 .background(Color.secondary.opacity(0.3))
             
-            StatItem(value: prestigesCount, label: prestigesCount == 1 ? "Prestige" : "Prestiges")
+            StatItem(value: prestigesCount, label: "Prestiged")
         }
         .padding(.horizontal, 20)
         .padding(.vertical, 8)

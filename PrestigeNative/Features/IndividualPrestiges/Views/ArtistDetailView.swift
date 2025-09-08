@@ -25,6 +25,11 @@ struct ArtistDetailView: View {
     @StateObject private var friendsService = FriendsService()
     @State private var friendsWhoListened: [FriendResponse] = []
     @State private var showingFriendComparison = false
+    @StateObject private var progressService = PrestigeProgressService.shared
+    
+    // Progress data
+    @State private var progressData: PrestigeProgressResponse?
+    @State private var isLoadingProgress = false
     
     var body: some View {
         NavigationView {
@@ -45,9 +50,6 @@ struct ArtistDetailView: View {
                     // Friend comparison section
                     friendComparisonSection
                     
-                    // Rating Section
-                    ratingSection
-                    
                     // Actions
                     actionButtons
                 }
@@ -63,10 +65,6 @@ struct ArtistDetailView: View {
                 }
             }
             .background(Color(UIColor.systemBackground))
-            .sheet(isPresented: $ratingViewModel.showRatingModal) {
-                RatingModal()
-                    .environmentObject(ratingViewModel)
-            }
             .sheet(isPresented: $showingFriendComparison) {
                 FriendComparisonSheet(
                     item: PrestigeItem(
@@ -88,6 +86,7 @@ struct ArtistDetailView: View {
                 await loadRatedAlbums()
                 await loadFriendsWhoListened()
                 await pinService.loadPinnedItems()
+                await loadProgressData()
             }
             isPinned = pinService.isItemPinned(itemId: item.spotifyId, itemType: item.contentType)
         }
@@ -157,26 +156,60 @@ struct ArtistDetailView: View {
             .scaleEffect(1.3)
             
             // Progress to next tier
-            if let progress = progressToNextTier {
+            if isLoadingProgress {
                 VStack(spacing: 12) {
                     HStack {
-                        Text("Progress to \(progress.nextTier.displayName)")
+                        Text("Loading progress...")
                             .font(.headline)
+                            .foregroundColor(.secondary)
                         Spacer()
-                        Text("\(Int(progress.percentage))%")
+                        ProgressView()
+                            .scaleEffect(0.8)
+                    }
+                    
+                    // Skeleton progress bar
+                    RoundedRectangle(cornerRadius: 12)
+                        .fill(Color.gray.opacity(0.2))
+                        .frame(height: 16)
+                        .overlay(
+                            RoundedRectangle(cornerRadius: 12)
+                                .fill(Color.gray.opacity(0.4))
+                                .frame(width: 60, height: 16)
+                                .offset(x: -40)
+                        )
+                        .clipShape(RoundedRectangle(cornerRadius: 12))
+                }
+                .transition(.opacity.combined(with: .scale(scale: 0.95)))
+            } else if let progressData = progressData {
+                VStack(spacing: 12) {
+                    HStack {
+                        if progressData.progress.isMaxLevel {
+                            Text("Maximum Prestige Achieved!")
+                                .font(.headline)
+                                .foregroundColor(.purple)
+                        } else {
+                            Text("Progress to \(progressData.nextLevel?.displayName ?? "Next Level")")
+                                .font(.headline)
+                        }
+                        Spacer()
+                        Text("\(Int(progressData.progress.percentage))%")
                             .font(.subheadline)
                             .foregroundColor(.secondary)
                     }
                     
                     PrestigeProgressBar(
-                        progress: progress.percentage / 100,
-                        currentTier: item.prestigeLevel,
-                        nextTier: progress.nextTier
+                        progressData: progressData
                     )
                     
-                    Text("\(progress.remainingTime) more to reach \(progress.nextTier.displayName)")
-                        .font(.caption)
-                        .foregroundColor(.secondary)
+                    if !progressData.progress.isMaxLevel, let timeEst = progressData.estimatedTimeToNext {
+                        Text("\(timeEst.formattedTime) more to reach \(progressData.nextLevel?.displayName ?? "next level")")
+                            .font(.caption)
+                            .foregroundColor(.secondary)
+                    } else if progressData.progress.isMaxLevel {
+                        Text("You've achieved the highest prestige tier for this artist!")
+                            .font(.caption)
+                            .foregroundColor(.purple.opacity(0.8))
+                    }
                 }
                 .padding()
                 .background(Color(UIColor.secondarySystemBackground))
@@ -200,21 +233,41 @@ struct ArtistDetailView: View {
                     title: "Minutes",
                     value: TimeFormatter.formatListeningTime(item.totalTimeMilliseconds),
                     icon: "clock.fill",
-                    color: .blue
-                )
-                
-                StatCard(
-                    title: "Prestige Level",
-                    value: item.prestigeLevel.displayName,
-                    icon: "star.fill",
                     color: Color(hex: item.prestigeLevel.color) ?? .blue
                 )
                 
+                // Show rating for artists
+                if let rating = currentRating {
+                    let ratingColor: Color = {
+                        if rating.personalScore >= 6.8 {
+                            return Color(hex: "#22c55e") ?? .green
+                        } else if rating.personalScore >= 3.4 {
+                            return Color(hex: "#eab308") ?? .yellow
+                        } else {
+                            return Color(hex: "#ef4444") ?? .red
+                        }
+                    }()
+                    
+                    StatCard(
+                        title: "Rating",
+                        value: String(format: "%.1f", rating.personalScore),
+                        icon: "star.fill",
+                        color: ratingColor
+                    )
+                } else {
+                    StatCard(
+                        title: "Rating",
+                        value: "No Rating",
+                        icon: "star",
+                        color: .gray
+                    )
+                }
+                
                 StatCard(
-                    title: "Rated Albums",
-                    value: "\(ratedAlbumsResponse?.ratedAlbums ?? 0)",
-                    icon: "square.stack.fill",
-                    color: .orange
+                    title: "Play Count",
+                    value: "\(Int(item.totalTimeMilliseconds / 1000 / 60 / 3))",
+                    icon: "play.fill",
+                    color: .blue
                 )
             }
         }
@@ -236,7 +289,14 @@ struct ArtistDetailView: View {
                         }
                     }
                     .font(.subheadline)
-                    .foregroundColor(.blue)
+                    .fontWeight(.medium)
+                    .foregroundColor(.white)
+                    .padding(.horizontal, 16)
+                    .padding(.vertical, 8)
+                    .background(
+                        Capsule()
+                            .fill(Color.gray)
+                    )
                 }
             }
             
@@ -366,98 +426,6 @@ struct ArtistDetailView: View {
         }
     }
     
-    private var ratingSection: some View {
-        VStack(spacing: 16) {
-            Text("Rating")
-                .font(.headline)
-                .frame(maxWidth: .infinity, alignment: .leading)
-            
-            if let rating = currentRating {
-                // Show existing rating
-                ratedItemView(rating)
-            } else {
-                // Show rate button
-                unratedItemView
-            }
-        }
-    }
-    
-    private func ratedItemView(_ rating: Rating) -> some View {
-        VStack(spacing: 16) {
-            // Rating display
-            HStack {
-                RatingBadge(score: rating.personalScore, size: .large)
-                
-                VStack(alignment: .leading, spacing: 4) {
-                    if let category = rating.category {
-                        Text(category.displayName)
-                            .font(.subheadline)
-                            .fontWeight(.semibold)
-                    }
-                    
-                    Text("Score: \(rating.displayScore)")
-                        .font(.caption)
-                        .foregroundColor(.secondary)
-                }
-                
-                Spacer()
-            }
-            .padding()
-            .background(Color(UIColor.secondarySystemBackground))
-            .cornerRadius(12)
-            
-            // Action buttons
-            HStack(spacing: 12) {
-                Button("Rate Again") {
-                    Task {
-                        await startRatingFlow()
-                    }
-                }
-                .font(.subheadline)
-                .foregroundColor(.blue)
-                .padding(.horizontal, 20)
-                .padding(.vertical, 10)
-                .background(Color.blue.opacity(0.1))
-                .cornerRadius(8)
-                
-                Button("Remove Rating") {
-                    Task {
-                        await removeCurrentRating()
-                    }
-                }
-                .font(.subheadline)
-                .foregroundColor(.red)
-                .padding(.horizontal, 20)
-                .padding(.vertical, 10)
-                .background(Color.red.opacity(0.1))
-                .cornerRadius(8)
-            }
-        }
-    }
-    
-    private var unratedItemView: some View {
-        Button(action: {
-            Task {
-                await startRatingFlow()
-            }
-        }) {
-            HStack {
-                Image(systemName: "star.fill")
-                Text("Rate this Artist")
-            }
-            .frame(maxWidth: .infinity)
-            .padding()
-            .background(
-                LinearGradient(
-                    colors: [Color.blue, Color.purple],
-                    startPoint: .leading,
-                    endPoint: .trailing
-                )
-            )
-            .foregroundColor(.white)
-            .cornerRadius(12)
-        }
-    }
     
     private var actionButtons: some View {
         VStack(spacing: 16) {
@@ -497,20 +465,20 @@ struct ArtistDetailView: View {
                     .cornerRadius(10)
                 }
                 
-                // View discography
+                // Share button moved up
                 Button(action: {
-                    // Navigate to discography
+                    showingShareSheet = true
                 }) {
                     VStack(spacing: 4) {
-                        Image(systemName: "music.note.list")
+                        Image(systemName: "square.and.arrow.up")
                             .font(.title3)
-                        Text("Albums")
+                        Text("Share")
                             .font(.caption)
                     }
                     .frame(maxWidth: .infinity)
                     .padding(.vertical, 12)
-                    .background(Color.green)
-                    .foregroundColor(.white)
+                    .background(Color(UIColor.secondarySystemBackground))
+                    .foregroundColor(.primary)
                     .cornerRadius(10)
                 }
             }
@@ -533,20 +501,6 @@ struct ArtistDetailView: View {
                 .cornerRadius(12)
             }
             
-            // Share button
-            Button(action: {
-                showingShareSheet = true
-            }) {
-                HStack {
-                    Image(systemName: "square.and.arrow.up")
-                    Text("Share Artist")
-                }
-                .frame(maxWidth: .infinity)
-                .padding()
-                .background(Color(UIColor.secondarySystemBackground))
-                .foregroundColor(.primary)
-                .cornerRadius(12)
-            }
         }
     }
     
@@ -652,25 +606,6 @@ struct ArtistDetailView: View {
         ratingViewModel.selectedItemType = itemType
     }
     
-    private func startRatingFlow() async {
-        let ratingItemData = RatingItemData(
-            id: item.spotifyId,
-            name: item.name,
-            imageUrl: item.imageUrl,
-            artists: nil,
-            albumName: nil,
-            albumId: nil,
-            itemType: getRatingItemType()
-        )
-        
-        await ratingViewModel.startRating(for: ratingItemData)
-    }
-    
-    private func removeCurrentRating() async {
-        if let rating = currentRating {
-            await ratingViewModel.deleteRating(rating)
-        }
-    }
     
     // MARK: - Action Methods
     
@@ -689,10 +624,6 @@ struct ArtistDetailView: View {
     
     // MARK: - Helper Properties and Methods
     
-    private var progressToNextTier: (percentage: Double, nextTier: PrestigeLevel, remainingTime: String)? {
-        // Progress calculation disabled - all prestige logic moved to backend
-        return nil
-    }
     
     private func formatTime(_ minutes: Double) -> String {
         let hours = Int(minutes) / 60
@@ -702,6 +633,36 @@ struct ArtistDetailView: View {
             return "\(hours)h \(mins)m"
         } else {
             return "\(mins)m"
+        }
+    }
+    
+    /// Load prestige progress data for the current artist
+    private func loadProgressData() async {
+        isLoadingProgress = true
+        
+        // Use real API now that backend is implemented
+        let progress = await progressService.fetchUserProgress(
+            itemId: item.spotifyId,
+            itemType: item.contentType
+        )
+        
+        await MainActor.run {
+            if let progress = progress {
+                print("✅ Using real API progress data for \(item.name): \(progress.progress.percentage)%")
+                withAnimation(.easeInOut(duration: 0.6)) {
+                    progressData = progress
+                }
+            } else {
+                // Fallback to mock data for development if API fails
+                print("⚠️ API failed, falling back to mock data for \(item.name)")
+                if let mockProgress = progressService.generateMockProgress(for: item) {
+                    print("🎭 Using deterministic mock progress: \(mockProgress.progress.percentage)%")
+                    withAnimation(.easeInOut(duration: 0.6)) {
+                        progressData = mockProgress
+                    }
+                }
+            }
+            isLoadingProgress = false
         }
     }
 }

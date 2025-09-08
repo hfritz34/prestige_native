@@ -272,23 +272,15 @@ struct RateView: View {
     private var tabSelector: some View {
         HStack(spacing: 0) {
             ForEach(RatingTab.allCases, id: \.self) { tab in
-                Button(action: {
-                    withAnimation(.easeInOut(duration: 0.15)) {
-                        selectedTab = tab
+                TabSelectorButton(
+                    tab: tab,
+                    isSelected: selectedTab == tab,
+                    action: {
+                        withAnimation(.interactiveSpring(response: 0.4, dampingFraction: 0.8)) {
+                            selectedTab = tab
+                        }
                     }
-                }) {
-                    VStack(spacing: 4) {
-                        Text(tab.title)
-                            .font(.subheadline)
-                            .fontWeight(selectedTab == tab ? .semibold : .medium)
-                            .foregroundColor(selectedTab == tab ? .primary : .secondary)
-                        
-                        Rectangle()
-                            .frame(height: 2)
-                            .foregroundColor(selectedTab == tab ? .primary : .clear)
-                    }
-                }
-                .frame(maxWidth: .infinity)
+                )
             }
         }
         .padding(.horizontal)
@@ -898,16 +890,53 @@ struct ItemTypeButton: View {
             .padding(.horizontal, 16)
             .padding(.vertical, 10)
             .background(
+                isSelected ? Theme.primary.opacity(0.8) : Color.clear
+            )
+            .clipShape(Capsule())
+            .overlay(
                 Capsule()
-                    .fill(isSelected ? Theme.primary : Color(UIColor.secondarySystemBackground))
+                    .stroke(isSelected ? Color.clear : Color.primary.opacity(0.2), lineWidth: 0.5)
             )
         }
-        .scaleEffect(isPressed ? 0.95 : (isSelected ? 1.02 : 1.0))
-        .animation(.easeInOut(duration: 0.1), value: isPressed)
-        .animation(.spring(response: 0.3, dampingFraction: 0.7), value: isSelected)
+        .scaleEffect(isPressed ? 0.95 : (isSelected ? 1.05 : 1.0))
+        .animation(.interactiveSpring(response: 0.4, dampingFraction: 0.8), value: isPressed)
+        .animation(.interactiveSpring(response: 0.3, dampingFraction: 0.7), value: isSelected)
+        .buttonStyle(.plain)
+        .hoverEffect(.highlight)
         .onLongPressGesture(minimumDuration: 0, maximumDistance: .infinity, pressing: { pressing in
             isPressed = pressing
         }, perform: {})
+    }
+}
+
+struct TabSelectorButton: View {
+    let tab: RatingTab
+    let isSelected: Bool
+    let action: () -> Void
+    
+    var body: some View {
+        Button(action: action) {
+            VStack(spacing: 4) {
+                Text(tab.title)
+                    .font(.subheadline)
+                    .fontWeight(isSelected ? .semibold : .medium)
+                    .foregroundColor(isSelected ? .primary : .secondary)
+                    .padding(.vertical, 8)
+                    .padding(.horizontal, 12)
+                    .background(
+                        isSelected ? Color.primary.opacity(0.1) : Color.clear
+                    )
+                    .clipShape(Capsule())
+                
+                Rectangle()
+                    .frame(height: 2)
+                    .foregroundColor(isSelected ? .primary : .clear)
+                    .clipShape(Capsule())
+            }
+        }
+        .frame(maxWidth: .infinity)
+        .buttonStyle(.plain)
+        .hoverEffect(.highlight)
     }
 }
 

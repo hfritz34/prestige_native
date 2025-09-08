@@ -158,7 +158,7 @@ struct MainTabView: View {
                 .environmentObject(authManager)
                 .environmentObject(appearanceManager)
                 .tabItem {
-                    Image(systemName: "person.fill")
+                    Image(systemName: "person.crop.circle")
                     Text("Profile")
                 }
         }

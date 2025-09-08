@@ -142,10 +142,10 @@ class HomeViewModel: ObservableObject {
 
 // MARK: - Supporting Types
 
-enum ContentType: CaseIterable {
-    case albums
-    case tracks
-    case artists
+enum ContentType: String, CaseIterable {
+    case albums = "albums"
+    case tracks = "tracks" 
+    case artists = "artists"
     
     var displayName: String {
         switch self {

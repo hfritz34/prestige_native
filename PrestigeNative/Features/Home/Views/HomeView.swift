@@ -178,43 +178,56 @@ struct HomeView: View {
         HStack(spacing: contentButtonSpacing) {
             ForEach(ContentType.allCases, id: \.self) { type in
                 Button(action: {
-                    withAnimation(.easeInOut(duration: 0.15)) {
+                    withAnimation(.interactiveSpring(response: 0.4, dampingFraction: 0.8)) {
                         viewModel.selectedContentType = type
                     }
                 }) {
                     Text(type.displayName)
                         .font(.subheadline)
                         .fontWeight(.medium)
-                        .foregroundColor(viewModel.selectedContentType == type ? .white : .gray)
+                        .foregroundColor(viewModel.selectedContentType == type ? .white : .primary)
                         .padding(.horizontal, contentButtonHorizontalPadding)
                         .padding(.vertical, 10)
                         .background(
                             viewModel.selectedContentType == type
-                                ? Color.purple
-                                : Color.gray.opacity(0.2)
+                                ? Color.purple.opacity(0.8)
+                                : Color.clear
                         )
-                        .cornerRadius(20)
-                        .minimumScaleFactor(0.85) // Allow text to scale down if needed
+                        .clipShape(Capsule())
+                        .overlay(
+                            Capsule()
+                                .stroke(viewModel.selectedContentType == type ? Color.clear : Color.primary.opacity(0.2), lineWidth: 0.5)
+                        )
+                        .scaleEffect(viewModel.selectedContentType == type ? 1.05 : 1.0)
+                        .minimumScaleFactor(0.85)
                 }
+                .buttonStyle(.plain)
+                .hoverEffect(.highlight)
             }
             
             Spacer()
             
             // Grid toggle button (now controls target columns for adaptive grid)
             Button(action: {
-                withAnimation(.easeInOut(duration: 0.15)) {
+                withAnimation(.interactiveSpring(response: 0.4, dampingFraction: 0.8)) {
                     toggleGridSize()
                 }
             }) {
                 Image(systemName: gridIconName)
                     .font(.title2)
                     .foregroundColor(.purple)
-                    .frame(width: 24, height: 24) // Fixed size to prevent layout shifts
+                    .frame(width: 24, height: 24)
                     .padding(8)
-                    .background(Color.gray.opacity(0.2))
+                    .background(Color.clear)
                     .clipShape(Circle())
+                    .overlay(
+                        Circle()
+                            .stroke(Color.primary.opacity(0.2), lineWidth: 0.5)
+                    )
             }
-            .frame(width: 40, height: 40) // Fixed button frame
+            .frame(width: 40, height: 40)
+            .buttonStyle(.plain)
+            .hoverEffect(.highlight)
         }
     }
     

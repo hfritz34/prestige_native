@@ -99,6 +99,22 @@ enum PrestigeLevel: String, CaseIterable, Codable {
         }
     }
     
+    /// Get next prestige level (returns nil if at max level)
+    var nextLevel: PrestigeLevel? {
+        let allCases = PrestigeLevel.allCases
+        guard let currentIndex = allCases.firstIndex(of: self),
+              currentIndex < allCases.count - 1 else {
+            return nil
+        }
+        return allCases[currentIndex + 1]
+    }
+    
+    /// Create PrestigeLevel from string
+    static func fromString(_ string: String) -> PrestigeLevel? {
+        return PrestigeLevel(rawValue: string) ?? 
+               PrestigeLevel.allCases.first { $0.rawValue.lowercased() == string.lowercased() }
+    }
+    
     /// Numeric order for comparison (matches backend tier progression)
     var order: Int {
         switch self {

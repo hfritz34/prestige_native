@@ -13,10 +13,15 @@ struct FriendPrestigeDetailView: View {
     
     @Environment(\.dismiss) private var dismiss
     @StateObject private var friendProfileViewModel = FriendProfileViewModel()
+    @StateObject private var progressService = PrestigeProgressService.shared
     @State private var showingShareSheet = false
     @State private var showFriendComparison = false
     @State private var isPlaying = false
     @State private var comparisonData: EnhancedItemComparisonResponse?
+    
+    // Progress data for friend
+    @State private var friendProgressData: PrestigeProgressResponse?
+    @State private var isLoadingProgress = false
     
     // Album tracks data (for friend's albums)
     @State private var friendAlbumTracks: [FriendTrackRankingResponse] = []
@@ -59,9 +64,6 @@ struct FriendPrestigeDetailView: View {
                     if friendPrestigeItem.contentType == .artists {
                         friendArtistAlbumsSection
                     }
-                    
-                    // Friend's Rating Section - Adapted to show friend's rating
-                    friendRatingSection
                     
                     // Actions - Adapted for friend context
                     friendActionButtons
@@ -176,43 +178,6 @@ struct FriendPrestigeDetailView: View {
             )
             .scaleEffect(1.3)
             
-            // Progress to next tier - IDENTICAL to PrestigeDetailView
-            if let progress = progressToNextTier {
-                VStack(spacing: 12) {
-                    HStack {
-                        Text("Progress to \(progress.nextTier.displayName)")
-                            .font(.headline)
-                        Spacer()
-                        Text("\(Int(progress.percentage))%")
-                            .font(.subheadline)
-                            .foregroundColor(.secondary)
-                    }
-                    
-                    PrestigeProgressBar(
-                        progress: progress.percentage / 100,
-                        currentTier: friendPrestigeItem.prestigeLevel,
-                        nextTier: progress.nextTier
-                    )
-                    
-                    Text("\(progress.remainingTime) more to reach \(progress.nextTier.displayName)")
-                        .font(.caption)
-                        .foregroundColor(.secondary)
-                }
-                .padding()
-                .background(
-                    ZStack {
-                        Color(UIColor.systemBackground)
-                            .opacity(0.8)
-                        Color.white.opacity(0.05)
-                    }
-                )
-                .overlay(
-                    RoundedRectangle(cornerRadius: 12)
-                        .stroke(Color.gray.opacity(0.15), lineWidth: 0.5)
-                )
-                .cornerRadius(12)
-                .shadow(color: Theme.shadowLight, radius: 3, x: 0, y: 2)
-            }
         }
     }
     
@@ -231,119 +196,65 @@ struct FriendPrestigeDetailView: View {
                     title: "Minutes",
                     value: TimeFormatter.formatListeningTime(friendPrestigeItem.totalTimeMilliseconds),
                     icon: "clock.fill",
-                    color: .blue
-                )
-                
-                StatCard(
-                    title: "Prestige Level",
-                    value: friendPrestigeItem.prestigeLevel.displayName,
-                    icon: "star.fill",
                     color: Color(hex: friendPrestigeItem.prestigeLevel.color) ?? .blue
                 )
                 
-                if friendPrestigeItem.contentType == .tracks, let position = friendPrestigeItem.albumPosition {
-                    StatCard(
-                        title: "Album Rank",
-                        value: "🏆 #\(position)",
-                        icon: "number.square.fill",
-                        color: .yellow
-                    )
-                } else if friendPrestigeItem.contentType == .tracks {
-                    StatCard(
-                        title: "Album Rank",
-                        value: "...",
-                        icon: "number.square.fill",
-                        color: .gray
-                    )
+                // For tracks: show album position instead of rating
+                if friendPrestigeItem.contentType == .tracks {
+                    if let position = friendPrestigeItem.albumPosition {
+                        StatCard(
+                            title: "Album Rank",
+                            value: "#\(position)",
+                            icon: "trophy.fill",
+                            color: .yellow
+                        )
+                    } else {
+                        StatCard(
+                            title: "Album Rank",
+                            value: "N/A",
+                            icon: "trophy",
+                            color: .gray
+                        )
+                    }
                 } else {
-                    StatCard(
-                        title: "Play Count",
-                        value: "\(Int(friendPrestigeItem.totalTimeMilliseconds / 1000 / 60 / 3))",
-                        icon: "play.fill",
-                        color: .green
-                    )
+                    // For albums and artists: show friend's rating
+                    if let rating = friendPrestigeItem.rating {
+                        let ratingColor: Color = {
+                            if rating >= 6.8 {
+                                return Color(hex: "#22c55e") ?? .green
+                            } else if rating >= 3.4 {
+                                return Color(hex: "#eab308") ?? .yellow
+                            } else {
+                                return Color(hex: "#ef4444") ?? .red
+                            }
+                        }()
+                        
+                        StatCard(
+                            title: "\(friendName)'s Rating",
+                            value: String(format: "%.1f", rating),
+                            icon: "star.fill",
+                            color: ratingColor
+                        )
+                    } else {
+                        StatCard(
+                            title: "\(friendName)'s Rating",
+                            value: "No Rating",
+                            icon: "star",
+                            color: .gray
+                        )
+                    }
                 }
+                
+                StatCard(
+                    title: "Play Count",
+                    value: "\(Int(friendPrestigeItem.totalTimeMilliseconds / 1000 / 60 / 3))",
+                    icon: "play.fill",
+                    color: .blue
+                )
             }
         }
     }
     
-    private var friendRatingSection: some View {
-        VStack(spacing: 16) {
-            Text("Friend's Rating")
-                .font(.headline)
-                .frame(maxWidth: .infinity, alignment: .leading)
-            
-            if let rating = friendPrestigeItem.rating {
-                // Show friend's rating
-                VStack(spacing: 16) {
-                    HStack {
-                        RatingBadge(score: rating, size: .large)
-                        
-                        VStack(alignment: .leading, spacing: 4) {
-                            Text("\(friendName)'s Rating")
-                                .font(.subheadline)
-                                .fontWeight(.semibold)
-                            
-                            Text("Score: \(String(format: "%.1f", rating))")
-                                .font(.caption)
-                                .foregroundColor(.secondary)
-                        }
-                        
-                        Spacer()
-                    }
-                    .padding()
-                    .background(
-                        ZStack {
-                            Color(UIColor.systemBackground)
-                                .opacity(0.8)
-                            Color.white.opacity(0.1)
-                        }
-                    )
-                    .overlay(
-                        RoundedRectangle(cornerRadius: 12)
-                            .stroke(Color.gray.opacity(0.2), lineWidth: 0.5)
-                    )
-                    .cornerRadius(12)
-                    .shadow(color: Theme.shadowLight, radius: 4, x: 0, y: 2)
-                    
-                    // "Rate This Too" button
-                    Button("Rate This Too") {
-                        // This would trigger rating flow for the current user
-                        // Implementation would go here
-                    }
-                    .font(.subheadline)
-                    .fontWeight(.medium)
-                    .foregroundColor(.white)
-                    .frame(maxWidth: .infinity)
-                    .padding()
-                    .background(Theme.primary)
-                    .cornerRadius(8)
-                }
-            } else {
-                // No friend rating
-                VStack(spacing: 12) {
-                    Text("Not rated yet")
-                        .font(.subheadline)
-                        .foregroundColor(.secondary)
-                    
-                    Button("Rate This Too") {
-                        // This would trigger rating flow for the current user
-                        // Implementation would go here
-                    }
-                    .font(.subheadline)
-                    .fontWeight(.medium)
-                    .foregroundColor(.white)
-                    .frame(maxWidth: .infinity)
-                    .padding()
-                    .background(Theme.primary)
-                    .cornerRadius(8)
-                }
-                .padding()
-                .background(Color.gray.opacity(0.1))
-                .cornerRadius(12)
-            }
-        }
-    }
     
     private var friendActionButtons: some View {
         VStack(spacing: 16) {
@@ -411,67 +322,32 @@ struct FriendPrestigeDetailView: View {
                 }
                 .disabled(friendPrestigeItem.totalTimeMilliseconds == 0)
                 
-                // Context-specific third button - IDENTICAL logic to PrestigeDetailView
-                if friendPrestigeItem.contentType == .albums {
-                    Button(action: {
-                        loadFriendAlbumTracks()
-                        withAnimation(.easeInOut(duration: 0.3)) {
-                            showAllTracks.toggle()
-                        }
-                    }) {
-                        VStack(spacing: 4) {
-                            Image(systemName: "music.note")
-                                .font(.title3)
-                            Text("Tracks")
-                                .font(.caption)
-                        }
-                        .frame(maxWidth: .infinity)
-                        .padding(.vertical, 12)
-                        .background(
-                            ZStack {
-                                Color(UIColor.systemBackground)
-                                    .opacity(0.7)
-                                Color.white.opacity(0.1)
-                            }
-                        )
-                        .overlay(
-                            RoundedRectangle(cornerRadius: 10)
-                                .stroke(Color.gray.opacity(0.2), lineWidth: 0.5)
-                        )
-                        .foregroundColor(.primary)
-                        .cornerRadius(10)
-                        .shadow(color: Theme.shadowLight, radius: 4, x: 0, y: 2)
+                // Share button moved up as third button
+                Button(action: {
+                    showingShareSheet = true
+                }) {
+                    VStack(spacing: 4) {
+                        Image(systemName: "square.and.arrow.up")
+                            .font(.title3)
+                        Text("Share")
+                            .font(.caption)
                     }
-                } else if friendPrestigeItem.contentType == .artists {
-                    Button(action: {
-                        loadFriendArtistAlbums()
-                        withAnimation(.easeInOut(duration: 0.3)) {
-                            showAllAlbums.toggle()
+                    .frame(maxWidth: .infinity)
+                    .padding(.vertical, 12)
+                    .background(
+                        ZStack {
+                            Color(UIColor.systemBackground)
+                                .opacity(0.7)
+                            Color.white.opacity(0.1)
                         }
-                    }) {
-                        VStack(spacing: 4) {
-                            Image(systemName: "square.stack")
-                                .font(.title3)
-                            Text("Albums")
-                                .font(.caption)
-                        }
-                        .frame(maxWidth: .infinity)
-                        .padding(.vertical, 12)
-                        .background(
-                            ZStack {
-                                Color(UIColor.systemBackground)
-                                    .opacity(0.7)
-                                Color.white.opacity(0.1)
-                            }
-                        )
-                        .overlay(
-                            RoundedRectangle(cornerRadius: 10)
-                                .stroke(Color.gray.opacity(0.2), lineWidth: 0.5)
-                        )
-                        .foregroundColor(.primary)
-                        .cornerRadius(10)
-                        .shadow(color: Theme.shadowLight, radius: 4, x: 0, y: 2)
-                    }
+                    )
+                    .overlay(
+                        RoundedRectangle(cornerRadius: 10)
+                            .stroke(Color.gray.opacity(0.2), lineWidth: 0.5)
+                    )
+                    .foregroundColor(.primary)
+                    .cornerRadius(10)
+                    .shadow(color: Theme.shadowLight, radius: 4, x: 0, y: 2)
                 }
             }
             
@@ -496,31 +372,6 @@ struct FriendPrestigeDetailView: View {
                 .cornerRadius(12)
             }
             
-            // Share friend's prestige
-            Button(action: {
-                showingShareSheet = true
-            }) {
-                HStack {
-                    Image(systemName: "square.and.arrow.up")
-                    Text("Share \(friendName)'s Prestige")
-                }
-                .frame(maxWidth: .infinity)
-                .padding()
-                .background(
-                    ZStack {
-                        Color(UIColor.systemBackground)
-                            .opacity(0.7)
-                        Color.white.opacity(0.1)
-                    }
-                )
-                .overlay(
-                    RoundedRectangle(cornerRadius: 12)
-                        .stroke(Color.gray.opacity(0.2), lineWidth: 0.5)
-                )
-                .foregroundColor(.primary)
-                .cornerRadius(12)
-                .shadow(color: Theme.shadowLight, radius: 4, x: 0, y: 2)
-            }
         }
     }
     
@@ -544,12 +395,12 @@ struct FriendPrestigeDetailView: View {
                         Text(showAllTracks ? "Hide Tracks" : "Show All Tracks")
                             .font(.subheadline)
                             .fontWeight(.medium)
-                            .foregroundColor(.primary)
+                            .foregroundColor(.white)
                             .padding(.horizontal, 16)
                             .padding(.vertical, 8)
                             .background(
                                 Capsule()
-                                    .fill(Color(UIColor.tertiarySystemBackground))
+                                    .fill(Color.gray)
                             )
                     }
                 }
@@ -586,7 +437,7 @@ struct FriendPrestigeDetailView: View {
                     HStack(spacing: 12) {
                         Image(systemName: "music.note")
                             .font(.title3)
-                            .foregroundColor(Theme.primary)
+                            .foregroundColor(.white)
                         
                         VStack(alignment: .leading, spacing: 2) {
                             Text("Show Track Rankings")
@@ -602,7 +453,7 @@ struct FriendPrestigeDetailView: View {
                         
                         Image(systemName: "chevron.down.circle.fill")
                             .font(.title2)
-                            .foregroundColor(Theme.primary)
+                            .foregroundColor(.white)
                     }
                     .foregroundColor(.primary)
                     .padding()
@@ -611,7 +462,7 @@ struct FriendPrestigeDetailView: View {
                             .fill(Color(UIColor.secondarySystemBackground))
                             .overlay(
                                 RoundedRectangle(cornerRadius: 12)
-                                    .stroke(Theme.primary.opacity(0.2), lineWidth: 1)
+                                    .stroke(Color.gray.opacity(0.2), lineWidth: 1)
                             )
                     )
                 }
@@ -640,12 +491,12 @@ struct FriendPrestigeDetailView: View {
                         Text(showAllAlbums ? "Hide Albums" : "Show All Albums")
                             .font(.subheadline)
                             .fontWeight(.medium)
-                            .foregroundColor(.primary)
+                            .foregroundColor(.white)
                             .padding(.horizontal, 16)
                             .padding(.vertical, 8)
                             .background(
                                 Capsule()
-                                    .fill(Color(UIColor.tertiarySystemBackground))
+                                    .fill(Color.gray)
                             )
                     }
                 }
@@ -681,7 +532,7 @@ struct FriendPrestigeDetailView: View {
                     HStack(spacing: 12) {
                         Image(systemName: "square.stack")
                             .font(.title3)
-                            .foregroundColor(.green)
+                            .foregroundColor(.white)
                         
                         VStack(alignment: .leading, spacing: 2) {
                             Text("Show Album Rankings")
@@ -697,7 +548,7 @@ struct FriendPrestigeDetailView: View {
                         
                         Image(systemName: "chevron.down.circle.fill")
                             .font(.title2)
-                            .foregroundColor(.green)
+                            .foregroundColor(.white)
                     }
                     .foregroundColor(.primary)
                     .padding()
@@ -706,21 +557,22 @@ struct FriendPrestigeDetailView: View {
                             .fill(Color(UIColor.secondarySystemBackground))
                             .overlay(
                                 RoundedRectangle(cornerRadius: 12)
-                                    .stroke(Color.green.opacity(0.3), lineWidth: 1)
+                                    .stroke(Color.gray.opacity(0.2), lineWidth: 1)
                             )
                     )
                 }
                 .padding(.vertical, 8)
             }
         }
+        .onAppear {
+            Task {
+                await loadFriendProgressData()
+            }
+        }
     }
     
     // MARK: - Helper Properties and Methods
     
-    private var progressToNextTier: (percentage: Double, nextTier: PrestigeLevel, remainingTime: String)? {
-        // Progress calculation disabled - all prestige logic moved to backend
-        return nil
-    }
     
     private func formatTime(_ minutes: Double) -> String {
         let hours = Int(minutes) / 60
@@ -730,6 +582,34 @@ struct FriendPrestigeDetailView: View {
             return "\(hours)h \(mins)m"
         } else {
             return "\(mins)m"
+        }
+    }
+    
+    /// Load prestige progress data for the friend's item
+    private func loadFriendProgressData() async {
+        isLoadingProgress = true
+        
+        // Use real API for friend progress
+        let progress = await progressService.fetchFriendProgress(
+            friendId: friendId,
+            itemId: friendPrestigeItem.spotifyId,
+            itemType: friendPrestigeItem.contentType
+        )
+        
+        await MainActor.run {
+            if let progress = progress {
+                withAnimation(.easeInOut(duration: 0.6)) {
+                    friendProgressData = progress
+                }
+            } else {
+                // Fallback to mock data for development if API fails
+                if let mockProgress = progressService.generateMockProgress(for: friendPrestigeItem) {
+                    withAnimation(.easeInOut(duration: 0.6)) {
+                        friendProgressData = mockProgress
+                    }
+                }
+            }
+            isLoadingProgress = false
         }
     }
     

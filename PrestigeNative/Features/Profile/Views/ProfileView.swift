@@ -203,24 +203,34 @@ struct ProfileView: View {
                 }) {
                     Text("Edit profile")
                         .font(.subheadline)
+                        .fontWeight(.medium)
                         .frame(maxWidth: .infinity)
-                        .padding(.vertical, 6)
+                        .padding(.vertical, 10)
+                        .foregroundColor(.white)
+                        .background(Color.purple.opacity(0.8))
+                        .clipShape(Capsule())
                 }
-                .buttonStyle(.borderedProminent)
-                .controlSize(.large)
-                .tint(.purple)
+                .buttonStyle(.plain)
+                .hoverEffect(.highlight)
 
                 Button(action: {
                     // TODO: Share profile action
                 }) {
                     Text("Share profile")
                         .font(.subheadline)
+                        .fontWeight(.medium)
                         .frame(maxWidth: .infinity)
-                        .padding(.vertical, 6)
+                        .padding(.vertical, 10)
+                        .foregroundColor(.primary)
+                        .background(Color.clear)
+                        .clipShape(Capsule())
+                        .overlay(
+                            Capsule()
+                                .stroke(Color.primary.opacity(0.3), lineWidth: 1)
+                        )
                 }
-                .buttonStyle(.bordered)
-                .controlSize(.large)
-                .tint(.secondary)
+                .buttonStyle(.plain)
+                .hoverEffect(.highlight)
             }
             .padding(.horizontal, 20)
         }

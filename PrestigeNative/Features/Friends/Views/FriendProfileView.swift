@@ -192,19 +192,16 @@ struct FriendProfileView: View {
                     
                     // Friend Statistics - moved below bio and left-aligned
                     if let stats = viewModel.friendStatistics {
-                        HStack(spacing: 16) {
-                            FriendStatItem(value: stats.friendsCount, label: stats.friendsCount == 1 ? "Friend" : "Friends")
-                            
-                            Text("•")
-                                .foregroundColor(.secondary.opacity(0.5))
-                            
-                            FriendStatItem(value: stats.ratingsCount, label: "Rated")
-                            
-                            Text("•")
-                                .foregroundColor(.secondary.opacity(0.5))
-                            
-                            FriendStatItem(value: stats.prestigesCount, label: "Prestiged")
+                        GeometryReader { geometry in
+                            HStack(alignment: .center, spacing: max(12, geometry.size.width * 0.05)) {
+                                FriendStatItem(value: stats.friendsCount, label: stats.friendsCount == 1 ? "Friend" : "Friends")
+                                
+                                FriendStatItem(value: stats.ratingsCount, label: "Rated")
+                                
+                                FriendStatItem(value: stats.prestigesCount, label: "Prestiged")
+                            }
                         }
+                        .frame(height: 20)
                         .padding(.top, 8)
                     }
                 }
@@ -695,14 +692,21 @@ private struct FriendStatItem: View {
     let label: String
     
     var body: some View {
-        HStack(spacing: 4) {
-            Text("\(value)")
-                .font(.system(size: 14, weight: .semibold))
-                .foregroundColor(.primary)
-            
-            Text(label)
-                .font(.system(size: 14))
-                .foregroundColor(.secondary)
+        GeometryReader { geometry in
+            HStack(alignment: .center, spacing: min(5, geometry.size.width * 0.025)) {
+                Text("\(value)")
+                    .font(.system(size: min(16, max(12, geometry.size.width * 0.09)), weight: .semibold))
+                    .foregroundColor(.primary)
+                    .minimumScaleFactor(0.75)
+                    .lineLimit(1)
+                
+                Text(label)
+                    .font(.system(size: min(16, max(12, geometry.size.width * 0.09))))
+                    .foregroundColor(.secondary)
+                    .minimumScaleFactor(0.75)
+                    .lineLimit(1)
+            }
         }
+        .frame(height: 20)
     }
 }

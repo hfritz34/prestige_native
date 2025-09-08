@@ -20,6 +20,7 @@ class ProfileService: ObservableObject {
     @Published var favoriteAlbums: [AlbumResponse] = []
     @Published var favoriteArtists: [ArtistResponse] = []
     @Published var userProfile: UserResponse?
+    @Published var userStatistics: UserStatisticsResponse?
     
     @Published var isLoading = false
     @Published var error: APIError?
@@ -272,6 +273,43 @@ class ProfileService: ObservableObject {
         }
     }
     
+    /// Fetch user statistics (friends, ratings, prestiges)
+    func fetchUserStatistics(userId: String) async {
+        await MainActor.run { isLoading = true }
+        
+        do {
+            print("🔵 Fetching user statistics for user: \(userId)")
+            let statistics: UserStatisticsResponse = try await apiClient.get(
+                "/users/\(userId)/statistics",
+                responseType: UserStatisticsResponse.self
+            )
+            print("✅ Successfully fetched user statistics: \(statistics.friendsCount) friends, \(statistics.ratingsCount) ratings, \(statistics.prestigesCount) prestiges")
+            await MainActor.run {
+                self.userStatistics = statistics
+                self.isLoading = false
+                self.error = nil
+            }
+        } catch let apiError as APIError {
+            print("❌ User statistics API error: \(apiError)")
+            await MainActor.run {
+                // Only set error if we're not in a concurrent loading context
+                if !self.isLoading {
+                    self.error = apiError
+                }
+                self.isLoading = false
+            }
+        } catch {
+            print("❌ User statistics network error: \(error)")
+            await MainActor.run {
+                // Only set error if we're not in a concurrent loading context
+                if !self.isLoading {
+                    self.error = .networkError(error)
+                }
+                self.isLoading = false
+            }
+        }
+    }
+    
     /// Fetch recently updated items from hourly batch processing
     func fetchRecentlyUpdated(userId: String) async -> RecentlyUpdatedResponse {
         do {
@@ -329,6 +367,7 @@ class ProfileService: ObservableObject {
             group.addTask { await self.fetchFavoriteAlbums(userId: userId) }
             group.addTask { await self.fetchFavoriteArtists(userId: userId) }
             group.addTask { await self.fetchUserProfile(userId: userId) }
+            group.addTask { await self.fetchUserStatistics(userId: userId) }
         }
         
         // Mark loading as complete

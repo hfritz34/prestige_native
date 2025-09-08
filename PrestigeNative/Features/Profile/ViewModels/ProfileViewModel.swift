@@ -28,6 +28,7 @@ class ProfileViewModel: ObservableObject {
     @Published var ratingsLoaded = false
     @Published var error: APIError?
     @Published var selectedTimeRange: TimeRange = .allTime
+    @Published var userStatistics: UserStatisticsResponse?
     
     private let profileService: ProfileService
     private let authManager: AuthManager
@@ -95,6 +96,10 @@ class ProfileViewModel: ObservableObject {
         
         profileService.$error
             .assign(to: \.error, on: self)
+            .store(in: &cancellables)
+        
+        profileService.$userStatistics
+            .assign(to: \.userStatistics, on: self)
             .store(in: &cancellables)
     }
     

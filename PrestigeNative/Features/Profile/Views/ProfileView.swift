@@ -141,7 +141,7 @@ struct ProfileView: View {
         VStack(spacing: 12) {
             // Compact Profile Header
             HStack(alignment: .top, spacing: 14) {
-                // LEFT: name, handle, bio
+                // LEFT: name, bio, stats
                 VStack(alignment: .leading, spacing: 4) {
                     // Display name with verification badge
                     HStack(spacing: 6) {
@@ -170,7 +170,6 @@ struct ProfileView: View {
                         }
                     }
 
-
                     // Bio
                     if let bio = viewModel.userProfile?.bio, !bio.isEmpty {
                         Text(bio)
@@ -184,10 +183,28 @@ struct ProfileView: View {
                             .italic()
                             .lineLimit(2)
                     }
+                    
+                    // User Statistics - moved below bio and left-aligned
+                    if let stats = viewModel.userStatistics {
+                        HStack(spacing: 16) {
+                            StatItem(value: stats.friendsCount, label: stats.friendsCount == 1 ? "Friend" : "Friends")
+                            
+                            Text("•")
+                                .foregroundColor(.secondary.opacity(0.5))
+                            
+                            StatItem(value: stats.ratingsCount, label: "Rated")
+                            
+                            Text("•")
+                                .foregroundColor(.secondary.opacity(0.5))
+                            
+                            StatItem(value: stats.prestigesCount, label: stats.prestigesCount == 1 ? "Prestige" : "Prestiges")
+                        }
+                        .padding(.top, 8)
+                    }
                 }
                 .frame(maxWidth: .infinity, alignment: .leading)
 
-                // RIGHT: avatar
+                // RIGHT: avatar - aligned with the name/bio section
                 AsyncImage(url: URL(string: viewModel.userProfile?.profilePictureUrl ?? "")) { phase in
                     switch phase {
                     case .success(let img):
@@ -652,6 +669,25 @@ struct ProfileView: View {
         }
     }
     
+}
+
+// MARK: - Helper Views
+
+private struct StatItem: View {
+    let value: Int
+    let label: String
+    
+    var body: some View {
+        HStack(spacing: 4) {
+            Text("\(value)")
+                .font(.system(size: 14, weight: .semibold))
+                .foregroundColor(.primary)
+            
+            Text(label)
+                .font(.system(size: 14))
+                .foregroundColor(.secondary)
+        }
+    }
 }
 
 #Preview {

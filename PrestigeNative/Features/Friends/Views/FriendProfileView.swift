@@ -136,7 +136,7 @@ struct FriendProfileView: View {
         VStack(spacing: 12) {
             // Compact Profile Header
             HStack(alignment: .top, spacing: 14) {
-                // LEFT: name, handle, bio
+                // LEFT: name, handle, bio, stats
                 VStack(alignment: .leading, spacing: 4) {
                     // Display name with verification badge
                     HStack(spacing: 6) {
@@ -189,10 +189,28 @@ struct FriendProfileView: View {
                             .foregroundStyle(.secondary)
                             .lineLimit(2)
                     }
+                    
+                    // Friend Statistics - moved below bio and left-aligned
+                    if let stats = viewModel.friendStatistics {
+                        HStack(spacing: 16) {
+                            FriendStatItem(value: stats.friendsCount, label: stats.friendsCount == 1 ? "Friend" : "Friends")
+                            
+                            Text("•")
+                                .foregroundColor(.secondary.opacity(0.5))
+                            
+                            FriendStatItem(value: stats.ratingsCount, label: "Rated")
+                            
+                            Text("•")
+                                .foregroundColor(.secondary.opacity(0.5))
+                            
+                            FriendStatItem(value: stats.prestigesCount, label: stats.prestigesCount == 1 ? "Prestige" : "Prestiges")
+                        }
+                        .padding(.top, 8)
+                    }
                 }
                 .frame(maxWidth: .infinity, alignment: .leading)
 
-                // RIGHT: avatar
+                // RIGHT: avatar - aligned with the name/bio section
                 if let profilePicUrl = viewModel.friend?.profilePicUrl {
                     AsyncImage(url: URL(string: profilePicUrl)) { phase in
                         switch phase {
@@ -667,5 +685,24 @@ struct FriendProfileView: View {
             albumId: nil, // Recent tracks don't have album ID in this context
             albumName: nil // Recent tracks don't have album name in this context
         )
+    }
+}
+
+// MARK: - Helper Views
+
+private struct FriendStatItem: View {
+    let value: Int
+    let label: String
+    
+    var body: some View {
+        HStack(spacing: 4) {
+            Text("\(value)")
+                .font(.system(size: 14, weight: .semibold))
+                .foregroundColor(.primary)
+            
+            Text(label)
+                .font(.system(size: 14))
+                .foregroundColor(.secondary)
+        }
     }
 }

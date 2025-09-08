@@ -27,6 +27,7 @@ class FriendProfileViewModel: ObservableObject {
     @Published var isLoading = false
     @Published var error: String?
     @Published var isInFriendContext: Bool = false
+    @Published var friendStatistics: UserStatisticsResponse?
     
     private let friendsService = FriendsService()
     private let apiClient = APIClient.shared
@@ -75,6 +76,9 @@ class FriendProfileViewModel: ObservableObject {
             // The UI should use recentlyPlayed directly
             self.recentTracks = []
             
+            // Load friend statistics
+            await loadFriendStatistics(friendId: friendId)
+            
             print("✅ Friend profile loaded: \(friendProfile.name) with \(topTracks.count) top tracks, \(ratedTrackItems.count) track ratings, \(ratedAlbumItems.count) album ratings, \(ratedArtistItems.count) artist ratings, and \(recentlyPlayed.count) recently played")
         } else {
             self.error = "Failed to load friend profile"
@@ -82,6 +86,22 @@ class FriendProfileViewModel: ObservableObject {
         }
         
         isLoading = false
+    }
+    
+    /// Load friend's statistics (friends, ratings, prestiges)
+    private func loadFriendStatistics(friendId: String) async {
+        do {
+            print("🔵 Loading friend statistics for: \(friendId)")
+            let statistics: UserStatisticsResponse = try await apiClient.get(
+                "/users/\(friendId)/statistics",
+                responseType: UserStatisticsResponse.self
+            )
+            print("✅ Friend statistics loaded: \(statistics.friendsCount) friends, \(statistics.ratingsCount) ratings, \(statistics.prestigesCount) prestiges")
+            self.friendStatistics = statistics
+        } catch {
+            print("❌ Failed to load friend statistics: \(error)")
+            // Don't set error state, statistics are optional
+        }
     }
     
     /// Force refresh friend profile data

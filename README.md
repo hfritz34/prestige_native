@@ -213,8 +213,18 @@ In 2025, music has become a lifestyle for millions globally. Despite the explosi
 
 ### 🤝 Social Features
 <div align="center">
-  <img src="assets/demo_sc/friend_compare.jpeg" alt="Friend Comparison" width="300">
-  <p><em>Discover shared musical interests and friendly competition with your friends</em></p>
+  <table>
+    <tr>
+      <td align="center">
+        <img src="assets/demo_sc/friendpage_view.jpeg" alt="Friend Profile Page" width="300">
+        <p><em>Explore your friends' music profiles and prestige levels</em></p>
+      </td>
+      <td align="center">
+        <img src="assets/demo_sc/friend_compare.jpeg" alt="Friend Comparison" width="300">
+        <p><em>Discover shared musical interests and friendly competition</em></p>
+      </td>
+    </tr>
+  </table>
 </div>
 
 ## 🤝 Contributing

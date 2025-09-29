@@ -227,25 +227,6 @@ In 2025, music has become a lifestyle for millions globally. Despite the explosi
   </table>
 </div>
 
-## 🤝 Contributing
-
-We welcome contributions! Please see our [Contributing Guidelines](CONTRIBUTING.md) for details.
-
-### **Development Workflow**
-1. Fork the repository
-2. Create a feature branch (`git checkout -b feature/amazing-feature`)
-3. Make your changes in Xcode
-4. Run tests (`Cmd + U`)
-5. Commit your changes (`git commit -m 'Add amazing feature'`)
-6. Push to the branch (`git push origin feature/amazing-feature`)
-7. Open a Pull Request
-
-### **Code Style**
-- Follow Swift API Design Guidelines
-- Use SwiftLint for code formatting
-- Write unit tests for new features
-- Update documentation as needed
-
 ## 📊 Project Structure
 
 ```
